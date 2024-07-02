@@ -104,7 +104,7 @@ class _LoadGame extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator.adaptive()),
       error: (error, _) {
         return Center(
-          child: Text('Cannot load game analysis: $error'),
+          child: Text(context.l10n.mobileCannotLoadGameAnalysis('$error')),
         );
       },
     );
@@ -780,7 +780,7 @@ class _BottomBar extends ConsumerWidget {
           },
         ),
         BottomSheetAction(
-          makeLabel: (context) => const Text('Share PGN'),
+          makeLabel: (context) => Text(context.l10n.mobileShareGamePGN),
           onPressed: (_) {
             pushPlatformRoute(
               context,
@@ -790,7 +790,7 @@ class _BottomBar extends ConsumerWidget {
           },
         ),
         BottomSheetAction(
-          makeLabel: (context) => const Text('Share position as FEN'),
+          makeLabel: (context) => Text(context.l10n.mobileSharePositionAsFEN),
           onPressed: (_) {
             launchShareDialog(
               context,

@@ -141,7 +141,7 @@ class _CupertinoBodyState extends State<_CupertinoBody> {
               groupValue: _selectedSegment,
               children: {
                 _ViewMode.create: Text(context.l10n.createAGame),
-                _ViewMode.challenges: const Text('Join a game'),
+                _ViewMode.challenges: Text(context.l10n.mobileCustomGameJoinAGame),
               },
               onValueChanged: (_ViewMode? view) {
                 if (view != null) {
@@ -315,7 +315,7 @@ class _ChallengesBodyState extends ConsumerState<_ChallengesBody> {
         return const Center(child: CircularProgressIndicator.adaptive());
       },
       error: (error, stack) =>
-          const Center(child: Text('Could not load challenges.')),
+          Center(child: Text(context.l10n.mobileCustomGameJoinAGame)),
     );
   }
 }
@@ -654,8 +654,8 @@ class _CreateGameBodyState extends ConsumerState<_CreateGameBody> {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator.adaptive()),
-      error: (error, stackTrace) => const Center(
-        child: Text('Could not load account data'),
+      error: (error, stackTrace) => Center(
+        child: Text(context.l10n.mobileCouldNotLoadAccountData),
       ),
     );
   }

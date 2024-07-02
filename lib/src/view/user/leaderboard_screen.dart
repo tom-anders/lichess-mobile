@@ -123,7 +123,7 @@ class _Body extends ConsumerWidget {
       },
       loading: () => const Center(child: CircularProgressIndicator.adaptive()),
       error: (error, stack) =>
-          const Center(child: Text('Could not load leaderboard.')),
+          Center(child: Text(context.l10n.mobileCouldNotLoadLeaderboard)),
     );
   }
 }

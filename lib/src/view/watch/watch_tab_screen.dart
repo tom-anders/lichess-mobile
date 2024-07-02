@@ -237,7 +237,7 @@ class _BroadcastWidget extends ConsumerWidget {
         );
         return Padding(
           padding: Styles.bodySectionPadding,
-          child: const Text('Could not load broadcasts'),
+          child: Text(context.l10n.mobileCouldNotLoadBroadcasts),
         );
       },
       loading: () => Shimmer(
@@ -301,7 +301,7 @@ class _WatchTvWidget extends ConsumerWidget {
         );
         return Padding(
           padding: Styles.bodySectionPadding,
-          child: const Text('Could not load TV channels'),
+          child: Text(context.l10n.mobileCouldNotLoadTvChannels),
         );
       },
       loading: () => Shimmer(
@@ -356,7 +356,7 @@ class _StreamerWidget extends ConsumerWidget {
         );
         return Padding(
           padding: Styles.bodySectionPadding,
-          child: const Text('Could not load live streamers'),
+          child: Text(context.l10n.mobileCouldNotLoadStreamers),
         );
       },
       loading: () => Shimmer(

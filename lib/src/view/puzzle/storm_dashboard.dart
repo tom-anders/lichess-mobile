@@ -59,7 +59,7 @@ class _Body extends ConsumerWidget {
     return stormDashboard.when(
       data: (data) {
         if (data == null) {
-          return const Center(child: Text('Could not load dashboard.'));
+          return Center(child: Text(context.l10n.mobilePuzzleStormCouldNotLoadDashboard));
         }
         final dateFormat = DateFormat('MMMM d, yyyy');
         return SafeArea(
@@ -200,8 +200,8 @@ class _Body extends ConsumerWidget {
                   ),
                 ),
               ] else
-                const Center(
-                  child: Text('Nothing to show. Play some runs of storm'),
+                Center(
+                  child: Text(context.l10n.mobilePuzzleStormNothingToShow),
                 ),
             ],
           ),
@@ -211,7 +211,7 @@ class _Body extends ConsumerWidget {
         debugPrint(
           'SEVERE: [StormDashboardModel] could not load storm dashboard; $e\n$s',
         );
-        return const SafeArea(child: Text('Could not load dashboard'));
+        return SafeArea(child: Text(context.l10n.mobilePuzzleStormCouldNotLoadDashboard));
       },
       loading: () => _Loading(),
     );

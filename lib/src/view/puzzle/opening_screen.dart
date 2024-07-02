@@ -103,7 +103,7 @@ class _Body extends ConsumerWidget {
           }
         },
         error: (error, stack) {
-          return const Center(child: Text('Could not load openings.'));
+          return Center(child: Text(context.l10n.mobilePuzzleScreenCouldNotLoadOpenings));
         },
         loading: () =>
             const Center(child: CircularProgressIndicator.adaptive()),

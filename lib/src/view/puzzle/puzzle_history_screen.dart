@@ -206,7 +206,7 @@ class _BodyState extends ConsumerState<_Body> {
         debugPrint(
           'SEVERE: [PuzzleHistoryScreen] could not load puzzle history',
         );
-        return const Center(child: Text('Could not load Puzzle History'));
+        return Center(child: Text(context.l10n.mobileCouldNotLoadPuzzleHistory));
       },
       loading: () => const CenterLoadingIndicator(),
     );

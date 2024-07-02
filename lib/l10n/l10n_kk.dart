@@ -7,6 +7,181 @@ class AppLocalizationsKk extends AppLocalizations {
   AppLocalizationsKk([String locale = 'kk']) : super(locale);
 
   @override
+  String get mobileHomeTab => 'Home';
+
+  @override
+  String get mobilePuzzlesTab => 'Puzzles';
+
+  @override
+  String get mobileToolsTab => 'Tools';
+
+  @override
+  String get mobileWatchTab => 'Watch';
+
+  @override
+  String get mobileSettingsTab => 'Settings';
+
+  @override
+  String get mobileMustBeLoggedIn => 'You must be logged in to view this page.';
+
+  @override
+  String get mobileSystemColors => 'System colors';
+
+  @override
+  String get mobileFeedbackButton => 'Feedback';
+
+  @override
+  String get mobileOkButton => 'OK';
+
+  @override
+  String get mobileSettingsHapticFeedback => 'Haptic feedback';
+
+  @override
+  String get mobileSettingsImmersiveMode => 'Immersive mode';
+
+  @override
+  String get mobileSettingsImmersiveModeSubtitle => '\n      Hide system UI while playing. Use this if you are bothered by the system\'s navigation gestures at the edges of the screen. Applies to game and Puzzle Storm screens. \n  ';
+
+  @override
+  String get mobileNotFollowingAnyUser => 'You are not following any user.';
+
+  @override
+  String get mobileCouldNotLoadRecentGames => 'Could not load recent games.';
+
+  @override
+  String get mobileCouldNotLoadOnlineFriends => 'Could not load online friends.';
+
+  @override
+  String get mobileCouldNotLoadUserActivity => 'Could not load user activity.';
+
+  @override
+  String get mobileCouldNotLoadLeaderboard => 'Could not load leaderboard.';
+
+  @override
+  String get mobileCouldNotLoadEloGraph => 'Could not load Elo chart.';
+
+  @override
+  String get mobileCouldNotLoadUserStats => 'Could not load user stats.';
+
+  @override
+  String get mobileAllGames => 'All games';
+
+  @override
+  String get mobileCouldNotLoadGameHistory => 'Could not load game history.';
+
+  @override
+  String get mobileRecentSearches => 'Recent searches';
+
+  @override
+  String get mobileClearButton => 'Clear';
+
+  @override
+  String mobilePlayersMatchingSearchTerm(String param) {
+    return 'Players matching $param';
+  }
+
+  @override
+  String get mobileNoSearchResults => 'No results';
+
+  @override
+  String get mobileErrorLoadingSearchResults => 'Could not load search results.';
+
+  @override
+  String get mobileCouldNotLoadPuzzleHistory => 'Could not load puzzle history.';
+
+  @override
+  String get mobileCouldNotLoadDailyPuzzle => 'Could not load daily puzzle.';
+
+  @override
+  String get mobileAreYouSure => 'Are you sure?';
+
+  @override
+  String get mobilePuzzleStreakAbortWarning => 'You will lose your current streak and your score will be saved.';
+
+  @override
+  String get mobilePuzzleScreenCouldNotLoadOpenings => 'Could not load openings.';
+
+  @override
+  String get mobilePuzzleStormCouldNotLoadDashboard => 'Could not load dashboard.';
+
+  @override
+  String get mobilePuzzlesCouldNotLoadDashboard => 'Could not load dashboard.';
+
+  @override
+  String get mobilePuzzleStormNothingToShow => 'Nothing to show. Play some runs of storm';
+
+  @override
+  String get mobileSharePuzzle => 'Share this puzzle';
+
+  @override
+  String get mobileShareGameURL => 'Share game URL';
+
+  @override
+  String get mobileShareGamePGN => 'Share PGN';
+
+  @override
+  String get mobileSharePositionAsFEN => 'Share position as FEN';
+
+  @override
+  String get mobileShowVariations => 'Show variations';
+
+  @override
+  String get mobileHideVariation => 'Hide variation';
+
+  @override
+  String get mobileShowComments => 'Show comments';
+
+  @override
+  String get mobilePuzzleStormConfirmEndRun => 'Do you want to end this run?';
+
+  @override
+  String get mobilePuzzleStormFilterNothingToShow => 'Nothing to show, please change the filters';
+
+  @override
+  String get mobileCouldNotLoadPuzzleThemes => 'Could not load themes.';
+
+  @override
+  String get mobileCancelTakebackOffer => 'Cancel takeback offer';
+
+  @override
+  String get mobileCancelDrawOffer => 'Cancel draw offer';
+
+  @override
+  String get mobileWaitingForOpponentToJoin => 'Waiting for opponent to join...';
+
+  @override
+  String get mobileBlindfoldMode => 'Blindfold';
+
+  @override
+  String mobileCannotLoadGameAnalysis(String param) {
+    return 'Cannot load game analysis: $param';
+  }
+
+  @override
+  String get mobileCouldNotLoadAccountData => 'Could not load account data.';
+
+  @override
+  String get mobileLiveStreamers => 'Live streamers';
+
+  @override
+  String get mobileCustomGameJoinAGame => 'Join a game';
+
+  @override
+  String get mobileCouldNotLoadChallenges => 'Could not load challenges.';
+
+  @override
+  String get mobileCorrespondenceClearSavedMove => 'Clear saved move';
+
+  @override
+  String get mobileCouldNotLoadBroadcasts => 'Could not load broadcasts.';
+
+  @override
+  String get mobileCouldNotLoadTvChannels => 'Could not load TV channels.';
+
+  @override
+  String get mobileCouldNotLoadStreamers => 'Could not load streamers.';
+
+  @override
   String get activityActivity => 'Белсенділігі';
 
   @override

@@ -138,7 +138,7 @@ class PuzzleDashboardWidget extends ConsumerWidget {
               if (e is ClientException && e.message.contains('404'))
                 Text(context.l10n.puzzleNoPuzzlesToShow)
               else
-                const Text('Could not load dashboard.'),
+                Text(context.l10n.mobilePuzzlesCouldNotLoadDashboard),
             ],
           ),
         );

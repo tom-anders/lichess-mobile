@@ -68,7 +68,7 @@ class UserActivityWidget extends ConsumerWidget {
         debugPrint(
           'SEVERE: [UserScreen] could not load user activity; $error\n$stackTrace',
         );
-        return const Text('Could not load user activity');
+        return Text(context.l10n.mobileCouldNotLoadUserActivity);
       },
       loading: () => Shimmer(
         child: ShimmerLoading(

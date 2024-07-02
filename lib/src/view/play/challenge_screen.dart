@@ -369,8 +369,8 @@ class _ChallengeBodyState extends ConsumerState<_ChallengeBody> {
         );
       },
       loading: () => const Center(child: CircularProgressIndicator.adaptive()),
-      error: (error, stackTrace) => const Center(
-        child: Text('Could not load account data'),
+      error: (error, stackTrace) => Center(
+        child: Text(context.l10n.mobileCouldNotLoadAccountData),
       ),
     );
   }

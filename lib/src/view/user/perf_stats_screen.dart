@@ -185,7 +185,7 @@ class _Body extends ConsumerWidget {
                   debugPrint(
                     'SEVERE: [PerfStatsScreen] could not load rating history data; $error\n$stackTrace',
                   );
-                  return const Text('Could not show chart elo chart');
+                  return Text(context.l10n.mobileCouldNotLoadEloGraph);
                 },
                 loading: () {
                   return const SizedBox.shrink();
@@ -399,7 +399,7 @@ class _Body extends ConsumerWidget {
         debugPrint(
           'SEVERE: [PerfStatsScreen] could not load data; $error\n$stackTrace',
         );
-        return const Center(child: Text('Could not load user stats.'));
+        return Center(child: Text(context.l10n.mobileCouldNotLoadUserStats));
       },
       loading: () => const CenterLoadingIndicator(),
     );

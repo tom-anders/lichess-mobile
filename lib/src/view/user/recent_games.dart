@@ -77,7 +77,7 @@ class RecentGamesWidget extends ConsumerWidget {
         );
         return Padding(
           padding: Styles.bodySectionPadding,
-          child: const Text('Could not load recent games.'),
+          child: Text(context.l10n.mobileCouldNotLoadRecentGames),
         );
       },
       loading: () => Shimmer(

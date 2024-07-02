@@ -380,7 +380,7 @@ class PuzzleHistoryWidget extends ConsumerWidget {
         );
         return Padding(
           padding: Styles.bodySectionPadding,
-          child: const Text('Could not load Puzzle history.'),
+          child: Text(context.l10n.mobileCouldNotLoadPuzzleHistory),
         );
       },
       loading: () => Shimmer(
@@ -513,7 +513,7 @@ class _DailyPuzzle extends ConsumerWidget {
       ),
       error: (error, stack) => Padding(
         padding: Styles.bodySectionPadding,
-        child: const Text('Could not load the daily puzzle.'),
+        child: Text(context.l10n.mobileCouldNotLoadDailyPuzzle),
       ),
     );
   }

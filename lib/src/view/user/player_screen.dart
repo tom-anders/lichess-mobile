@@ -159,8 +159,8 @@ class _OnlineFriendsWidget extends ConsumerWidget {
         debugPrint(
           'SEVERE: [PlayerScreen] could not load following online users; $error\n $stackTrace',
         );
-        return const Center(
-          child: Text('Could not load online friends'),
+        return Center(
+          child: Text(context.l10n.mobileCouldNotLoadOnlineFriends),
         );
       },
       loading: () => Shimmer(

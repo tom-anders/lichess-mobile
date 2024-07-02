@@ -5,4 +5,58 @@
   <string name="toolsTab" comment="The tab in bottom navigation bar. Must be very short (10 characters max) to avoid ugly text shifting issues." maxLength="10">Tools</string>
   <string name="watchTab" comment="The tab in bottom navigation bar. Must be very short (10 characters max) to avoid ugly text shifting issues." maxLength="10">Watch</string>
   <string name="settingsTab" comment="The tab in bottom navigation bar. Must be very short (10 characters max) to avoid ugly text shifting issues." maxLength="10">Settings</string>
+  <string name="mustBeLoggedIn" comment="This is shown when the user tries to access a feature that requires login.">You must be logged in to view this page.</string>
+  <string name="systemColors" comment="The title of the system colors setting. When enabling this, tha app's colors will match those of the operating system.">System colors</string>
+  <string name="feedbackButton" comment="Shown in the settings, pressing this button will redirect to the lichess contact site.">Feedback</string>
+  <string name="okButton" comment="This is used in varius confirmations dialogs. Translation should be short.">OK</string>
+  <string name="settingsHapticFeedback" comment="Title used in the settings. When enabled, the device will vibrate when making a move.">Haptic feedback</string>
+  <string name="settingsImmersiveMode" comment="Title in the settings. When enabled, the app will hide the navigation bar and status bar.">Immersive mode</string>
+  <string name="settingsImmersiveModeSubtitle" comment="Subtitle for the 'Immersive Mode' setting. Gives an explanation of what the button does.">
+      Hide system UI while playing. Use this if you are bothered by the system's navigation gestures at the edges of the screen. Applies to game and Puzzle Storm screens. 
+  </string>
+  <string name="notFollowingAnyUser" comment="This is shown in the list that contains user followed by the user. Displayed if the user does not follow any users.">You are not following any user.</string>
+  <string name="couldNotLoadRecentGames" comment="This is shown when the app fails to load the user's recent games.">Could not load recent games.</string>
+  <string name="couldNotLoadOnlineFriends" comment="This is shown when the app fails to load the user's online friends.">Could not load online friends.</string>
+  <string name="couldNotLoadUserActivity" comment="This is shown when the app fails to load the user's activity.">Could not load user activity.</string>
+  <string name="couldNotLoadLeaderboard" comment="This is shown when the app fails to load the leaderboard.">Could not load leaderboard.</string>
+  <string name="couldNotLoadEloGraph" comment="This is shown when the app fails to load the user's elo graph.">Could not load Elo chart.</string>
+  <string name="couldNotLoadUserStats" comment="This is shown when the app fails to load the user's stats.">Could not load user stats.</string>
+  <string name="allGames" comment="This is shown instead of 'Number of Games' if the number could not be loaded">All games</string>
+  <string name="couldNotLoadGameHistory" comment="This is shown when the app fails to load the user's game history.">Could not load game history.</string>
+  <string name="recentSearches" comment="Title of the recent searches section in the search screen.">Recent searches</string>
+  <string name="clearButton" comment="Buttons that clear things, e.g. recent searches. Should be short.">Clear</string>
+  <string name="playersMatchingSearchTerm" comment="This is shown when searching for a player. %s is the string that user entered in the search bar">Players matching %s</string>
+  <string name="noSearchResults" comment="This is shown when the search did not return any results.">No results</string>
+  <string name="errorLoadingSearchResults" comment="This is shown when the app fails to load the search results.">Could not load search results.</string>
+  <string name="couldNotLoadPuzzleHistory" comment="This is shown when the app fails to load the user's puzzle history.">Could not load puzzle history.</string>
+  <string name="couldNotLoadDailyPuzzle" comment="This is shown when the app fails to load the daily puzzle.">Could not load daily puzzle.</string>
+  <string name="areYouSure" comment="This is shown in confirmation dialogs.">Are you sure?</string>
+  <string name="puzzleStreakAbortWarning" comment="Shown as a subtitle in the confirmation dialog for aborting puzzle streak.">You will lose your current streak and your score will be saved.</string>
+  <string name="puzzleScreenCouldNotLoadOpenings" comment="This is shown when the app fails to load the list of openings in the puzzle screen.">Could not load openings.</string>
+  <string name="puzzleStormCouldNotLoadDashboard" comment="This is shown when the app fails to load the user's dashboard in puzzle storm.">Could not load dashboard.</string>
+  <string name="puzzlesCouldNotLoadDashboard" comment="This is shown when the app fails to load the user's dashboard for puzzles.">Could not load dashboard.</string>
+  <string name="puzzleStormNothingToShow" comment="Shown when the user has not played any puzzle storm runs yet">Nothing to show. Play some runs of storm</string>
+  <string name="sharePuzzle" comment="This is shown in the puzzle screen. When pressed, the user can share the puzzle.">Share this puzzle</string>
+  <string name="shareGameURL" comment="Menu action that shares the URL of the current game">Share game URL</string>
+  <string name="shareGamePGN" comment="Menu action that shares the PGN of a game">Share PGN</string>
+  <string name="sharePositionAsFEN" comment="Menu action that shares the current position as a FEN string">Share position as FEN</string>
+  <string name="showVariations" comment="Shown in the analysis screen.">Show variations</string>
+  <string name="hideVariation" comment="Shown in the analysis screen.">Hide variation</string>
+  <string name="showComments" comment="Shown in the analysis screen.">Show comments</string>
+  <string name="puzzleStormConfirmEndRun" comment="Text of the confirmation dialog when ending a puzzle storm run">Do you want to end this run?</string>
+  <string name="puzzleStormFilterNothingToShow" comment="Shown when the user has no puzzles matching the filter criteria">Nothing to show, please change the filters</string>
+  <string name="couldNotLoadPuzzleThemes" comment="This is shown when the app fails to load the list of puzzle themes.">Could not load themes.</string>
+  <string name="cancelTakebackOffer" comment="Menu action that cancels a previous takeback offer">Cancel takeback offer</string>
+  <string name="cancelDrawOffer" comment="Menu action that cancels a previous draw offer">Cancel draw offer</string>
+  <string name="waitingForOpponentToJoin" comment="This is after the user has created a game and is waiting for an opponent to join.">Waiting for opponent to join...</string>
+  <string name="blindfoldMode" comment="This button toggles blindfold mode">Blindfold</string>
+  <string name="cannotLoadGameAnalysis" comment="This is shown when the app fails to load the game analysis. %s contains a description of the error.">Cannot load game analysis: %s</string>
+  <string name="couldNotLoadAccountData" comment="This is shown in the challenge screen when the app fails to load a user's account data.">Could not load account data.</string>
+  <string name="liveStreamers" comment="This is shown as a heading in the streamer screen">Live streamers</string>
+  <string name="customGameJoinAGame" comment="This is shown in the custom game screen. Will open the game lobby.">Join a game</string>
+  <string name="couldNotLoadChallenges" comment="This is shown when the app fails to load the user's challenges.">Could not load challenges.</string>
+  <string name="correspondenceClearSavedMove" comment="This is shown in the correspondence game screen. Will clear the saved move.">Clear saved move</string>
+  <string name="couldNotLoadBroadcasts" comment="This is shown when the app fails to load the user's broadcasts in the watch screen">Could not load broadcasts.</string>
+  <string name="couldNotLoadTvChannels" comment="This is shown when the app fails to load any tv channels in the watch screen">Could not load TV channels.</string>
+  <string name="couldNotLoadStreamers" comment="This is shown when the app fails to load the active live streamers in the watch screen">Could not load streamers.</string>
 </resources>

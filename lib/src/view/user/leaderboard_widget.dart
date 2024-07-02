@@ -52,7 +52,7 @@ class LeaderboardWidget extends ConsumerWidget {
         );
         return Padding(
           padding: Styles.bodySectionPadding,
-          child: const Text('Could not load leaderboard.'),
+          child: Text(context.l10n.mobileCouldNotLoadLeaderboard),
         );
       },
       loading: () => Shimmer(
