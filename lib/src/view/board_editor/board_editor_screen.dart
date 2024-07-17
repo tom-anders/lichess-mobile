@@ -6,10 +6,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lichess_mobile/src/constants.dart';
 import 'package:lichess_mobile/src/model/settings/board_preferences.dart';
+import 'package:lichess_mobile/src/styles/lichess_icons.dart';
 import 'package:lichess_mobile/src/styles/styles.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:lichess_mobile/src/utils/screen.dart';
 import 'package:lichess_mobile/src/widgets/adaptive_text_field.dart';
+import 'package:lichess_mobile/src/widgets/bottom_bar_button.dart';
 import 'package:lichess_mobile/src/widgets/buttons.dart';
 import 'package:lichess_mobile/src/widgets/platform.dart';
 
@@ -108,7 +110,43 @@ class _BodyState extends State<_Body> {
             ),
           ),
         ),
+        _BottomBar(),
       ],
+    );
+  }
+}
+
+class _Board extends ConsumerStatefulWidget {
+  const _Board(
+    this.boardSize, {
+    required this.isTablet,
+  });
+
+  final double boardSize;
+  final bool isTablet;
+
+  @override
+  ConsumerState<_Board> createState() => _BoardState();
+}
+
+class _BoardState extends ConsumerState<_Board> {
+  @override
+  Widget build(BuildContext context) {
+    final boardPrefs = ref.watch(boardPreferencesProvider);
+
+    return cg.BoardEditor(
+      size: widget.boardSize,
+      initialFen: dc.kInitialBoardFEN,
+      orientation: cg.Side.white, // TODO allow to flip
+      settings: cg.BoardEditorSettings(
+        pieceAssets: boardPrefs.pieceSet.assets,
+        colorScheme: boardPrefs.boardTheme.colors,
+        enableCoordinates: boardPrefs.coordinates,
+        borderRadius: widget.isTablet
+            ? const BorderRadius.all(Radius.circular(4.0))
+            : BorderRadius.zero,
+        boxShadow: widget.isTablet ? boardShadows : const <BoxShadow>[],
+      ),
     );
   }
 }
@@ -158,36 +196,60 @@ class _PieceMenuState extends ConsumerState<_PieceMenu> {
   }
 }
 
-class _Board extends ConsumerStatefulWidget {
-  const _Board(
-    this.boardSize, {
-    required this.isTablet,
-  });
-
-  final double boardSize;
-  final bool isTablet;
+class _BottomBar extends ConsumerWidget {
+  const _BottomBar();
 
   @override
-  ConsumerState<_Board> createState() => _BoardState();
-}
-
-class _BoardState extends ConsumerState<_Board> {
-  @override
-  Widget build(BuildContext context) {
-    final boardPrefs = ref.watch(boardPreferencesProvider);
-
-    return cg.BoardEditor(
-      size: widget.boardSize,
-      initialFen: dc.kInitialBoardFEN,
-      orientation: cg.Side.white, // TODO allow to flip
-      settings: cg.BoardEditorSettings(
-        pieceAssets: boardPrefs.pieceSet.assets,
-        colorScheme: boardPrefs.boardTheme.colors,
-        enableCoordinates: boardPrefs.coordinates,
-        borderRadius: widget.isTablet
-            ? const BorderRadius.all(Radius.circular(4.0))
-            : BorderRadius.zero,
-        boxShadow: widget.isTablet ? boardShadows : const <BoxShadow>[],
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      color: Theme.of(context).platform == TargetPlatform.iOS
+          ? CupertinoTheme.of(context).barBackgroundColor
+          : Theme.of(context).bottomAppBarTheme.color,
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: kBottomBarHeight,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Expanded(
+                child: BottomBarButton(
+                  label: context.l10n.settingsSettings,
+                  onTap: () {},
+                  icon: Icons.settings,
+                ),
+              ),
+              Expanded(
+                child: BottomBarButton(
+                  label: context.l10n.flipBoard,
+                  onTap: () {},
+                  icon: Icons.flip,
+                ),
+              ),
+              Expanded(
+                child: BottomBarButton(
+                  label: context.l10n.continueFromHere,
+                  onTap: () {},
+                  icon: LichessIcons.crossed_swords,
+                ),
+              ),
+              Expanded(
+                child: BottomBarButton(
+                  label: context.l10n.analysis,
+                  onTap: () {},
+                  icon: LichessIcons.microscope,
+                ),
+              ),
+              Expanded(
+                child: BottomBarButton(
+                  label: context.l10n.mobileSharePositionAsFEN,
+                  onTap: () {},
+                  icon: Icons.share,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
