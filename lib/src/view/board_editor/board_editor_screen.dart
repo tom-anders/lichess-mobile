@@ -12,6 +12,7 @@ import 'package:lichess_mobile/src/styles/styles.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:lichess_mobile/src/utils/navigation.dart';
 import 'package:lichess_mobile/src/utils/screen.dart';
+import 'package:lichess_mobile/src/utils/share.dart';
 import 'package:lichess_mobile/src/view/analysis/analysis_screen.dart';
 import 'package:lichess_mobile/src/widgets/bottom_bar_button.dart';
 import 'package:lichess_mobile/src/widgets/platform.dart';
@@ -189,6 +190,10 @@ class _BodyState extends State<_Body> {
                   // TODO
                 }
               : null,
+          onSharePositionAsFen: () => launchShareDialog(
+            context,
+            text: cg.writeFen(pieces),
+          ),
         ),
       ],
     );
@@ -299,6 +304,7 @@ class _BottomBar extends ConsumerWidget {
     required this.onFlipBoard,
     required this.onOpenInAnalysis,
     required this.onContinueFromHere,
+    required this.onSharePositionAsFen,
   });
 
   final void Function() onFlipBoard;
@@ -306,6 +312,8 @@ class _BottomBar extends ConsumerWidget {
   final void Function()? onOpenInAnalysis;
 
   final void Function()? onContinueFromHere;
+
+  final void Function() onSharePositionAsFen;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -351,7 +359,7 @@ class _BottomBar extends ConsumerWidget {
               Expanded(
                 child: BottomBarButton(
                   label: context.l10n.mobileSharePositionAsFEN,
-                  onTap: () {},
+                  onTap: onSharePositionAsFen,
                   icon: Icons.share,
                 ),
               ),
