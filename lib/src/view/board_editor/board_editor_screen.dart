@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lichess_mobile/src/constants.dart';
 import 'package:lichess_mobile/src/model/analysis/analysis_controller.dart';
+import 'package:lichess_mobile/src/model/board_editor/board_editor_controller.dart';
 import 'package:lichess_mobile/src/model/common/chess.dart';
 import 'package:lichess_mobile/src/model/settings/board_preferences.dart';
 import 'package:lichess_mobile/src/styles/lichess_icons.dart';
@@ -14,7 +15,10 @@ import 'package:lichess_mobile/src/utils/navigation.dart';
 import 'package:lichess_mobile/src/utils/screen.dart';
 import 'package:lichess_mobile/src/utils/share.dart';
 import 'package:lichess_mobile/src/view/analysis/analysis_screen.dart';
+import 'package:lichess_mobile/src/view/board_editor/board_editor_settings.dart';
+import 'package:lichess_mobile/src/widgets/adaptive_bottom_sheet.dart';
 import 'package:lichess_mobile/src/widgets/bottom_bar_button.dart';
+import 'package:lichess_mobile/src/widgets/buttons.dart';
 import 'package:lichess_mobile/src/widgets/platform.dart';
 
 class BoardEditorScreen extends StatelessWidget {
@@ -32,6 +36,19 @@ class BoardEditorScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(context.l10n.boardEditor),
+        actions: [
+          AppBarIconButton(
+            onPressed: () => showAdaptiveBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              showDragHandle: true,
+              isDismissible: true,
+              builder: (_) => const BoardEditorSettings(),
+            ),
+            semanticsLabel: context.l10n.settingsSettings,
+            icon: const Icon(Icons.settings),
+          ),
+        ],
       ),
       body: const _Body(),
     );
@@ -43,43 +60,62 @@ class BoardEditorScreen extends StatelessWidget {
         backgroundColor: Styles.cupertinoScaffoldColor.resolveFrom(context),
         border: null,
         middle: Text(context.l10n.boardEditor),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppBarIconButton(
+              onPressed: () => showAdaptiveBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                showDragHandle: true,
+                isDismissible: true,
+                builder: (_) => BoardEditorSettings(),
+              ),
+              semanticsLabel: context.l10n.settingsSettings,
+              icon: const Icon(Icons.settings),
+            ),
+          ],
+        ),
       ),
       child: const _Body(),
     );
   }
 }
 
-class _Body extends StatefulWidget {
+class _Body extends ConsumerWidget {
   const _Body();
 
-  @override
-  State<_Body> createState() => _BodyState();
-}
-
-class _BodyState extends State<_Body> {
-  cg.Side orientation = cg.Side.white;
-
-  cg.Pieces pieces = cg.readFen(dc.kInitialBoardFEN);
-
-  dc.Chess? position;
+  //cg.Side orientation = cg.Side.white;
+  //
+  //cg.Pieces pieces = cg.readFen(dc.kInitialBoardFEN);
+  //
+  //dc.Chess? position;
 
   @override
-  Widget build(BuildContext context) {
-    final fen = cg.writeFen(pieces);
-    final board = dc.Board.parseFen(fen);
-    try {
-      position = dc.Chess.fromSetup(
-        dc.Setup(
-          board: board,
-          unmovedRooks: dc.SquareSet.corners,
-          turn: dc.Side.white,
-          halfmoves: 0,
-          fullmoves: 1,
-        ),
-      );
-    } catch (_) {
-      position = null;
-    }
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.read(boardEditorControllerProvider.notifier);
+    //.loadFen(dc.kInitialBoardFEN);
+
+    final boardEditorState = ref.watch(boardEditorControllerProvider);
+
+    //final fen = cg.writeFen(pieces);
+    //final board = dc.Board.parseFen(fen);
+    //
+    //final dc.Chess? position;
+    //try {
+    //  position = dc.Chess.fromSetup(
+    //    dc.Setup(
+    //      board: board,
+    //      unmovedRooks: dc.SquareSet.corners,
+    //      turn: dc.Side.white,
+    //      halfmoves: 0,
+    //      fullmoves: 1,
+    //    ),
+    //  );
+    //} catch (_) {
+    //  position = null;
+    //}
 
     return Column(
       children: [
@@ -111,19 +147,15 @@ class _BodyState extends State<_Body> {
                   children: [
                     _BoardEditor(
                       boardSize,
-                      orientation: orientation,
+                      orientation: boardEditorState.orientation,
                       isTablet: isTablet,
-                      pieces: pieces,
-                      onDiscardedPiece: (squareId) => setState(() {
-                        pieces.remove(squareId);
-                      }),
-                      onDroppedPiece: (origin, destination, piece) =>
-                          setState(() {
-                        pieces[destination] = piece;
-                        if (origin != null) {
-                          pieces.remove(origin);
-                        }
-                      }),
+                      pieces: boardEditorState.pieces.unlock,
+                      onDiscardedPiece: ref
+                          .read(boardEditorControllerProvider.notifier)
+                          .discardPiece,
+                      onDroppedPiece: ref
+                          .read(boardEditorControllerProvider.notifier)
+                          .movePiece,
                     ),
                     Container(
                       clipBehavior: Clip.hardEdge,
@@ -140,12 +172,12 @@ class _BodyState extends State<_Body> {
                             _PieceMenu(
                               boardSize,
                               direction: flipAxis(direction),
-                              side: orientation.opposite,
+                              side: boardEditorState.orientation.opposite,
                             ),
                             _PieceMenu(
                               boardSize,
                               direction: flipAxis(direction),
-                              side: orientation,
+                              side: boardEditorState.orientation,
                             ),
                           ],
                         ),
@@ -157,44 +189,7 @@ class _BodyState extends State<_Body> {
             ),
           ),
         ),
-        _BottomBar(
-          onFlipBoard: () => setState(() {
-            orientation = orientation.opposite;
-          }),
-          onOpenInAnalysis: position != null
-              ? () {
-                  final pgn = dc.PgnGame(
-                    headers: {'Variant': 'from position', 'FEN': position!.fen},
-                    moves: dc.PgnNode<dc.PgnNodeData>(),
-                    comments: [],
-                  );
-                  pushPlatformRoute(
-                    context,
-                    rootNavigator: true,
-                    builder: (context) => AnalysisScreen(
-                      pgnOrId: pgn.makePgn(),
-                      options: AnalysisOptions(
-                        isLocalEvaluationAllowed: true,
-                        variant: Variant.standard,
-                        orientation: (orientation == cg.Side.white)
-                            ? dc.Side.white
-                            : dc.Side.black,
-                        id: standaloneAnalysisId,
-                      ),
-                    ),
-                  );
-                }
-              : null,
-          onContinueFromHere: position != null
-              ? () {
-                  // TODO
-                }
-              : null,
-          onSharePositionAsFen: () => launchShareDialog(
-            context,
-            text: cg.writeFen(pieces),
-          ),
-        ),
+        const _BottomBar(),
       ],
     );
   }
@@ -300,23 +295,13 @@ class _PieceMenuState extends ConsumerState<_PieceMenu> {
 }
 
 class _BottomBar extends ConsumerWidget {
-  const _BottomBar({
-    required this.onFlipBoard,
-    required this.onOpenInAnalysis,
-    required this.onContinueFromHere,
-    required this.onSharePositionAsFen,
-  });
-
-  final void Function() onFlipBoard;
-
-  final void Function()? onOpenInAnalysis;
-
-  final void Function()? onContinueFromHere;
-
-  final void Function() onSharePositionAsFen;
+  const _BottomBar();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final pgn = ref.watch(boardEditorControllerProvider).pgn;
+    final orientation = ref.read(boardEditorControllerProvider).orientation;
+
     return Container(
       color: Theme.of(context).platform == TargetPlatform.iOS
           ? CupertinoTheme.of(context).barBackgroundColor
@@ -330,36 +315,45 @@ class _BottomBar extends ConsumerWidget {
             children: [
               Expanded(
                 child: BottomBarButton(
-                  label: context.l10n.settingsSettings,
-                  onTap: () {},
-                  icon: Icons.settings,
-                ),
-              ),
-              Expanded(
-                child: BottomBarButton(
                   label: context.l10n.flipBoard,
-                  onTap: onFlipBoard,
+                  onTap: ref
+                      .read(boardEditorControllerProvider.notifier)
+                      .flipBoard,
                   icon: Icons.flip,
                 ),
               ),
               Expanded(
                 child: BottomBarButton(
                   label: context.l10n.analysis,
-                  onTap: onOpenInAnalysis,
+                  onTap: pgn != null
+                      ? () {
+                          pushPlatformRoute(
+                            context,
+                            rootNavigator: true,
+                            builder: (context) => AnalysisScreen(
+                              pgnOrId: pgn,
+                              options: AnalysisOptions(
+                                isLocalEvaluationAllowed: true,
+                                variant: Variant.standard,
+                                orientation: (orientation == cg.Side.white)
+                                    ? dc.Side.white
+                                    : dc.Side.black,
+                                id: standaloneAnalysisId,
+                              ),
+                            ),
+                          );
+                        }
+                      : null,
                   icon: LichessIcons.microscope,
                 ),
               ),
               Expanded(
                 child: BottomBarButton(
-                  label: context.l10n.continueFromHere,
-                  onTap: onContinueFromHere,
-                  icon: LichessIcons.crossed_swords,
-                ),
-              ),
-              Expanded(
-                child: BottomBarButton(
                   label: context.l10n.mobileSharePositionAsFEN,
-                  onTap: onSharePositionAsFen,
+                  onTap: () => launchShareDialog(
+                    context,
+                    text: ref.read(boardEditorControllerProvider).fen,
+                  ),
                   icon: Icons.share,
                 ),
               ),
