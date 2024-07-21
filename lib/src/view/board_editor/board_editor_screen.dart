@@ -334,7 +334,7 @@ class _BottomBar extends ConsumerWidget {
                               pgnOrId: pgn,
                               options: AnalysisOptions(
                                 isLocalEvaluationAllowed: true,
-                                variant: Variant.standard,
+                                variant: Variant.fromPosition,
                                 orientation: (orientation == cg.Side.white)
                                     ? dc.Side.white
                                     : dc.Side.black,
