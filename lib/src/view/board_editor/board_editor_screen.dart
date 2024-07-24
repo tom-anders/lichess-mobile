@@ -246,6 +246,7 @@ class _PieceMenuState extends ConsumerState<_PieceMenu> {
     return Container(
       clipBehavior: Clip.hardEdge,
       // TODO can factor out the box decoration into a helper
+      // Could even share it with the regular board widget
       decoration: BoxDecoration(
         borderRadius: widget.isTablet
             ? const BorderRadius.all(Radius.circular(4.0))
@@ -289,7 +290,7 @@ class _PieceMenuState extends ConsumerState<_PieceMenu> {
                               .read(boardEditorControllerProvider)
                               .activePieceOnEdit ==
                           piece
-                      ? Colors.green
+                      ? Colors.lightBlue
                       : Colors.transparent,
                   child: GestureDetector(
                     child: Draggable(
@@ -306,7 +307,7 @@ class _PieceMenuState extends ConsumerState<_PieceMenu> {
                       child: pieceWidget,
                       onDragEnd: (_) => ref
                           .read(boardEditorControllerProvider.notifier)
-                          .updateMode(cg.EditorPointerMode.edit),
+                          .updateMode(cg.EditorPointerMode.drag),
                     ),
                     onTap: () => ref
                         .read(boardEditorControllerProvider.notifier)
