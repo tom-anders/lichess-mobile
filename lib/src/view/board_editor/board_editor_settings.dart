@@ -1,7 +1,7 @@
+import 'package:chessground/chessground.dart' as cg;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:chessground/chessground.dart' as cg;
 import 'package:lichess_mobile/src/model/board_editor/board_editor_controller.dart';
 import 'package:lichess_mobile/src/styles/styles.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';

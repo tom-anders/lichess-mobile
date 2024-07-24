@@ -69,7 +69,7 @@ class BoardEditorScreen extends StatelessWidget {
                 isScrollControlled: true,
                 showDragHandle: true,
                 isDismissible: true,
-                builder: (_) => BoardEditorSettings(),
+                builder: (_) => const BoardEditorSettings(),
               ),
               semanticsLabel: context.l10n.settingsSettings,
               icon: const Icon(Icons.settings),
@@ -145,43 +145,23 @@ class _Body extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.max,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    _PieceMenu(
+                      boardSize,
+                      direction: flipAxis(direction),
+                      side: boardEditorState.orientation.opposite,
+                      isTablet: isTablet,
+                    ),
                     _BoardEditor(
                       boardSize,
                       orientation: boardEditorState.orientation,
                       isTablet: isTablet,
                       pieces: boardEditorState.pieces.unlock,
-                      onDiscardedPiece: ref
-                          .read(boardEditorControllerProvider.notifier)
-                          .discardPiece,
-                      onDroppedPiece: ref
-                          .read(boardEditorControllerProvider.notifier)
-                          .movePiece,
                     ),
-                    Container(
-                      clipBehavior: Clip.hardEdge,
-                      decoration: BoxDecoration(
-                        borderRadius:
-                            const BorderRadius.all(Radius.circular(4.0)),
-                        boxShadow: boardShadows,
-                      ),
-                      child: ColoredBox(
-                        color: Colors.grey,
-                        child: Flex(
-                          direction: direction,
-                          children: [
-                            _PieceMenu(
-                              boardSize,
-                              direction: flipAxis(direction),
-                              side: boardEditorState.orientation.opposite,
-                            ),
-                            _PieceMenu(
-                              boardSize,
-                              direction: flipAxis(direction),
-                              side: boardEditorState.orientation,
-                            ),
-                          ],
-                        ),
-                      ),
+                    _PieceMenu(
+                      boardSize,
+                      direction: flipAxis(direction),
+                      side: boardEditorState.orientation,
+                      isTablet: isTablet,
                     ),
                   ],
                 );
@@ -200,8 +180,6 @@ class _BoardEditor extends ConsumerWidget {
     this.boardSize, {
     required this.isTablet,
     required this.orientation,
-    required this.onDroppedPiece,
-    required this.onDiscardedPiece,
     required this.pieces,
   });
 
@@ -210,18 +188,11 @@ class _BoardEditor extends ConsumerWidget {
   final cg.Side orientation;
   final cg.Pieces pieces;
 
-  final void Function(
-    cg.SquareId? origin,
-    cg.SquareId destination,
-    cg.Piece piece,
-  )? onDroppedPiece;
-  final void Function(cg.SquareId square)? onDiscardedPiece;
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final boardPrefs = ref.watch(boardPreferencesProvider);
 
-    return cg.BoardEditor(
+    return cg.ChessBoardEditor(
       size: boardSize,
       pieces: pieces,
       orientation: orientation,
@@ -234,8 +205,13 @@ class _BoardEditor extends ConsumerWidget {
             : BorderRadius.zero,
         boxShadow: isTablet ? boardShadows : const <BoxShadow>[],
       ),
-      onDiscardedPiece: onDiscardedPiece,
-      onDroppedPiece: onDroppedPiece,
+      pointerMode: ref.watch(boardEditorControllerProvider).editorPointerMode,
+      onDiscardedPiece:
+          ref.read(boardEditorControllerProvider.notifier).discardPiece,
+      onDroppedPiece:
+          ref.read(boardEditorControllerProvider.notifier).movePiece,
+      onEditedSquare:
+          ref.read(boardEditorControllerProvider.notifier).editSquare,
     );
   }
 }
@@ -245,6 +221,7 @@ class _PieceMenu extends ConsumerStatefulWidget {
     this.boardSize, {
     required this.direction,
     required this.side,
+    required this.isTablet,
   });
 
   final double boardSize;
@@ -252,6 +229,8 @@ class _PieceMenu extends ConsumerStatefulWidget {
   final Axis direction;
 
   final cg.Side side;
+
+  final bool isTablet;
 
   @override
   ConsumerState<_PieceMenu> createState() => _PieceMenuState();
@@ -262,34 +241,99 @@ class _PieceMenuState extends ConsumerState<_PieceMenu> {
   Widget build(BuildContext context) {
     final boardPrefs = ref.watch(boardPreferencesProvider);
 
-    return Flex(
-      direction: widget.direction,
-      mainAxisAlignment: MainAxisAlignment.center,
-      mainAxisSize: MainAxisSize.min,
-      children: cg.Role.values.map(
-        (role) {
-          final piece = cg.Piece(role: role, color: widget.side);
-          final size = widget.boardSize / 8;
-          final pieceWidget = cg.PieceWidget(
-            piece: piece,
-            size: size,
-            pieceAssets: boardPrefs.pieceSet.assets,
-          );
+    final squareSize = widget.boardSize / 8;
 
-          return Draggable(
-            data: cg.Piece(role: role, color: widget.side),
-            feedback: Transform.translate(
-              offset: const Offset(-0.5, -1.5) * size,
-              child: cg.PieceWidget(
-                piece: piece,
-                size: 2 * size,
-                pieceAssets: boardPrefs.pieceSet.assets,
+    return Container(
+      clipBehavior: Clip.hardEdge,
+      // TODO can factor out the box decoration into a helper
+      decoration: BoxDecoration(
+        borderRadius: widget.isTablet
+            ? const BorderRadius.all(Radius.circular(4.0))
+            : BorderRadius.zero,
+        boxShadow: widget.isTablet ? boardShadows : const <BoxShadow>[],
+      ),
+      child: ColoredBox(
+        color: Colors.grey,
+        child: Flex(
+          direction: widget.direction,
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ColoredBox(
+              color:
+                  ref.watch(boardEditorControllerProvider).editorPointerMode ==
+                          cg.EditorPointerMode.drag
+                      ? Colors.green
+                      : Colors.transparent,
+              child: GestureDetector(
+                onTap: () => ref
+                    .read(boardEditorControllerProvider.notifier)
+                    .updateMode(cg.EditorPointerMode.drag),
+                child: Icon(
+                  Icons.pan_tool_alt_outlined,
+                  size: squareSize,
+                ),
               ),
             ),
-            child: pieceWidget,
-          );
-        },
-      ).toList(),
+            ...cg.Role.values.map(
+              (role) {
+                final piece = cg.Piece(role: role, color: widget.side);
+                final pieceWidget = cg.PieceWidget(
+                  piece: piece,
+                  size: squareSize,
+                  pieceAssets: boardPrefs.pieceSet.assets,
+                );
+
+                return ColoredBox(
+                  color: ref
+                              .read(boardEditorControllerProvider)
+                              .activePieceOnEdit ==
+                          piece
+                      ? Colors.green
+                      : Colors.transparent,
+                  child: GestureDetector(
+                    child: Draggable(
+                      data: cg.Piece(role: role, color: widget.side),
+                      // TODO use feedback widget from chessground
+                      feedback: Transform.translate(
+                        offset: const Offset(-0.5, -1.5) * squareSize,
+                        child: cg.PieceWidget(
+                          piece: piece,
+                          size: 2 * squareSize,
+                          pieceAssets: boardPrefs.pieceSet.assets,
+                        ),
+                      ),
+                      child: pieceWidget,
+                      onDragEnd: (_) => ref
+                          .read(boardEditorControllerProvider.notifier)
+                          .updateMode(cg.EditorPointerMode.edit),
+                    ),
+                    onTap: () => ref
+                        .read(boardEditorControllerProvider.notifier)
+                        .updateMode(cg.EditorPointerMode.edit, piece),
+                  ),
+                );
+              },
+            ),
+            ColoredBox(
+              color: ref.read(boardEditorControllerProvider).deletePiecesActive
+                  ? Colors.red
+                  : Colors.transparent,
+              child: GestureDetector(
+                onTap: () => {
+                  ref
+                      .read(boardEditorControllerProvider.notifier)
+                      .updateMode(cg.EditorPointerMode.edit, null),
+                },
+                child: Icon(
+                  Icons.delete_outline,
+                  size: squareSize,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

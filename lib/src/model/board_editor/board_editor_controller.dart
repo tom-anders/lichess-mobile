@@ -16,6 +16,15 @@ class BoardEditorController extends _$BoardEditorController {
       sideToPlay: Side.white,
       pieces: readFen(dc.kInitialFEN).lock,
       unmovedRooks: dc.SquareSet.corners,
+      editorPointerMode: EditorPointerMode.drag,
+      pieceToAddOnEdit: null,
+    );
+  }
+
+  void updateMode(EditorPointerMode mode, [Piece? pieceToAddOnEdit]) {
+    state = state.copyWith(
+      editorPointerMode: mode,
+      pieceToAddOnEdit: pieceToAddOnEdit,
     );
   }
 
@@ -24,9 +33,20 @@ class BoardEditorController extends _$BoardEditorController {
   }
 
   void movePiece(SquareId? origin, SquareId destination, Piece piece) {
-    _updatePosition(
-      state.pieces.remove(origin ?? destination).add(destination, piece),
-    );
+    if (origin != destination) {
+      _updatePosition(
+        state.pieces.remove(origin ?? destination).add(destination, piece),
+      );
+    }
+  }
+
+  void editSquare(SquareId square) {
+    final piece = state.pieceToAddOnEdit;
+    if (piece != null) {
+      _updatePosition(state.pieces.add(square, piece));
+    } else {
+      discardPiece(square);
+    }
   }
 
   void flipBoard() {
@@ -83,6 +103,10 @@ class BoardEditorState with _$BoardEditorState {
     required Side sideToPlay,
     required IMap<SquareId, Piece> pieces,
     required dc.SquareSet unmovedRooks,
+    required EditorPointerMode editorPointerMode,
+
+    /// When null, clears squares when in edit mode. Has no effect in drag mode.
+    required Piece? pieceToAddOnEdit,
   }) = _BoardEditorState;
 
   bool get canWhiteCastleKingside => unmovedRooks.has(dc.Squares.h1);
@@ -103,6 +127,12 @@ class BoardEditorState with _$BoardEditorState {
       fullmoves: 1,
     );
   }
+
+  Piece? get activePieceOnEdit =>
+      editorPointerMode == EditorPointerMode.edit ? pieceToAddOnEdit : null;
+
+  bool get deletePiecesActive =>
+      editorPointerMode == EditorPointerMode.edit && pieceToAddOnEdit == null;
 
   String get fen => _setup.fen;
 
