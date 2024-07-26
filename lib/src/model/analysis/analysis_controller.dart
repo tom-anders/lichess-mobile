@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:chessground/chessground.dart' as cg;
 import 'package:collection/collection.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
@@ -18,6 +19,7 @@ import 'package:lichess_mobile/src/model/common/uci.dart';
 import 'package:lichess_mobile/src/model/engine/evaluation_service.dart';
 import 'package:lichess_mobile/src/model/engine/work.dart';
 import 'package:lichess_mobile/src/model/game/player.dart';
+import 'package:lichess_mobile/src/utils/chessground_compat.dart';
 import 'package:lichess_mobile/src/utils/rate_limit.dart';
 import 'package:lichess_mobile/src/view/engine/engine_gauge.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -28,31 +30,6 @@ part 'analysis_controller.g.dart';
 const standaloneAnalysisId = StringId('standalone_analysis');
 final _dateFormat = DateFormat('yyyy.MM.dd');
 
-@freezed
-class AnalysisOptions with _$AnalysisOptions {
-  const AnalysisOptions._();
-  const factory AnalysisOptions({
-    /// The ID of the analysis. Can be a game ID or a standalone analysis ID.
-    required StringId id,
-    required bool isLocalEvaluationAllowed,
-    required Side orientation,
-    required Variant variant,
-    int? initialMoveCursor,
-    LightOpening? opening,
-    Division? division,
-
-    /// Optional server analysis to display player stats.
-    ({PlayerAnalysis white, PlayerAnalysis black})? serverAnalysis,
-  }) = _AnalysisOptions;
-
-  /// Whether the analysis is for a lichess game.
-  bool get isLichessGameAnalysis => gameAnyId != null;
-
-  /// The game ID of the analysis, if it's a lichess game.
-  GameAnyId? get gameAnyId =>
-      id != standaloneAnalysisId ? GameAnyId(id.value) : null;
-}
-
 @riverpod
 class AnalysisController extends _$AnalysisController {
   late Root _root;
@@ -60,6 +37,11 @@ class AnalysisController extends _$AnalysisController {
   final _engineEvalDebounce = Debouncer(const Duration(milliseconds: 150));
 
   Timer? _startEngineEvalTimer;
+
+  EvaluationContext get _evaluationContext => EvaluationContext(
+        variant: options.variant,
+        initialPosition: _root.position,
+      );
 
   @override
   AnalysisState build(String pgn, AnalysisOptions options) {
@@ -171,29 +153,14 @@ class AnalysisController extends _$AnalysisController {
     return analysisState;
   }
 
-  EvaluationContext get _evaluationContext => EvaluationContext(
-        variant: options.variant,
-        initialPosition: _root.position,
-      );
-
-  void onUserMove(Move move) {
-    if (!state.position.isLegal(move)) return;
-    final (newPath, isNewNode) = _root.addMoveAt(state.currentPath, move);
-    if (newPath != null) {
-      _setPath(
-        newPath,
-        shouldRecomputeRootView: isNewNode,
-        shouldForceShowVariation: true,
-      );
-    }
+  void deleteFromHere(UciPath path) {
+    _root.deleteAt(path);
+    _setPath(path.penultimate, shouldRecomputeRootView: true);
   }
 
-  void userNext() {
-    if (!state.currentNode.hasChild) return;
-    _setPath(
-      state.currentPath + _root.nodeAt(state.currentPath).children.first.id,
-      replaying: true,
-    );
+  void hideVariation(UciPath path) {
+    _root.hideVariationAt(path);
+    state = state.copyWith(root: _root.view);
   }
 
   void jumpToNthNodeOnMainline(int n) {
@@ -219,29 +186,20 @@ class AnalysisController extends _$AnalysisController {
     }
   }
 
-  void toggleBoard() {
-    state = state.copyWith(pov: state.pov.opposite);
+  String makeGamePgn() {
+    return _root.makePgn(state.pgnHeaders, state.pgnRootComments);
   }
 
-  void userPrevious() {
-    _setPath(state.currentPath.penultimate, replaying: true);
-  }
-
-  void userJump(UciPath path) {
-    _setPath(path);
-  }
-
-  void showAllVariations(UciPath path) {
-    final parent = _root.parentAt(path);
-    for (final node in parent.children) {
-      node.isHidden = false;
+  void onUserMove(Move move) {
+    if (!state.position.isLegal(move)) return;
+    final (newPath, isNewNode) = _root.addMoveAt(state.currentPath, move);
+    if (newPath != null) {
+      _setPath(
+        newPath,
+        shouldRecomputeRootView: isNewNode,
+        shouldForceShowVariation: true,
+      );
     }
-    state = state.copyWith(root: _root.view);
-  }
-
-  void hideVariation(UciPath path) {
-    _root.hideVariationAt(path);
-    state = state.copyWith(root: _root.view);
   }
 
   void promoteVariation(UciPath path, bool toMainline) {
@@ -252,9 +210,72 @@ class AnalysisController extends _$AnalysisController {
     );
   }
 
-  void deleteFromHere(UciPath path) {
-    _root.deleteAt(path);
-    _setPath(path.penultimate, shouldRecomputeRootView: true);
+  Future<void> requestServerAnalysis() {
+    if (state.canRequestServerAnalysis) {
+      final service = ref.read(serverAnalysisServiceProvider);
+      return service.requestAnalysis(
+        options.id as GameAnyId,
+        options.orientation,
+      );
+    }
+    return Future.error('Cannot request server analysis');
+  }
+
+  void setEngineCores(int numEngineCores) {
+    ref
+        .read(analysisPreferencesProvider.notifier)
+        .setEngineCores(numEngineCores);
+
+    ref.read(evaluationServiceProvider).setOptions(
+          EvaluationOptions(
+            multiPv: ref.read(analysisPreferencesProvider).numEvalLines,
+            cores: numEngineCores,
+          ),
+        );
+
+    _startEngineEval();
+  }
+
+  void setNumEvalLines(int numEvalLines) {
+    ref
+        .read(analysisPreferencesProvider.notifier)
+        .setNumEvalLines(numEvalLines);
+
+    ref.read(evaluationServiceProvider).setOptions(
+          EvaluationOptions(
+            multiPv: numEvalLines,
+            cores: ref.read(analysisPreferencesProvider).numEngineCores,
+          ),
+        );
+
+    _root.updateAll((node) => node.eval = null);
+
+    state = state.copyWith(
+      currentNode:
+          AnalysisCurrentNode.fromNode(_root.nodeAt(state.currentPath)),
+    );
+
+    _startEngineEval();
+  }
+
+  void showAllVariations(UciPath path) {
+    final parent = _root.parentAt(path);
+    for (final node in parent.children) {
+      node.isHidden = false;
+    }
+    state = state.copyWith(root: _root.view);
+  }
+
+  void toggleBoard() {
+    state = state.copyWith(pov: state.pov.opposite);
+  }
+
+  void toggleDisplayMode() {
+    state = state.copyWith(
+      displayMode: state.displayMode == DisplayMode.moves
+          ? DisplayMode.summary
+          : DisplayMode.moves,
+    );
   }
 
   Future<void> toggleLocalEvaluation() async {
@@ -282,65 +303,155 @@ class AnalysisController extends _$AnalysisController {
     }
   }
 
-  void setNumEvalLines(int numEvalLines) {
-    ref
-        .read(analysisPreferencesProvider.notifier)
-        .setNumEvalLines(numEvalLines);
-
-    ref.read(evaluationServiceProvider).setOptions(
-          EvaluationOptions(
-            multiPv: numEvalLines,
-            cores: ref.read(analysisPreferencesProvider).numEngineCores,
-          ),
-        );
-
-    _root.updateAll((node) => node.eval = null);
-
-    state = state.copyWith(
-      currentNode:
-          AnalysisCurrentNode.fromNode(_root.nodeAt(state.currentPath)),
-    );
-
-    _startEngineEval();
-  }
-
-  void setEngineCores(int numEngineCores) {
-    ref
-        .read(analysisPreferencesProvider.notifier)
-        .setEngineCores(numEngineCores);
-
-    ref.read(evaluationServiceProvider).setOptions(
-          EvaluationOptions(
-            multiPv: ref.read(analysisPreferencesProvider).numEvalLines,
-            cores: numEngineCores,
-          ),
-        );
-
-    _startEngineEval();
-  }
-
   void updatePgnHeader(String key, String value) {
     final headers = state.pgnHeaders.add(key, value);
     state = state.copyWith(pgnHeaders: headers);
   }
 
-  void toggleDisplayMode() {
-    state = state.copyWith(
-      displayMode: state.displayMode == DisplayMode.moves
-          ? DisplayMode.summary
-          : DisplayMode.moves,
+  void userJump(UciPath path) {
+    _setPath(path);
+  }
+
+  void userNext() {
+    if (!state.currentNode.hasChild) return;
+    _setPath(
+      state.currentPath + _root.nodeAt(state.currentPath).children.first.id,
+      replaying: true,
     );
   }
 
-  Future<void> requestServerAnalysis() {
-    if (state.canRequestServerAnalysis) {
-      final service = ref.read(serverAnalysisServiceProvider);
-      return service.requestAnalysis(
-        options.id as GameAnyId,
-        options.orientation,
+  void userPrevious() {
+    _setPath(state.currentPath.penultimate, replaying: true);
+  }
+
+  void _debouncedStartEngineEval() {
+    _engineEvalDebounce(() {
+      _startEngineEval();
+    });
+  }
+
+  Future<void> _fetchOpening(Node fromNode, UciPath path) async {
+    if (!kOpeningAllowedVariants.contains(options.variant)) return;
+
+    final moves = fromNode.branchesOn(path).map((node) => node.sanMove.move);
+    if (moves.isEmpty) return;
+    if (moves.length > 40) return;
+
+    final opening =
+        await ref.read(openingServiceProvider).fetchFromMoves(moves);
+
+    if (opening != null) {
+      fromNode.updateAt(path, (node) => node.opening = opening);
+
+      if (state.currentPath == path) {
+        state = state.copyWith(
+          currentNode: AnalysisCurrentNode.fromNode(fromNode.nodeAt(path)),
+        );
+      }
+    }
+  }
+
+  void _listenToServerAnalysisEvents() {
+    final event =
+        ref.read(serverAnalysisServiceProvider).lastAnalysisEvent.value;
+    if (event != null && event.$1 == state.id) {
+      _mergeOngoingAnalysis(_root, event.$2.tree);
+      state = state.copyWith(
+        acplChartData: _makeAcplChartData(),
+        playersAnalysis: event.$2.analysis != null
+            ? (white: event.$2.analysis!.white, black: event.$2.analysis!.black)
+            : null,
+        root: _root.view,
       );
     }
-    return Future.error('Cannot request server analysis');
+  }
+
+  IList<ExternalEval>? _makeAcplChartData() {
+    if (!_root.mainline.any((node) => node.lichessAnalysisComments != null)) {
+      return null;
+    }
+    final list = _root.mainline
+        .map(
+      (node) => (
+        node.position.isCheckmate,
+        node.position.turn,
+        node.lichessAnalysisComments
+            ?.firstWhereOrNull((c) => c.eval != null)
+            ?.eval
+      ),
+    )
+        .map(
+      (el) {
+        final (isCheckmate, side, eval) = el;
+        return eval != null
+            ? ExternalEval(
+                cp: eval.pawns != null ? cpFromPawns(eval.pawns!) : null,
+                mate: eval.mate,
+                depth: eval.depth,
+              )
+            : ExternalEval(
+                cp: null,
+                // hack to display checkmate as the max eval
+                mate: isCheckmate
+                    ? side == Side.white
+                        ? -1
+                        : 1
+                    : null,
+              );
+      },
+    ).toList(growable: false);
+    return list.isEmpty ? null : IList(list);
+  }
+
+  void _mergeOngoingAnalysis(Node n1, Map<String, dynamic> n2) {
+    final eval = n2['eval'] as Map<String, dynamic>?;
+    final cp = eval?['cp'] as int?;
+    final mate = eval?['mate'] as int?;
+    final pgnEval = cp != null
+        ? PgnEvaluation.pawns(pawns: cpToPawns(cp))
+        : mate != null
+            ? PgnEvaluation.mate(mate: mate)
+            : null;
+    final glyphs = n2['glyphs'] as List<dynamic>?;
+    final glyph = glyphs?.first as Map<String, dynamic>?;
+    final comments = n2['comments'] as List<dynamic>?;
+    final comment =
+        (comments?.first as Map<String, dynamic>?)?['text'] as String?;
+    final children = n2['children'] as List<dynamic>? ?? [];
+    final pgnComment =
+        pgnEval != null ? PgnComment(eval: pgnEval, text: comment) : null;
+    if (n1 is Branch) {
+      if (pgnComment != null) {
+        if (n1.lichessAnalysisComments == null) {
+          n1.lichessAnalysisComments = [pgnComment];
+        } else {
+          n1.lichessAnalysisComments!.removeWhere((c) => c.eval != null);
+          n1.lichessAnalysisComments!.add(pgnComment);
+        }
+      }
+      if (glyph != null) {
+        n1.nags ??= [glyph['id'] as int];
+      }
+    }
+    for (final c in children) {
+      final n2child = c as Map<String, dynamic>;
+      final id = n2child['id'] as String;
+      final n1child = n1.childById(UciCharPair.fromStringId(id));
+      if (n1child != null) {
+        _mergeOngoingAnalysis(n1child, n2child);
+      } else {
+        final uci = n2child['uci'] as String;
+        final san = n2child['san'] as String;
+        final move = Move.fromUci(uci)!;
+        n1.addChild(
+          Branch(
+            position: n1.position.playUnchecked(move),
+            sanMove: SanMove(san, move),
+            isHidden: children.length > 1,
+          ),
+        );
+      }
+    }
   }
 
   /// Gets the node and maybe the associated branch opening at the given path.
@@ -352,10 +463,6 @@ class AnalysisController extends _$AnalysisController {
     } else {
       return (node, opening);
     }
-  }
-
-  String makeGamePgn() {
-    return _root.makePgn(state.pgnHeaders, state.pgnRootComments);
   }
 
   void _setPath(
@@ -433,27 +540,6 @@ class AnalysisController extends _$AnalysisController {
     }
   }
 
-  Future<void> _fetchOpening(Node fromNode, UciPath path) async {
-    if (!kOpeningAllowedVariants.contains(options.variant)) return;
-
-    final moves = fromNode.branchesOn(path).map((node) => node.sanMove.move);
-    if (moves.isEmpty) return;
-    if (moves.length > 40) return;
-
-    final opening =
-        await ref.read(openingServiceProvider).fetchFromMoves(moves);
-
-    if (opening != null) {
-      fromNode.updateAt(path, (node) => node.opening = opening);
-
-      if (state.currentPath == path) {
-        state = state.copyWith(
-          currentNode: AnalysisCurrentNode.fromNode(fromNode.nodeAt(path)),
-        );
-      }
-    }
-  }
-
   void _startEngineEval() {
     if (!state.isEngineAvailable) return;
     ref
@@ -469,12 +555,6 @@ class AnalysisController extends _$AnalysisController {
         );
   }
 
-  void _debouncedStartEngineEval() {
-    _engineEvalDebounce(() {
-      _startEngineEval();
-    });
-  }
-
   void _stopEngineEval() {
     ref.read(evaluationServiceProvider).stop();
     // update the current node with last cached eval
@@ -483,120 +563,93 @@ class AnalysisController extends _$AnalysisController {
           AnalysisCurrentNode.fromNode(_root.nodeAt(state.currentPath)),
     );
   }
+}
 
-  void _listenToServerAnalysisEvents() {
-    final event =
-        ref.read(serverAnalysisServiceProvider).lastAnalysisEvent.value;
-    if (event != null && event.$1 == state.id) {
-      _mergeOngoingAnalysis(_root, event.$2.tree);
-      state = state.copyWith(
-        acplChartData: _makeAcplChartData(),
-        playersAnalysis: event.$2.analysis != null
-            ? (white: event.$2.analysis!.white, black: event.$2.analysis!.black)
-            : null,
-        root: _root.view,
+@freezed
+class AnalysisCurrentNode with _$AnalysisCurrentNode {
+  const factory AnalysisCurrentNode({
+    required Position position,
+    required bool hasChild,
+    required bool isRoot,
+    SanMove? sanMove,
+    Opening? opening,
+    ClientEval? eval,
+    IList<PgnComment>? lichessAnalysisComments,
+    IList<PgnComment>? startingComments,
+    IList<PgnComment>? comments,
+    IList<int>? nags,
+  }) = _AnalysisCurrentNode;
+
+  factory AnalysisCurrentNode.fromNode(Node node) {
+    if (node is Branch) {
+      return AnalysisCurrentNode(
+        sanMove: node.sanMove,
+        position: node.position,
+        isRoot: node is Root,
+        hasChild: node.children.isNotEmpty,
+        opening: node.opening,
+        eval: node.eval,
+        lichessAnalysisComments: IList(node.lichessAnalysisComments),
+        startingComments: IList(node.startingComments),
+        comments: IList(node.comments),
+        nags: IList(node.nags),
+      );
+    } else {
+      return AnalysisCurrentNode(
+        position: node.position,
+        hasChild: node.children.isNotEmpty,
+        isRoot: node is Root,
+        opening: node.opening,
+        eval: node.eval,
       );
     }
   }
 
-  void _mergeOngoingAnalysis(Node n1, Map<String, dynamic> n2) {
-    final eval = n2['eval'] as Map<String, dynamic>?;
-    final cp = eval?['cp'] as int?;
-    final mate = eval?['mate'] as int?;
-    final pgnEval = cp != null
-        ? PgnEvaluation.pawns(pawns: cpToPawns(cp))
-        : mate != null
-            ? PgnEvaluation.mate(mate: mate)
-            : null;
-    final glyphs = n2['glyphs'] as List<dynamic>?;
-    final glyph = glyphs?.first as Map<String, dynamic>?;
-    final comments = n2['comments'] as List<dynamic>?;
-    final comment =
-        (comments?.first as Map<String, dynamic>?)?['text'] as String?;
-    final children = n2['children'] as List<dynamic>? ?? [];
-    final pgnComment =
-        pgnEval != null ? PgnComment(eval: pgnEval, text: comment) : null;
-    if (n1 is Branch) {
-      if (pgnComment != null) {
-        if (n1.lichessAnalysisComments == null) {
-          n1.lichessAnalysisComments = [pgnComment];
-        } else {
-          n1.lichessAnalysisComments!.removeWhere((c) => c.eval != null);
-          n1.lichessAnalysisComments!.add(pgnComment);
-        }
-      }
-      if (glyph != null) {
-        n1.nags ??= [glyph['id'] as int];
-      }
-    }
-    for (final c in children) {
-      final n2child = c as Map<String, dynamic>;
-      final id = n2child['id'] as String;
-      final n1child = n1.childById(UciCharPair.fromStringId(id));
-      if (n1child != null) {
-        _mergeOngoingAnalysis(n1child, n2child);
-      } else {
-        final uci = n2child['uci'] as String;
-        final san = n2child['san'] as String;
-        final move = Move.fromUci(uci)!;
-        n1.addChild(
-          Branch(
-            position: n1.position.playUnchecked(move),
-            sanMove: SanMove(san, move),
-            isHidden: children.length > 1,
-          ),
-        );
-      }
-    }
-  }
+  const AnalysisCurrentNode._();
 
-  IList<ExternalEval>? _makeAcplChartData() {
-    if (!_root.mainline.any((node) => node.lichessAnalysisComments != null)) {
-      return null;
-    }
-    final list = _root.mainline
-        .map(
-      (node) => (
-        node.position.isCheckmate,
-        node.position.turn,
-        node.lichessAnalysisComments
-            ?.firstWhereOrNull((c) => c.eval != null)
-            ?.eval
-      ),
-    )
-        .map(
-      (el) {
-        final (isCheckmate, side, eval) = el;
-        return eval != null
-            ? ExternalEval(
-                cp: eval.pawns != null ? cpFromPawns(eval.pawns!) : null,
-                mate: eval.mate,
-                depth: eval.depth,
-              )
-            : ExternalEval(
-                cp: null,
-                // hack to display checkmate as the max eval
-                mate: isCheckmate
-                    ? side == Side.white
-                        ? -1
-                        : 1
-                    : null,
-              );
-      },
-    ).toList(growable: false);
-    return list.isEmpty ? null : IList(list);
+  /// The evaluation from the PGN comments.
+  ///
+  /// For now we only trust the eval coming from lichess analysis.
+  ExternalEval? get serverEval {
+    final pgnEval =
+        lichessAnalysisComments?.firstWhereOrNull((c) => c.eval != null)?.eval;
+    return pgnEval != null
+        ? ExternalEval(
+            cp: pgnEval.pawns != null ? cpFromPawns(pgnEval.pawns!) : null,
+            mate: pgnEval.mate,
+            depth: pgnEval.depth,
+          )
+        : null;
   }
 }
 
-enum DisplayMode {
-  moves,
-  summary,
+@freezed
+class AnalysisOptions with _$AnalysisOptions {
+  const factory AnalysisOptions({
+    /// The ID of the analysis. Can be a game ID or a standalone analysis ID.
+    required StringId id,
+    required bool isLocalEvaluationAllowed,
+    required Side orientation,
+    required Variant variant,
+    int? initialMoveCursor,
+    LightOpening? opening,
+    Division? division,
+
+    /// Optional server analysis to display player stats.
+    ({PlayerAnalysis white, PlayerAnalysis black})? serverAnalysis,
+  }) = _AnalysisOptions;
+  const AnalysisOptions._();
+
+  /// The game ID of the analysis, if it's a lichess game.
+  GameAnyId? get gameAnyId =>
+      id != standaloneAnalysisId ? GameAnyId(id.value) : null;
+
+  /// Whether the analysis is for a lichess game.
+  bool get isLichessGameAnalysis => gameAnyId != null;
 }
 
 @freezed
 class AnalysisState with _$AnalysisState {
-  const AnalysisState._();
-
   const factory AnalysisState({
     /// Analysis ID
     required StringId id,
@@ -656,8 +709,11 @@ class AnalysisState with _$AnalysisState {
     IList<PgnComment>? pgnRootComments,
   }) = _AnalysisState;
 
-  IMap<String, ISet<String>> get validMoves =>
-      algebraicLegalMoves(currentNode.position);
+  const AnalysisState._();
+
+  bool get canGoBack => currentPath.size > UciPath.empty.size;
+
+  bool get canGoNext => currentNode.hasChild;
 
   /// Whether the user can request server analysis.
   ///
@@ -670,7 +726,12 @@ class AnalysisState with _$AnalysisState {
 
   bool get canShowGameSummary => hasServerAnalysis || canRequestServerAnalysis;
 
-  bool get hasServerAnalysis => playersAnalysis != null;
+  EngineGaugeParams get engineGaugeParams => EngineGaugeParams(
+        orientation: pov,
+        isLocalEngineAvailable: isEngineAvailable,
+        position: position,
+        savedEval: currentNode.eval ?? currentNode.serverEval,
+      );
 
   /// Whether an evaluation can be available
   bool get hasAvailableEval =>
@@ -679,78 +740,20 @@ class AnalysisState with _$AnalysisState {
           acplChartData != null &&
           acplChartData!.isNotEmpty);
 
+  bool get hasServerAnalysis => playersAnalysis != null;
+
   /// Whether the engine is available for evaluation
   bool get isEngineAvailable =>
       isLocalEvaluationAllowed &&
       engineSupportedVariants.contains(variant) &&
       isLocalEvaluationEnabled;
-
   Position get position => currentNode.position;
-  bool get canGoNext => currentNode.hasChild;
-  bool get canGoBack => currentPath.size > UciPath.empty.size;
 
-  EngineGaugeParams get engineGaugeParams => EngineGaugeParams(
-        orientation: pov,
-        isLocalEngineAvailable: isEngineAvailable,
-        position: position,
-        savedEval: currentNode.eval ?? currentNode.serverEval,
-      );
+  IMap<cg.SquareId, ISet<cg.SquareId>> get validMoves =>
+      algebraicLegalMovesAsSquareIds(currentNode.position);
 }
 
-@freezed
-class AnalysisCurrentNode with _$AnalysisCurrentNode {
-  const AnalysisCurrentNode._();
-
-  const factory AnalysisCurrentNode({
-    required Position position,
-    required bool hasChild,
-    required bool isRoot,
-    SanMove? sanMove,
-    Opening? opening,
-    ClientEval? eval,
-    IList<PgnComment>? lichessAnalysisComments,
-    IList<PgnComment>? startingComments,
-    IList<PgnComment>? comments,
-    IList<int>? nags,
-  }) = _AnalysisCurrentNode;
-
-  factory AnalysisCurrentNode.fromNode(Node node) {
-    if (node is Branch) {
-      return AnalysisCurrentNode(
-        sanMove: node.sanMove,
-        position: node.position,
-        isRoot: node is Root,
-        hasChild: node.children.isNotEmpty,
-        opening: node.opening,
-        eval: node.eval,
-        lichessAnalysisComments: IList(node.lichessAnalysisComments),
-        startingComments: IList(node.startingComments),
-        comments: IList(node.comments),
-        nags: IList(node.nags),
-      );
-    } else {
-      return AnalysisCurrentNode(
-        position: node.position,
-        hasChild: node.children.isNotEmpty,
-        isRoot: node is Root,
-        opening: node.opening,
-        eval: node.eval,
-      );
-    }
-  }
-
-  /// The evaluation from the PGN comments.
-  ///
-  /// For now we only trust the eval coming from lichess analysis.
-  ExternalEval? get serverEval {
-    final pgnEval =
-        lichessAnalysisComments?.firstWhereOrNull((c) => c.eval != null)?.eval;
-    return pgnEval != null
-        ? ExternalEval(
-            cp: pgnEval.pawns != null ? cpFromPawns(pgnEval.pawns!) : null,
-            mate: pgnEval.mate,
-            depth: pgnEval.depth,
-          )
-        : null;
-  }
+enum DisplayMode {
+  moves,
+  summary,
 }

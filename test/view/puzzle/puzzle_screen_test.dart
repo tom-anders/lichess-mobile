@@ -96,7 +96,7 @@ void main() {
         // wait for the puzzle to load
         await tester.pump(const Duration(milliseconds: 200));
 
-        expect(find.byType(cg.Board), findsOneWidget);
+        expect(find.byType(cg.Chessboard), findsOneWidget);
         expect(find.text('Your turn'), findsOneWidget);
       },
     );
@@ -125,13 +125,13 @@ void main() {
 
       await tester.pumpWidget(app);
 
-      expect(find.byType(cg.Board), findsNothing);
+      expect(find.byType(cg.Chessboard), findsNothing);
       expect(find.text('Your turn'), findsNothing);
 
       // wait for the puzzle to load
       await tester.pump(const Duration(milliseconds: 200));
 
-      expect(find.byType(cg.Board), findsOneWidget);
+      expect(find.byType(cg.Chessboard), findsOneWidget);
       expect(find.text('Your turn'), findsOneWidget);
     });
 
@@ -187,7 +187,7 @@ void main() {
         // wait for the puzzle to load
         await tester.pump(const Duration(milliseconds: 200));
 
-        expect(find.byType(cg.Board), findsOneWidget);
+        expect(find.byType(cg.Chessboard), findsOneWidget);
         expect(find.text('Your turn'), findsOneWidget);
 
         // before the first move is played, puzzle is not interactable
@@ -196,7 +196,7 @@ void main() {
         await tester.pump();
         expect(find.byKey(const Key('g4-selected')), findsNothing);
 
-        const orientation = cg.Side.black;
+        const orientation = Side.black;
 
         // await for first move to be played
         await tester.pump(const Duration(milliseconds: 1500));
@@ -209,7 +209,7 @@ void main() {
         expect(find.byKey(const Key('g4-blackRook')), findsOneWidget);
         expect(find.byKey(const Key('h8-whiteQueen')), findsOneWidget);
 
-        final boardRect = tester.getRect(find.byType(cg.Board));
+        final boardRect = tester.getRect(find.byType(cg.Chessboard));
 
         await playMove(tester, boardRect, 'g4', 'h4', orientation: orientation);
 
@@ -301,17 +301,17 @@ void main() {
         // wait for the puzzle to load
         await tester.pump(const Duration(milliseconds: 200));
 
-        expect(find.byType(cg.Board), findsOneWidget);
+        expect(find.byType(cg.Chessboard), findsOneWidget);
         expect(find.text('Your turn'), findsOneWidget);
 
-        const orientation = cg.Side.black;
+        const orientation = Side.black;
 
         // await for first move to be played
         await tester.pump(const Duration(milliseconds: 1500));
 
         expect(find.byKey(const Key('g4-blackRook')), findsOneWidget);
 
-        final boardRect = tester.getRect(find.byType(cg.Board));
+        final boardRect = tester.getRect(find.byType(cg.Chessboard));
 
         await playMove(tester, boardRect, 'g4', 'f4', orientation: orientation);
 
@@ -404,7 +404,7 @@ void main() {
         // wait for the puzzle to load
         await tester.pump(const Duration(milliseconds: 200));
 
-        expect(find.byType(cg.Board), findsOneWidget);
+        expect(find.byType(cg.Chessboard), findsOneWidget);
         expect(find.text('Your turn'), findsOneWidget);
 
         // await for first move to be played and view solution button to appear

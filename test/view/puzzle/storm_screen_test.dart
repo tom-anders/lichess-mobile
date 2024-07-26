@@ -1,4 +1,5 @@
 import 'package:chessground/chessground.dart' as cg;
+import 'package:dartchess/dartchess.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -60,7 +61,7 @@ void main() {
 
         await tester.pumpWidget(app);
 
-        expect(find.byType(cg.Board), findsOneWidget);
+        expect(find.byType(cg.Chessboard), findsOneWidget);
         expect(
           find.text('You play the white pieces in all puzzles'),
           findsWidgets,
@@ -95,14 +96,14 @@ void main() {
 
         expect(find.byKey(const Key('g8-blackKing')), findsOneWidget);
 
-        final boardRect = tester.getRect(find.byType(cg.Board));
+        final boardRect = tester.getRect(find.byType(cg.Chessboard));
 
         await playMove(
           tester,
           boardRect,
           'h5',
           'h7',
-          orientation: cg.Side.white,
+          orientation: Side.white,
         );
 
         await tester.pump(const Duration(milliseconds: 500));
@@ -115,7 +116,7 @@ void main() {
           boardRect,
           'e3',
           'g1',
-          orientation: cg.Side.white,
+          orientation: Side.white,
         );
 
         await tester.pump(const Duration(milliseconds: 500));
@@ -142,14 +143,14 @@ void main() {
       // wait for first move to be played
       await tester.pump(const Duration(seconds: 1));
 
-      final boardRect = tester.getRect(find.byType(cg.Board));
+      final boardRect = tester.getRect(find.byType(cg.Chessboard));
 
       await playMove(
         tester,
         boardRect,
         'h5',
         'h7',
-        orientation: cg.Side.white,
+        orientation: Side.white,
       );
 
       await tester.pump(const Duration(milliseconds: 500));
@@ -158,7 +159,7 @@ void main() {
         boardRect,
         'e3',
         'g1',
-        orientation: cg.Side.white,
+        orientation: Side.white,
       );
 
       await tester.pump(const Duration(milliseconds: 500));
@@ -185,7 +186,7 @@ void main() {
       await tester.pumpWidget(app);
 
       await tester.pump(const Duration(seconds: 1));
-      final boardRect = tester.getRect(find.byType(cg.Board));
+      final boardRect = tester.getRect(find.byType(cg.Chessboard));
 
       await playMove(tester, boardRect, 'h5', 'h6');
 

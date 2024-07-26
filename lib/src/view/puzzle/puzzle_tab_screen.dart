@@ -449,7 +449,7 @@ class _DailyPuzzle extends ConsumerWidget {
       data: (data) {
         final preview = PuzzlePreview.fromPuzzle(data);
         return SmallBoardPreview(
-          orientation: preview.orientation.cg,
+          orientation: preview.orientation,
           fen: preview.initialFen,
           lastMove: preview.initialMove.cg,
           description: Column(
@@ -497,7 +497,7 @@ class _DailyPuzzle extends ConsumerWidget {
         );
       },
       loading: () => SmallBoardPreview(
-        orientation: Side.white.cg,
+        orientation: Side.white,
         fen: kEmptyFen,
         description: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -531,7 +531,7 @@ class _OfflinePuzzlePreview extends ConsumerWidget {
         final preview =
             data != null ? PuzzlePreview.fromPuzzle(data.puzzle) : null;
         return SmallBoardPreview(
-          orientation: preview?.orientation.cg ?? Side.white.cg,
+          orientation: preview?.orientation ?? Side.white,
           fen: preview?.initialFen ?? kEmptyFen,
           lastMove: preview?.initialMove.cg,
           description: Column(

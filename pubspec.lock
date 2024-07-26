@@ -5,10 +5,10 @@ packages:
     dependency: transitive
     description:
       name: _fe_analyzer_shared
-      sha256: f256b0c0ba6c7577c15e2e4e114755640a875e885099367bf6e012b19314c834
+      sha256: "5aaf60d96c4cd00fe7f21594b5ad6a1b699c80a27420f8a837f4d68473ef09e3"
       url: "https://pub.dev"
     source: hosted
-    version: "72.0.0"
+    version: "68.0.0"
   _flutterfire_internals:
     dependency: transitive
     description:
@@ -21,15 +21,15 @@ packages:
     dependency: transitive
     description: dart
     source: sdk
-    version: "0.3.2"
+    version: "0.1.5"
   analyzer:
     dependency: transitive
     description:
       name: analyzer
-      sha256: b652861553cd3990d8ed361f7979dc6d7053a9ac8843fa73820ab68ce5410139
+      sha256: "21f1d3720fd1c70316399d5e2bccaebb415c434592d778cce8acb967b8578808"
       url: "https://pub.dev"
     source: hosted
-    version: "6.7.0"
+    version: "6.5.0"
   analyzer_plugin:
     dependency: transitive
     description:
@@ -185,11 +185,12 @@ packages:
   chessground:
     dependency: "direct main"
     description:
-      name: chessground
-      sha256: "44b2f20c8df56d7f42c5d10c68dc8b79f766db65f9f1b4cca45c4d30579d4e57"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.2.0"
+      path: "."
+      ref: "22db3bafaf25b62357affcaac310df40a1efa426"
+      resolved-ref: "22db3bafaf25b62357affcaac310df40a1efa426"
+      url: "https://github.com/lichess-org/flutter-chessground"
+    source: git
+    version: "4.0.0"
   ci:
     dependency: transitive
     description:
@@ -854,10 +855,10 @@ packages:
     dependency: transitive
     description:
       name: macros
-      sha256: "0acaed5d6b7eab89f63350bccd82119e6c602df0f391260d0e32b5e23db79536"
+      sha256: a8403c89b36483b4cbf9f1fcd24562f483cb34a5c9bf101cf2b0d8a083cf1239
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.2-main.4"
+    version: "0.1.0-main.5"
   matcher:
     dependency: transitive
     description:
@@ -878,10 +879,10 @@ packages:
     dependency: "direct main"
     description:
       name: meta
-      sha256: bdb68674043280c3428e9ec998512fb681678676b3c54e773629ffe74419f8c7
+      sha256: "25dfcaf170a0190f47ca6355bdd4552cb8924b430512ff0cafb8db9bd41fe33b"
       url: "https://pub.dev"
     source: hosted
-    version: "1.15.0"
+    version: "1.14.0"
   mime:
     dependency: transitive
     description:
@@ -1389,10 +1390,10 @@ packages:
     dependency: transitive
     description:
       name: test_api
-      sha256: "5b8a98dafc4d5c4c9c72d8b31ab2b23fc13422348d2997120294d3bac86b4ddb"
+      sha256: "2419f20b0c8677b2d67c8ac4d1ac7372d862dc6c460cdbb052b40155408cd794"
       url: "https://pub.dev"
     source: hosted
-    version: "0.7.2"
+    version: "0.7.1"
   timeago:
     dependency: "direct main"
     description:
@@ -1541,10 +1542,10 @@ packages:
     dependency: transitive
     description:
       name: vm_service
-      sha256: f652077d0bdf60abe4c1f6377448e8655008eef28f128bc023f7b5e8dfeb48fc
+      sha256: "7475cb4dd713d57b6f7464c0e13f06da0d535d8b2067e188962a59bac2cf280b"
       url: "https://pub.dev"
     source: hosted
-    version: "14.2.4"
+    version: "14.2.2"
   wakelock_plus:
     dependency: "direct main"
     description:

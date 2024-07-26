@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:async/async.dart';
+import 'package:chessground/chessground.dart' as cg;
 import 'package:collection/collection.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
@@ -22,6 +23,7 @@ import 'package:lichess_mobile/src/model/puzzle/puzzle_service.dart';
 import 'package:lichess_mobile/src/model/puzzle/puzzle_session.dart';
 import 'package:lichess_mobile/src/model/puzzle/puzzle_streak.dart';
 import 'package:lichess_mobile/src/model/puzzle/puzzle_theme.dart';
+import 'package:lichess_mobile/src/utils/chessground_compat.dart';
 import 'package:lichess_mobile/src/utils/rate_limit.dart';
 import 'package:result_extensions/result_extensions.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -62,8 +64,253 @@ class PuzzleController extends _$PuzzleController {
     return _loadNewContext(initialContext, initialStreak);
   }
 
-  PuzzleRepository _repository(LichessClient client) =>
-      PuzzleRepository(client);
+  Future<PuzzleContext?> changeDifficulty(PuzzleDifficulty difficulty) async {
+    state = state.copyWith(
+      isChangingDifficulty: true,
+    );
+
+    await ref
+        .read(
+          puzzlePreferencesProvider(initialContext.userId).notifier,
+        )
+        .setDifficulty(difficulty);
+
+    final nextPuzzle = _service.resetBatch(
+      userId: initialContext.userId,
+      angle: initialContext.angle,
+    );
+
+    state = state.copyWith(
+      isChangingDifficulty: false,
+    );
+
+    return nextPuzzle;
+  }
+
+  void loadPuzzle(PuzzleContext nextContext, {PuzzleStreak? nextStreak}) {
+    ref.read(evaluationServiceProvider).disposeEngine();
+
+    state = _loadNewContext(nextContext, nextStreak ?? state.streak);
+  }
+
+  String makePgn() {
+    final initPosition = _gameTree.nodeAt(state.initialPath).position;
+    var currentPosition = initPosition;
+    final pgnMoves = state.puzzle.puzzle.solution.fold<List<String>>([],
+        (List<String> acc, move) {
+      final moveObj = Move.fromUci(move);
+      if (moveObj != null) {
+        final String san;
+        (currentPosition, san) = currentPosition.makeSan(moveObj);
+        return acc..add(san);
+      }
+      return acc;
+    });
+    final pgn =
+        '[FEN "${initPosition.fen}"][Site "${lichessUri('/training/${state.puzzle.puzzle.id}')}"]${pgnMoves.join(' ')}';
+    return pgn;
+  }
+
+  Future<void> onUserMove(Move move) async {
+    _addMove(move);
+
+    if (state.mode == PuzzleMode.play) {
+      final nodeList = _gameTree.branchesOn(state.currentPath).toList();
+      final movesToTest =
+          nodeList.sublist(state.initialPath.size).map((e) => e.sanMove);
+
+      final isGoodMove = state.puzzle.testSolution(movesToTest);
+
+      if (isGoodMove) {
+        state = state.copyWith(
+          feedback: PuzzleFeedback.good,
+        );
+
+        final isCheckmate = movesToTest.last.san.endsWith('#');
+        final nextUci =
+            state.puzzle.puzzle.solution.getOrNull(movesToTest.length);
+        // checkmate is always a win
+        if (isCheckmate) {
+          _completePuzzle();
+        }
+        // another puzzle move: let's continue
+        else if (nextUci != null) {
+          await Future<void>.delayed(const Duration(milliseconds: 500));
+          _addMove(Move.fromUci(nextUci)!);
+        }
+        // no more puzzle move: it's a win
+        else {
+          _completePuzzle();
+        }
+      } else {
+        state = state.copyWith(
+          feedback: PuzzleFeedback.bad,
+        );
+        _onFailOrWin(PuzzleResult.lose);
+        if (initialStreak == null) {
+          await Future<void>.delayed(const Duration(milliseconds: 500));
+          _setPath(state.currentPath.penultimate);
+        }
+      }
+    }
+  }
+
+  FutureResult<PuzzleContext?> retryFetchNextStreakPuzzle(
+    PuzzleStreak streak,
+  ) async {
+    state = state.copyWith(
+      nextPuzzleStreakFetchIsRetrying: true,
+    );
+
+    final result = await _fetchNextStreakPuzzle(streak);
+
+    state = state.copyWith(
+      nextPuzzleStreakFetchIsRetrying: false,
+    );
+
+    result.match(
+      onSuccess: (nextContext) {
+        if (nextContext != null) {
+          state = state.copyWith(
+            streak: streak.copyWith(
+              index: streak.index + 1,
+            ),
+          );
+        } else {
+          // no more puzzle
+          state = state.copyWith(
+            streak: streak.copyWith(
+              index: streak.index + 1,
+              finished: true,
+            ),
+          );
+        }
+      },
+    );
+
+    return result;
+  }
+
+  void sendStreakResult() {
+    if (initialContext.userId != null) {
+      final streak = state.streak?.index;
+      if (streak != null && streak > 0) {
+        ref.withClient(
+          (client) => _repository(client).postStreakRun(streak),
+        );
+      }
+    }
+  }
+
+  void skipMove() {
+    if (state.streak != null) {
+      state = state.copyWith.streak!(hasSkipped: true);
+      final moveIndex = state.currentPath.size - state.initialPath.size;
+      final solution = state.puzzle.puzzle.solution[moveIndex];
+      onUserMove(Move.fromUci(solution)!);
+    }
+  }
+
+  void toggleLocalEvaluation() {
+    state = state.copyWith(
+      isLocalEvalEnabled: !state.isLocalEvalEnabled,
+    );
+    if (state.isLocalEvalEnabled) {
+      ref.read(evaluationServiceProvider).initEngine(state.evaluationContext);
+      _startEngineEval();
+    } else {
+      ref.read(evaluationServiceProvider).disposeEngine();
+    }
+  }
+
+  void userNext() {
+    _viewSolutionTimer?.cancel();
+    _goToNextNode(replaying: true);
+    state = state.copyWith(
+      viewedSolutionRecently: false,
+    );
+  }
+
+  void userPrevious() {
+    _viewSolutionTimer?.cancel();
+    _goToPreviousNode(replaying: true);
+    state = state.copyWith(
+      viewedSolutionRecently: false,
+    );
+  }
+
+  void viewSolution() {
+    if (state.mode == PuzzleMode.view) return;
+
+    _mergeSolution();
+
+    state = state.copyWith(
+      node: _gameTree.branchAt(state.currentPath).view,
+    );
+
+    _onFailOrWin(PuzzleResult.lose);
+
+    state = state.copyWith(
+      mode: PuzzleMode.view,
+    );
+
+    Timer(const Duration(milliseconds: 800), () {
+      _goToNextNode();
+
+      if (state.canGoNext) {
+        state = state.copyWith(viewedSolutionRecently: true);
+        Timer(const Duration(seconds: 5), () {
+          state = state.copyWith(viewedSolutionRecently: false);
+        });
+      }
+    });
+  }
+
+  void _addMove(Move move) {
+    final (newPath, _) = _gameTree.addMoveAt(
+      state.currentPath,
+      move,
+      prepend: state.mode == PuzzleMode.play,
+    );
+    if (newPath != null) {
+      _setPath(newPath);
+    }
+  }
+
+  Future<void> _completePuzzle() async {
+    state = state.copyWith(
+      mode: PuzzleMode.view,
+    );
+    await _onFailOrWin(state.result ?? PuzzleResult.win);
+  }
+
+  FutureResult<PuzzleContext?> _fetchNextStreakPuzzle(PuzzleStreak streak) {
+    return streak.nextId != null
+        ? Result.capture(
+            ref.withClient(
+              (client) => _repository(client).fetch(streak.nextId!).then(
+                    (puzzle) => PuzzleContext(
+                      angle: const PuzzleTheme(PuzzleThemeKey.mix),
+                      puzzle: puzzle,
+                      userId: initialContext.userId,
+                    ),
+                  ),
+            ),
+          )
+        : Future.value(Result.value(null));
+  }
+
+  void _goToNextNode({bool replaying = false}) {
+    if (state.node.children.isEmpty) return;
+    _setPath(
+      state.currentPath + state.node.children.first.id,
+      replaying: replaying,
+    );
+  }
+
+  void _goToPreviousNode({bool replaying = false}) {
+    _setPath(state.currentPath.penultimate, replaying: replaying);
+  }
 
   PuzzleState _loadNewContext(
     PuzzleContext context,
@@ -113,211 +360,26 @@ class PuzzleController extends _$PuzzleController {
     );
   }
 
-  Future<void> onUserMove(Move move) async {
-    _addMove(move);
-
-    if (state.mode == PuzzleMode.play) {
-      final nodeList = _gameTree.branchesOn(state.currentPath).toList();
-      final movesToTest =
-          nodeList.sublist(state.initialPath.size).map((e) => e.sanMove);
-
-      final isGoodMove = state.puzzle.testSolution(movesToTest);
-
-      if (isGoodMove) {
-        state = state.copyWith(
-          feedback: PuzzleFeedback.good,
-        );
-
-        final isCheckmate = movesToTest.last.san.endsWith('#');
-        final nextUci =
-            state.puzzle.puzzle.solution.getOrNull(movesToTest.length);
-        // checkmate is always a win
-        if (isCheckmate) {
-          _completePuzzle();
-        }
-        // another puzzle move: let's continue
-        else if (nextUci != null) {
-          await Future<void>.delayed(const Duration(milliseconds: 500));
-          _addMove(Move.fromUci(nextUci)!);
-        }
-        // no more puzzle move: it's a win
-        else {
-          _completePuzzle();
-        }
-      } else {
-        state = state.copyWith(
-          feedback: PuzzleFeedback.bad,
-        );
-        _onFailOrWin(PuzzleResult.lose);
-        if (initialStreak == null) {
-          await Future<void>.delayed(const Duration(milliseconds: 500));
-          _setPath(state.currentPath.penultimate);
-        }
-      }
-    }
-  }
-
-  void userNext() {
-    _viewSolutionTimer?.cancel();
-    _goToNextNode(replaying: true);
-    state = state.copyWith(
-      viewedSolutionRecently: false,
-    );
-  }
-
-  void userPrevious() {
-    _viewSolutionTimer?.cancel();
-    _goToPreviousNode(replaying: true);
-    state = state.copyWith(
-      viewedSolutionRecently: false,
-    );
-  }
-
-  void viewSolution() {
-    if (state.mode == PuzzleMode.view) return;
-
-    _mergeSolution();
-
-    state = state.copyWith(
-      node: _gameTree.branchAt(state.currentPath).view,
-    );
-
-    _onFailOrWin(PuzzleResult.lose);
-
-    state = state.copyWith(
-      mode: PuzzleMode.view,
-    );
-
-    Timer(const Duration(milliseconds: 800), () {
-      _goToNextNode();
-
-      if (state.canGoNext) {
-        state = state.copyWith(viewedSolutionRecently: true);
-        Timer(const Duration(seconds: 5), () {
-          state = state.copyWith(viewedSolutionRecently: false);
-        });
-      }
-    });
-  }
-
-  void skipMove() {
-    if (state.streak != null) {
-      state = state.copyWith.streak!(hasSkipped: true);
-      final moveIndex = state.currentPath.size - state.initialPath.size;
-      final solution = state.puzzle.puzzle.solution[moveIndex];
-      onUserMove(Move.fromUci(solution)!);
-    }
-  }
-
-  Future<PuzzleContext?> changeDifficulty(PuzzleDifficulty difficulty) async {
-    state = state.copyWith(
-      isChangingDifficulty: true,
-    );
-
-    await ref
-        .read(
-          puzzlePreferencesProvider(initialContext.userId).notifier,
-        )
-        .setDifficulty(difficulty);
-
-    final nextPuzzle = _service.resetBatch(
-      userId: initialContext.userId,
-      angle: initialContext.angle,
-    );
-
-    state = state.copyWith(
-      isChangingDifficulty: false,
-    );
-
-    return nextPuzzle;
-  }
-
-  void loadPuzzle(PuzzleContext nextContext, {PuzzleStreak? nextStreak}) {
-    ref.read(evaluationServiceProvider).disposeEngine();
-
-    state = _loadNewContext(nextContext, nextStreak ?? state.streak);
-  }
-
-  void sendStreakResult() {
-    if (initialContext.userId != null) {
-      final streak = state.streak?.index;
-      if (streak != null && streak > 0) {
-        ref.withClient(
-          (client) => _repository(client).postStreakRun(streak),
-        );
-      }
-    }
-  }
-
-  FutureResult<PuzzleContext?> retryFetchNextStreakPuzzle(
-    PuzzleStreak streak,
-  ) async {
-    state = state.copyWith(
-      nextPuzzleStreakFetchIsRetrying: true,
-    );
-
-    final result = await _fetchNextStreakPuzzle(streak);
-
-    state = state.copyWith(
-      nextPuzzleStreakFetchIsRetrying: false,
-    );
-
-    result.match(
-      onSuccess: (nextContext) {
-        if (nextContext != null) {
-          state = state.copyWith(
-            streak: streak.copyWith(
-              index: streak.index + 1,
+  void _mergeSolution() {
+    final initialNode = _gameTree.nodeAt(state.initialPath);
+    final (_, newNodes) = state.puzzle.puzzle.solution.foldIndexed(
+      (initialNode.position, IList<Branch>(const [])),
+      (index, previous, uci) {
+        final move = Move.fromUci(uci);
+        final (pos, nodes) = previous;
+        final (newPos, newSan) = pos.makeSan(move!);
+        return (
+          newPos,
+          nodes.add(
+            Branch(
+              position: newPos,
+              sanMove: SanMove(newSan, move),
             ),
-          );
-        } else {
-          // no more puzzle
-          state = state.copyWith(
-            streak: streak.copyWith(
-              index: streak.index + 1,
-              finished: true,
-            ),
-          );
-        }
+          ),
+        );
       },
     );
-
-    return result;
-  }
-
-  FutureResult<PuzzleContext?> _fetchNextStreakPuzzle(PuzzleStreak streak) {
-    return streak.nextId != null
-        ? Result.capture(
-            ref.withClient(
-              (client) => _repository(client).fetch(streak.nextId!).then(
-                    (puzzle) => PuzzleContext(
-                      angle: const PuzzleTheme(PuzzleThemeKey.mix),
-                      puzzle: puzzle,
-                      userId: initialContext.userId,
-                    ),
-                  ),
-            ),
-          )
-        : Future.value(Result.value(null));
-  }
-
-  void _goToNextNode({bool replaying = false}) {
-    if (state.node.children.isEmpty) return;
-    _setPath(
-      state.currentPath + state.node.children.first.id,
-      replaying: replaying,
-    );
-  }
-
-  void _goToPreviousNode({bool replaying = false}) {
-    _setPath(state.currentPath.penultimate, replaying: replaying);
-  }
-
-  Future<void> _completePuzzle() async {
-    state = state.copyWith(
-      mode: PuzzleMode.view,
-    );
-    await _onFailOrWin(state.result ?? PuzzleResult.win);
+    _gameTree.addNodesAt(state.initialPath, newNodes, prepend: true);
   }
 
   Future<void> _onFailOrWin(PuzzleResult result) async {
@@ -419,6 +481,9 @@ class PuzzleController extends _$PuzzleController {
     }
   }
 
+  PuzzleRepository _repository(LichessClient client) =>
+      PuzzleRepository(client);
+
   void _setPath(
     UciPath path, {
     bool replaying = false,
@@ -458,36 +523,6 @@ class PuzzleController extends _$PuzzleController {
     }
   }
 
-  void toggleLocalEvaluation() {
-    state = state.copyWith(
-      isLocalEvalEnabled: !state.isLocalEvalEnabled,
-    );
-    if (state.isLocalEvalEnabled) {
-      ref.read(evaluationServiceProvider).initEngine(state.evaluationContext);
-      _startEngineEval();
-    } else {
-      ref.read(evaluationServiceProvider).disposeEngine();
-    }
-  }
-
-  String makePgn() {
-    final initPosition = _gameTree.nodeAt(state.initialPath).position;
-    var currentPosition = initPosition;
-    final pgnMoves = state.puzzle.puzzle.solution.fold<List<String>>([],
-        (List<String> acc, move) {
-      final moveObj = Move.fromUci(move);
-      if (moveObj != null) {
-        final String san;
-        (currentPosition, san) = currentPosition.makeSan(moveObj);
-        return acc..add(san);
-      }
-      return acc;
-    });
-    final pgn =
-        '[FEN "${initPosition.fen}"][Site "${lichessUri('/training/${state.puzzle.puzzle.id}')}"]${pgnMoves.join(' ')}';
-    return pgn;
-  }
-
   void _startEngineEval() {
     if (!state.isEngineEnabled) return;
     _engineEvalDebounce(
@@ -507,51 +542,16 @@ class PuzzleController extends _$PuzzleController {
       }),
     );
   }
-
-  void _addMove(Move move) {
-    final (newPath, _) = _gameTree.addMoveAt(
-      state.currentPath,
-      move,
-      prepend: state.mode == PuzzleMode.play,
-    );
-    if (newPath != null) {
-      _setPath(newPath);
-    }
-  }
-
-  void _mergeSolution() {
-    final initialNode = _gameTree.nodeAt(state.initialPath);
-    final (_, newNodes) = state.puzzle.puzzle.solution.foldIndexed(
-      (initialNode.position, IList<Branch>(const [])),
-      (index, previous, uci) {
-        final move = Move.fromUci(uci);
-        final (pos, nodes) = previous;
-        final (newPos, newSan) = pos.makeSan(move!);
-        return (
-          newPos,
-          nodes.add(
-            Branch(
-              position: newPos,
-              sanMove: SanMove(newSan, move),
-            ),
-          ),
-        );
-      },
-    );
-    _gameTree.addNodesAt(state.initialPath, newNodes, prepend: true);
-  }
 }
+
+enum PuzzleFeedback { good, bad }
 
 enum PuzzleMode { load, play, view }
 
 enum PuzzleResult { win, lose }
 
-enum PuzzleFeedback { good, bad }
-
 @freezed
 class PuzzleState with _$PuzzleState {
-  const PuzzleState._();
-
   const factory PuzzleState({
     required Puzzle puzzle,
     required PuzzleGlicko? glicko,
@@ -577,20 +577,24 @@ class PuzzleState with _$PuzzleState {
     required bool nextPuzzleStreakFetchIsRetrying,
   }) = _PuzzleState;
 
-  bool get isEngineEnabled {
-    return mode == PuzzleMode.view && isLocalEvalEnabled;
-  }
+  const PuzzleState._();
+
+  bool get canGoBack =>
+      mode == PuzzleMode.view && currentPath.size > initialPath.size;
+
+  bool get canGoNext => mode == PuzzleMode.view && node.children.isNotEmpty;
 
   EvaluationContext get evaluationContext => EvaluationContext(
         variant: Variant.standard,
         initialPosition: initialPosition,
       );
+  String get fen => node.position.fen;
+  bool get isEngineEnabled {
+    return mode == PuzzleMode.view && isLocalEvalEnabled;
+  }
 
   Position get position => node.position;
-  String get fen => node.position.fen;
-  bool get canGoNext => mode == PuzzleMode.view && node.children.isNotEmpty;
-  bool get canGoBack =>
-      mode == PuzzleMode.view && currentPath.size > initialPath.size;
 
-  IMap<String, ISet<String>> get validMoves => algebraicLegalMoves(position);
+  IMap<cg.SquareId, ISet<cg.SquareId>> get validMoves =>
+      algebraicLegalMovesAsSquareIds(position);
 }
