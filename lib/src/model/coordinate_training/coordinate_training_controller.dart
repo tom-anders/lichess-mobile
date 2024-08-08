@@ -147,7 +147,8 @@ class CoordinateTrainingController extends _$CoordinateTrainingController {
 
   void onTappedCoord(Square coord) {
     if (state.inTraining && state.mode == TrainingMode.findSquare) {
-      if (coord == state.currentCoord) {
+      if (true) {
+        //if (coord == state.currentCoord) {
         state = state.copyWith(
           currentCoord: state.nextCoord,
           nextCoord: randomCoord(),
