@@ -378,14 +378,6 @@ class _TrainingBoard extends ConsumerWidget {
     final trainingNotifier =
         ref.watch(coordinateTrainingControllerProvider.notifier);
 
-    final coordShadow = [
-      const Shadow(
-        color: Colors.black,
-        offset: Offset(0, 5),
-        blurRadius: 40.0,
-      ),
-    ];
-
     return Column(
       children: [
         Align(
@@ -422,37 +414,61 @@ class _TrainingBoard extends ConsumerWidget {
               pointerMode: cg.EditorPointerMode.edit,
               onEditedSquare: trainingNotifier.onTappedCoord,
             ),
-            if (trainingController.inTraining)
-              IgnorePointer(
-                child: Opacity(
-                  opacity: 0.8,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        trainingController.currentCoord?.name ?? '',
-                        style: DefaultTextStyle.of(context).style.copyWith(
-                              fontSize: 150.0,
-                              color: trainingController.recentMistake
-                                  ? LichessColors.error
-                                  : null,
-                              shadows: coordShadow,
-                            ),
-                      ),
-                      Text(
-                        trainingController.nextCoord?.name ?? '',
-                        style: DefaultTextStyle.of(context).style.copyWith(
-                              fontSize: 90.0,
-                              shadows: coordShadow,
-                            ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            if (trainingController.inTraining) const _CoordinateDisplay(),
           ],
         ),
       ],
+    );
+  }
+}
+
+class _CoordinateDisplay extends ConsumerStatefulWidget {
+  const _CoordinateDisplay();
+
+  @override
+  ConsumerState<ConsumerStatefulWidget> createState() =>
+      _CoordinateDisplayState();
+}
+
+class _CoordinateDisplayState extends ConsumerState<_CoordinateDisplay> {
+  @override
+  Widget build(BuildContext context) {
+    final trainingController = ref.watch(coordinateTrainingControllerProvider);
+
+    final coordShadow = [
+      const Shadow(
+        color: Colors.black,
+        offset: Offset(0, 5),
+        blurRadius: 40.0,
+      ),
+    ];
+
+    return IgnorePointer(
+      child: Opacity(
+        opacity: 0.8,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            Text(
+              trainingController.currentCoord?.name ?? '',
+              style: DefaultTextStyle.of(context).style.copyWith(
+                    fontSize: 150.0,
+                    color: trainingController.recentMistake
+                        ? LichessColors.error
+                        : null,
+                    shadows: coordShadow,
+                  ),
+            ),
+            Text(
+              trainingController.nextCoord?.name ?? '',
+              style: DefaultTextStyle.of(context).style.copyWith(
+                    fontSize: 90.0,
+                    shadows: coordShadow,
+                  ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
