@@ -1,5 +1,4 @@
 import 'package:chessground/chessground.dart' as cg;
-import 'package:collection/collection.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -414,7 +413,11 @@ class _TrainingBoard extends ConsumerWidget {
               pointerMode: cg.EditorPointerMode.edit,
               onEditedSquare: trainingNotifier.onTappedCoord,
             ),
-            if (trainingController.inTraining) const _CoordinateDisplay(),
+            if (trainingController.inTraining)
+              _CoordinateDisplay(
+                currentCoord: trainingController.currentCoord!,
+                nextCoord: trainingController.nextCoord!,
+              ),
           ],
         ),
       ],
@@ -423,14 +426,58 @@ class _TrainingBoard extends ConsumerWidget {
 }
 
 class _CoordinateDisplay extends ConsumerStatefulWidget {
-  const _CoordinateDisplay();
+  const _CoordinateDisplay({
+    required this.currentCoord,
+    required this.nextCoord,
+  });
+
+  final Square currentCoord;
+  final Square nextCoord;
 
   @override
   ConsumerState<ConsumerStatefulWidget> createState() =>
       _CoordinateDisplayState();
 }
 
-class _CoordinateDisplayState extends ConsumerState<_CoordinateDisplay> {
+class _CoordinateDisplayState extends ConsumerState<_CoordinateDisplay>
+    with SingleTickerProviderStateMixin {
+  static const Offset kNextCoordFractionalTranslation = Offset(1, 0);
+  static const double kNextCoordScale = 0.8;
+
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 200),
+  )..value = 1.0;
+
+  late final Animation<double> _scaleAnimation = Tween<double>(
+    begin: kNextCoordScale,
+    end: 1.0,
+  ).animate(
+    CurvedAnimation(parent: _controller, curve: Curves.linear),
+  );
+
+  late final Animation<Offset> _slideAnimation = Tween<Offset>(
+    begin: kNextCoordFractionalTranslation,
+    end: Offset.zero,
+  ).animate(
+    CurvedAnimation(parent: _controller, curve: Curves.linear),
+  );
+
+  @override
+  void didUpdateWidget(covariant _CoordinateDisplay oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.nextCoord != widget.nextCoord) {
+      _controller.forward(from: 0.0);
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final trainingController = ref.watch(coordinateTrainingControllerProvider);
@@ -446,25 +493,39 @@ class _CoordinateDisplayState extends ConsumerState<_CoordinateDisplay> {
     return IgnorePointer(
       child: Opacity(
         opacity: 0.8,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.end,
+        child: Stack(
           children: [
-            Text(
-              trainingController.currentCoord?.name ?? '',
-              style: DefaultTextStyle.of(context).style.copyWith(
-                    fontSize: 150.0,
-                    color: trainingController.recentMistake
-                        ? LichessColors.error
-                        : null,
-                    shadows: coordShadow,
-                  ),
+            SlideTransition(
+              position: _slideAnimation,
+              //child: ScaleTransition(
+              //  scale: _scaleAnimation,
+              child: Text(
+                trainingController.currentCoord?.name ?? '',
+                style: DefaultTextStyle.of(context).style.copyWith(
+                      fontSize: 150.0,
+                      color: trainingController.recentMistake
+                          ? LichessColors.error
+                          : null,
+                      shadows: coordShadow,
+                    ),
+                //),
+              ),
             ),
-            Text(
-              trainingController.nextCoord?.name ?? '',
-              style: DefaultTextStyle.of(context).style.copyWith(
-                    fontSize: 90.0,
-                    shadows: coordShadow,
-                  ),
+            SlideTransition(
+              position: _slideAnimation,
+              child: FractionalTranslation(
+                translation: kNextCoordFractionalTranslation,
+                //child: Transform.scale(
+                //  scale: kNextCoordScale,
+                child: Text(
+                  trainingController.nextCoord?.name ?? '',
+                  style: DefaultTextStyle.of(context).style.copyWith(
+                        fontSize: 150,
+                        shadows: coordShadow,
+                      ),
+                ),
+                //),
+              ),
             ),
           ],
         ),
