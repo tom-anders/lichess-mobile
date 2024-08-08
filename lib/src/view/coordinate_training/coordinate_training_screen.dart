@@ -441,12 +441,12 @@ class _CoordinateDisplay extends ConsumerStatefulWidget {
 
 class _CoordinateDisplayState extends ConsumerState<_CoordinateDisplay>
     with SingleTickerProviderStateMixin {
-  static const Offset kNextCoordFractionalTranslation = Offset(1, 0);
-  static const double kNextCoordScale = 0.8;
+  static const Offset kNextCoordFractionalTranslation = Offset(0.8, 0.3);
+  static const double kNextCoordScale = 0.4;
 
   late final AnimationController _controller = AnimationController(
     vsync: this,
-    duration: const Duration(milliseconds: 200),
+    duration: const Duration(milliseconds: 150),
   )..value = 1.0;
 
   late final Animation<double> _scaleAnimation = Tween<double>(
@@ -456,8 +456,15 @@ class _CoordinateDisplayState extends ConsumerState<_CoordinateDisplay>
     CurvedAnimation(parent: _controller, curve: Curves.linear),
   );
 
-  late final Animation<Offset> _slideAnimation = Tween<Offset>(
+  late final Animation<Offset> _curCoordSlideInAnimation = Tween<Offset>(
     begin: kNextCoordFractionalTranslation,
+    end: Offset.zero,
+  ).animate(
+    CurvedAnimation(parent: _controller, curve: Curves.linear),
+  );
+
+  late final Animation<Offset> _nextCoordSlideInAnimation = Tween<Offset>(
+    begin: const Offset(0.5, 0),
     end: Offset.zero,
   ).animate(
     CurvedAnimation(parent: _controller, curve: Curves.linear),
@@ -482,52 +489,55 @@ class _CoordinateDisplayState extends ConsumerState<_CoordinateDisplay>
   Widget build(BuildContext context) {
     final trainingController = ref.watch(coordinateTrainingControllerProvider);
 
-    final coordShadow = [
-      const Shadow(
-        color: Colors.black,
-        offset: Offset(0, 5),
-        blurRadius: 40.0,
-      ),
-    ];
+    final textStyle = DefaultTextStyle.of(context).style.copyWith(
+      fontSize: 110.0,
+      fontFamily: 'monospace',
+      // bold:
+      fontWeight: FontWeight.bold,
+      fontFeatures: [const FontFeature.tabularFigures()],
+      shadows: const [
+        Shadow(
+          color: Colors.black,
+          offset: Offset(0, 5),
+          blurRadius: 40.0,
+        ),
+      ],
+    );
 
-    return IgnorePointer(
-      child: Opacity(
-        opacity: 0.8,
-        child: Stack(
-          children: [
-            SlideTransition(
-              position: _slideAnimation,
-              //child: ScaleTransition(
-              //  scale: _scaleAnimation,
-              child: Text(
-                trainingController.currentCoord?.name ?? '',
-                style: DefaultTextStyle.of(context).style.copyWith(
-                      fontSize: 150.0,
-                      color: trainingController.recentMistake
-                          ? LichessColors.error
-                          : null,
-                      shadows: coordShadow,
-                    ),
-                //),
-              ),
-            ),
-            SlideTransition(
-              position: _slideAnimation,
-              child: FractionalTranslation(
-                translation: kNextCoordFractionalTranslation,
-                //child: Transform.scale(
-                //  scale: kNextCoordScale,
-                child: Text(
-                  trainingController.nextCoord?.name ?? '',
-                  style: DefaultTextStyle.of(context).style.copyWith(
-                        fontSize: 150,
-                        shadows: coordShadow,
-                      ),
+    return Transform.translate(
+      // TODO offset in terms of board size, something like 25%
+      offset: Offset(-50, 0),
+      child: IgnorePointer(
+        // TODO different opacities for curr and next, animate between them
+        child: Opacity(
+          opacity: 0.7,
+          child: Stack(
+            children: [
+              SlideTransition(
+                position: _curCoordSlideInAnimation,
+                child: ScaleTransition(
+                  scale: _scaleAnimation,
+                  child: Text(
+                    trainingController.currentCoord?.name ?? '',
+                    style: textStyle,
+                  ),
                 ),
-                //),
               ),
-            ),
-          ],
+              SlideTransition(
+                position: _nextCoordSlideInAnimation,
+                child: FractionalTranslation(
+                  translation: kNextCoordFractionalTranslation,
+                  child: Transform.scale(
+                    scale: kNextCoordScale,
+                    child: Text(
+                      trainingController.nextCoord?.name ?? '',
+                      style: textStyle,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
