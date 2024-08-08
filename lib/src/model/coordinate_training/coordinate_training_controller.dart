@@ -48,10 +48,9 @@ Widget timeChoiceL10n(BuildContext context, TimeChoice time) {
   }
 }
 
-enum TrainingState {
-  configuring,
-  countdown,
-  training,
+enum TrainingMode {
+  findSquare,
+  nameSquare,
 }
 
 @riverpod
@@ -65,8 +64,8 @@ class CoordinateTrainingController extends _$CoordinateTrainingController {
   CoordinateTrainingState build() {
     return const CoordinateTrainingState(
       orientation: Side.white,
-      nextCoords: IList.empty(),
-      countdown: IList.empty(),
+      currentCoord: null,
+      nextCoord: null,
       score: 0,
       recentMistakeTimer: null,
       lastGuessWasMistake: false,
@@ -74,7 +73,8 @@ class CoordinateTrainingController extends _$CoordinateTrainingController {
       elapsed: Duration.zero,
       showCoordinates: false,
       showPieces: true,
-      trainingState: TrainingState.configuring,
+      inTraining: false,
+      mode: TrainingMode.findSquare,
     );
   }
 
@@ -88,22 +88,24 @@ class CoordinateTrainingController extends _$CoordinateTrainingController {
     );
   }
 
+  void setTrainingMode(TrainingMode mode) {
+    state = state.copyWith(
+      mode: mode,
+    );
+  }
+
   void startTraining(Duration? timeLimit) {
     state = state.copyWith(
-      nextCoords: List<Square>.generate(3, (_) => randomCoord()).toIList(),
+      currentCoord: randomCoord(),
+      nextCoord: randomCoord(),
       score: 0,
       recentMistakeTimer: null,
       lastGuessWasMistake: false,
       timeLimit: timeLimit,
       elapsed: Duration.zero,
-      countdown: ['3 ', '2 ', '1 '].lock,
-      trainingState: TrainingState.countdown,
+      inTraining: true,
     );
 
-    _startCountdown();
-  }
-
-  void _startTraining() {
     _updateTimer?.cancel();
     _stopwatch.reset();
     _stopwatch.start();
@@ -114,22 +116,6 @@ class CoordinateTrainingController extends _$CoordinateTrainingController {
         state = state.copyWith(
           elapsed: _stopwatch.elapsed,
         );
-      }
-    });
-
-    state = state.copyWith(
-      trainingState: TrainingState.training,
-    );
-  }
-
-  void _startCountdown() {
-    _updateTimer?.cancel();
-    _updateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      state = state.copyWith(
-        countdown: state.countdown.skip(1).toIList(),
-      );
-      if (state.countdown.isEmpty) {
-        _startTraining();
       }
     });
   }
@@ -145,7 +131,7 @@ class CoordinateTrainingController extends _$CoordinateTrainingController {
   void stopTraining() {
     _updateTimer?.cancel();
     state = state.copyWith(
-      trainingState: TrainingState.configuring,
+      inTraining: false,
     );
   }
 
@@ -153,18 +139,18 @@ class CoordinateTrainingController extends _$CoordinateTrainingController {
     while (true) {
       final square = Square.values[_random.nextInt(Square.values.length)];
       // Do not return the same square twice in a row
-      if (square != state.nextCoords.firstOrNull) {
+      if (square != state.nextCoord) {
         return square;
       }
     }
   }
 
   void onTappedCoord(Square coord) {
-    if (state.trainingState == TrainingState.training) {
-      if (coord == state.nextCoords.firstOrNull) {
+    if (state.inTraining && state.mode == TrainingMode.findSquare) {
+      if (coord == state.currentCoord) {
         state = state.copyWith(
-          nextCoords:
-              state.nextCoords.skip(1).followedBy([randomCoord()]).toIList(),
+          currentCoord: state.nextCoord,
+          nextCoord: randomCoord(),
           score: state.score + 1,
           recentMistakeTimer: null,
           lastGuessWasMistake: false,
@@ -188,8 +174,8 @@ class CoordinateTrainingState with _$CoordinateTrainingState {
   const factory CoordinateTrainingState({
     required Side orientation,
     // Empty if training is not active
-    required IList<Square> nextCoords,
-    required IList<String> countdown,
+    required Square? currentCoord,
+    required Square? nextCoord,
     required int score,
     required Timer? recentMistakeTimer,
     required bool lastGuessWasMistake,
@@ -197,13 +183,13 @@ class CoordinateTrainingState with _$CoordinateTrainingState {
     required Duration elapsed,
     required bool showCoordinates,
     required bool showPieces,
-    required TrainingState trainingState,
+    required bool inTraining,
+    required TrainingMode mode,
   }) = _CoordinateTrainingState;
 
-  double? get timePercentageElapsed =>
-      trainingState == TrainingState.training && timeLimit != null
-          ? elapsed.inMilliseconds / timeLimit!.inMilliseconds
-          : null;
+  double? get timePercentageElapsed => inTraining && timeLimit != null
+      ? elapsed.inMilliseconds / timeLimit!.inMilliseconds
+      : null;
 
   bool get recentMistake => recentMistakeTimer != null;
 }

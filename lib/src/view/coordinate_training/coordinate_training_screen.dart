@@ -132,15 +132,14 @@ class _Body extends ConsumerWidget {
                       boardSize: boardSize,
                       isTablet: isTablet,
                     ),
-                    if (trainingController.trainingState ==
-                        TrainingState.configuring)
-                      const _Settings()
-                    else
+                    if (trainingController.inTraining)
                       Expanded(
                         child: Center(
                           child: _Score(size: boardSize / 8),
                         ),
-                      ),
+                      )
+                    else
+                      const _Settings(),
                   ],
                 );
               },
@@ -378,6 +377,15 @@ class _TrainingBoard extends ConsumerWidget {
     final trainingController = ref.watch(coordinateTrainingControllerProvider);
     final trainingNotifier =
         ref.watch(coordinateTrainingControllerProvider.notifier);
+
+    final coordShadow = [
+      const Shadow(
+        color: Colors.black,
+        offset: Offset(0, 5),
+        blurRadius: 40.0,
+      ),
+    ];
+
     return Column(
       children: [
         Align(
@@ -414,38 +422,31 @@ class _TrainingBoard extends ConsumerWidget {
               pointerMode: cg.EditorPointerMode.edit,
               onEditedSquare: trainingNotifier.onTappedCoord,
             ),
-            if (trainingController.trainingState != TrainingState.configuring)
+            if (trainingController.inTraining)
               IgnorePointer(
                 child: Opacity(
                   opacity: 0.8,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
-                    children: trainingController.countdown
-                        .followedBy(
-                          trainingController.nextCoords
-                              .map((coord) => coord.name),
-                        )
-                        .take(3)
-                        .mapIndexed(
-                          (i, text) => Text(
-                            text,
-                            style: DefaultTextStyle.of(context).style.copyWith(
-                              fontSize: 150.0 - 60 * i,
-                              color:
-                                  (i == 0 && trainingController.recentMistake)
-                                      ? LichessColors.error
-                                      : null,
-                              shadows: [
-                                const Shadow(
-                                  color: Colors.black,
-                                  offset: Offset(0, 5),
-                                  blurRadius: 40.0,
-                                ),
-                              ],
+                    children: [
+                      Text(
+                        trainingController.currentCoord?.name ?? '',
+                        style: DefaultTextStyle.of(context).style.copyWith(
+                              fontSize: 150.0,
+                              color: trainingController.recentMistake
+                                  ? LichessColors.error
+                                  : null,
+                              shadows: coordShadow,
                             ),
-                          ),
-                        )
-                        .toList(),
+                      ),
+                      Text(
+                        trainingController.nextCoord?.name ?? '',
+                        style: DefaultTextStyle.of(context).style.copyWith(
+                              fontSize: 90.0,
+                              shadows: coordShadow,
+                            ),
+                      ),
+                    ],
                   ),
                 ),
               ),
