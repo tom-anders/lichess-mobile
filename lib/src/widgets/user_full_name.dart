@@ -17,6 +17,7 @@ class UserFullNameWidget extends ConsumerWidget {
     this.rating,
     this.provisional,
     this.shouldShowOnline = false,
+    this.showFlair = true,
     this.style,
     super.key,
   });
@@ -27,6 +28,7 @@ class UserFullNameWidget extends ConsumerWidget {
     this.rating,
     this.provisional,
     this.shouldShowOnline = false,
+    this.showFlair = true,
     this.style,
     super.key,
   });
@@ -43,6 +45,9 @@ class UserFullNameWidget extends ConsumerWidget {
 
   /// Whether to show the online status.
   final bool? shouldShowOnline;
+
+  /// Whether to show the flair.
+  final bool showFlair;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -105,7 +110,7 @@ class UserFullNameWidget extends ConsumerWidget {
             style: style,
           ),
         ),
-        if (user?.flair != null) ...[
+        if (showFlair && user?.flair != null) ...[
           const SizedBox(width: 5),
           CachedNetworkImage(
             imageUrl: lichessFlairSrc(user!.flair!),
