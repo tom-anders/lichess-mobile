@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lichess_mobile/src/model/analysis/analysis_controller.dart';
 import 'package:lichess_mobile/src/model/common/chess.dart';
 import 'package:lichess_mobile/src/navigation.dart';
+import 'package:lichess_mobile/src/styles/lichess_icons.dart';
 import 'package:lichess_mobile/src/styles/styles.dart';
 import 'package:lichess_mobile/src/utils/connectivity.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
@@ -13,6 +14,7 @@ import 'package:lichess_mobile/src/view/analysis/analysis_screen.dart';
 import 'package:lichess_mobile/src/view/board_editor/board_editor_screen.dart';
 import 'package:lichess_mobile/src/view/clock/clock_screen.dart';
 import 'package:lichess_mobile/src/view/opening_explorer/opening_explorer_screen.dart';
+import 'package:lichess_mobile/src/view/study/study_list_screen.dart';
 import 'package:lichess_mobile/src/view/tools/load_position_screen.dart';
 import 'package:lichess_mobile/src/widgets/list.dart';
 import 'package:lichess_mobile/src/widgets/platform.dart';
@@ -171,6 +173,33 @@ class _Body extends ConsumerWidget {
                       id: standaloneAnalysisId,
                     ),
                   ),
+                ),
+              ),
+            ),
+          if (isOnline)
+            Padding(
+              padding: Theme.of(context).platform == TargetPlatform.android
+                  ? const EdgeInsets.only(bottom: 16.0)
+                  : EdgeInsets.zero,
+              child: PlatformListTile(
+                leading: Icon(
+                  LichessIcons.book_lichess,
+                  size: Styles.mainListTileIconSize,
+                  color: Theme.of(context).platform == TargetPlatform.iOS
+                      ? CupertinoTheme.of(context).primaryColor
+                      : Theme.of(context).colorScheme.primary,
+                ),
+                title: Padding(
+                  padding: tilePadding,
+                  child: Text(context.l10n.studyMenu, style: Styles.callout),
+                ),
+                trailing: Theme.of(context).platform == TargetPlatform.iOS
+                    ? const CupertinoListTileChevron()
+                    : null,
+                onTap: () => pushPlatformRoute(
+                  context,
+                  rootNavigator: true,
+                  builder: (context) => const StudyListScreen(),
                 ),
               ),
             ),
