@@ -1,6 +1,7 @@
 import 'package:deep_pick/deep_pick.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:http/http.dart';
+import 'package:lichess_mobile/src/model/common/id.dart';
 import 'package:lichess_mobile/src/model/study/study.dart';
 import 'package:lichess_mobile/src/model/study/study_filter.dart';
 import 'package:lichess_mobile/src/network/http.dart';
@@ -50,6 +51,18 @@ class StudyRepository {
               (pick) => StudyPageData.fromJson(pick.asMapOrThrow()),
             )
             .toIList();
+      },
+    );
+  }
+
+  Future<Study> getStudy({required StudyId id, StudyChapterId? chapterId}) {
+    return client.readJson(
+      Uri(path: '/study/$id${chapterId != null ? '/$chapterId' : ''}'),
+      headers: {'Accept': 'application/json'},
+      mapper: (Map<String, dynamic> json) {
+        return Study.fromJson(
+          pick(json, 'study').asMapOrThrow(),
+        );
       },
     );
   }
