@@ -52,6 +52,27 @@ class UciCharPair with _$UciCharPair {
 
   @override
   String toString() => '$a$b';
+
+  String get uci {
+    final from = a.codeUnitAt(0) - 35;
+    final to = b.codeUnitAt(0) - 35;
+
+    if (to > 64) {
+      final promotionIndex = (to - 64) ~/ 8;
+      final toSquare = Square((to - 64) % 8);
+      final fromSquare = Square(from);
+      final promotionRole = _promotionRoles[promotionIndex];
+      return '${fromSquare.name}${toSquare.name}${promotionRole.letter}';
+    }
+
+    if (from > 64) {
+      final dropIndex = (to - 64) % 8;
+      final dropRole = _dropRoles[dropIndex];
+      return '$dropRole@${Square(to).name}';
+    }
+
+    return '${Square(from).name}${Square(to).name}';
+  }
 }
 
 const _promotionRoles = [
@@ -129,4 +150,12 @@ class UciPath with _$UciPath {
 
   factory UciPath.fromJson(Map<String, dynamic> json) =>
       _$UciPathFromJson(json);
+
+  List<String> get uci {
+    final moves = <String>[];
+    for (var i = 0; i < value.length; i += 2) {
+      moves.add(UciCharPair(value[i], value[i + 1]).uci);
+    }
+    return moves;
+  }
 }

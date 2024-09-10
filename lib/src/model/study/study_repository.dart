@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:deep_pick/deep_pick.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:http/http.dart';
@@ -55,9 +57,17 @@ class StudyRepository {
     );
   }
 
-  Future<Study> getStudy({required StudyId id, StudyChapterId? chapterId}) {
-    return client.readJson(
-      Uri(path: '/study/$id${chapterId != null ? '/$chapterId' : ''}'),
+  Future<(Study study, String pgn)> getStudy({
+    required StudyId id,
+    StudyChapterId? chapterId,
+  }) async {
+    final study = await client.readJson(
+      Uri(
+        path: (chapterId != null) ? '/study/$id/$chapterId' : '/study/$id',
+        queryParameters: {
+          'chapters': '1',
+        },
+      ),
       headers: {'Accept': 'application/json'},
       mapper: (Map<String, dynamic> json) {
         return Study.fromJson(
@@ -65,5 +75,12 @@ class StudyRepository {
         );
       },
     );
+
+    final bytes = await client.readBytes(
+      Uri(path: '/api/study/$id/${chapterId ?? study.chapter.id}.pgn'),
+      headers: {'Accept': 'application/x-chess-pgn'},
+    );
+
+    return (study, utf8.decode(bytes));
   }
 }

@@ -185,7 +185,8 @@ class _Body extends ConsumerWidget {
                       context,
                       rootNavigator: true,
                       builder: (context) => const StudyListScreen(),
-                    ) : null,
+                    )
+                : null,
           ),
           _ToolsButton(
             icon: Icons.edit_outlined,

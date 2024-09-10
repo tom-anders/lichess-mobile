@@ -21,6 +21,7 @@ import 'package:lichess_mobile/src/model/game/player.dart';
 import 'package:lichess_mobile/src/utils/rate_limit.dart';
 import 'package:lichess_mobile/src/view/analysis/tree_view.dart';
 import 'package:lichess_mobile/src/view/engine/engine_gauge.dart';
+import 'package:lichess_mobile/src/widgets/pgn_tree_view.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'analysis_controller.freezed.dart';
@@ -263,6 +264,7 @@ class AnalysisController extends _$AnalysisController
     _setPath(state.currentPath.penultimate, replaying: true);
   }
 
+  @override
   void userJump(UciPath path) {
     _setPath(path);
   }
@@ -288,6 +290,7 @@ class AnalysisController extends _$AnalysisController
     state = state.copyWith(root: _root.view);
   }
 
+  @override
   void promoteVariation(UciPath path, bool toMainline) {
     _root.promoteAt(path, toMainline: toMainline);
     state = state.copyWith(
@@ -296,6 +299,7 @@ class AnalysisController extends _$AnalysisController
     );
   }
 
+  @override
   void deleteFromHere(UciPath path) {
     _root.deleteAt(path);
     _setPath(path.penultimate, shouldRecomputeRootView: true);
