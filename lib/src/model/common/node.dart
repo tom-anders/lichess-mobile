@@ -588,7 +588,7 @@ class ViewRoot extends ViewNode with _$ViewRoot {
 class ViewBranch extends ViewNode with _$ViewBranch {
   const ViewBranch._();
 
-  const factory ViewBranch({
+  factory ViewBranch({
     required SanMove sanMove,
     required Position position,
     Opening? opening,

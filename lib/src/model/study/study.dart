@@ -17,16 +17,31 @@ class Study with _$Study {
   const factory Study({
     required StudyId id,
     required String name,
-    required (StudyChapterId chapterId, String path) position,
+    required ({StudyChapterId chapterId, String path}) position,
     required bool liked,
     required int likes,
-    required LightUser? owner,
+    required UserId? ownerId,
+    required IList<String> topics,
     required IList<StudyChapterMeta> chapters,
     required StudyChapter chapter,
     required StudyChat? chat,
   }) = _Study;
 
   factory Study.fromJson(Map<String, Object?> json) => _$StudyFromJson(json);
+}
+
+@Freezed(fromJson: true)
+class StudyFeatures with _$StudyFeatures {
+  const StudyFeatures._();
+
+  const factory StudyFeatures({
+    @JsonKey(defaultValue: false) required bool cloneable,
+    @JsonKey(defaultValue: false) required bool chat,
+    @JsonKey(defaultValue: false) required bool sticky,
+  }) = _StudyFeatures;
+
+  factory StudyFeatures.fromJson(Map<String, Object?> json) =>
+      _$StudyFeaturesFromJson(json);
 }
 
 @Freezed(fromJson: true)
@@ -48,11 +63,27 @@ class StudyChapter with _$StudyChapter {
   const factory StudyChapter({
     required StudyChapterId id,
     required StudyChapterSetup setup,
-    required String? description,
+    @JsonKey(defaultValue: false) required bool practise,
+    required int? conceal,
+    @JsonKey(defaultValue: false) required bool gamebook,
+    required StudyChapterFeatures features,
   }) = _StudyChapter;
 
   factory StudyChapter.fromJson(Map<String, Object?> json) =>
       _$StudyChapterFromJson(json);
+}
+
+@Freezed(fromJson: true)
+class StudyChapterFeatures with _$StudyChapterFeatures {
+  const StudyChapterFeatures._();
+
+  const factory StudyChapterFeatures({
+    @JsonKey(defaultValue: false) required bool computer,
+    @JsonKey(defaultValue: false) required bool explorer,
+  }) = _StudyChapterFeatures;
+
+  factory StudyChapterFeatures.fromJson(Map<String, Object?> json) =>
+      _$StudyChapterFeaturesFromJson(json);
 }
 
 @Freezed(fromJson: true)
@@ -62,8 +93,7 @@ class StudyChapterSetup with _$StudyChapterSetup {
   const factory StudyChapterSetup({
     required GameId? id,
     required Side orientation,
-    @JsonKey(fromJson: _variantFromJson)
-    required (Variant key, String name) variant,
+    @JsonKey(fromJson: _variantFromJson) required Variant variant,
     required bool? fromFen,
   }) = _StudyChapterSetup;
 
@@ -71,11 +101,10 @@ class StudyChapterSetup with _$StudyChapterSetup {
       _$StudyChapterSetupFromJson(json);
 }
 
-(Variant, String) _variantFromJson(Map<String, Object?> json) {
-  final key = Variant.values.firstWhereOrNull(
+Variant _variantFromJson(Map<String, Object?> json) {
+  return Variant.values.firstWhereOrNull(
     (v) => v.name == json['key'],
-  );
-  return (key!, json['name']! as String);
+  )!;
 }
 
 @Freezed(fromJson: true)
@@ -85,6 +114,7 @@ class StudyChapterMeta with _$StudyChapterMeta {
   const factory StudyChapterMeta({
     required StudyChapterId id,
     required String name,
+    required String? fen,
   }) = _StudyChapterMeta;
 
   factory StudyChapterMeta.fromJson(Map<String, Object?> json) =>
