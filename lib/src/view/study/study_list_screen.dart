@@ -2,15 +2,15 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lichess_mobile/src/model/auth/auth_session.dart';
-import 'package:lichess_mobile/src/model/common/http.dart';
 import 'package:lichess_mobile/src/model/study/study.dart';
 import 'package:lichess_mobile/src/model/study/study_filter.dart';
 import 'package:lichess_mobile/src/model/study/study_list_paginator.dart';
-import 'package:lichess_mobile/src/model/study/study_repository.dart';
 import 'package:lichess_mobile/src/styles/lichess_icons.dart';
 import 'package:lichess_mobile/src/styles/styles.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:lichess_mobile/src/utils/lichess_assets.dart';
+import 'package:lichess_mobile/src/utils/navigation.dart';
+import 'package:lichess_mobile/src/view/study/study_screen.dart';
 import 'package:lichess_mobile/src/widgets/adaptive_bottom_sheet.dart';
 import 'package:lichess_mobile/src/widgets/buttons.dart';
 import 'package:lichess_mobile/src/widgets/filter.dart';
@@ -291,13 +291,13 @@ class _StudyListState extends ConsumerState<_StudyList> {
                   ],
                 ),
                 onTap: () {
-                  StudyRepository(ref.read(lichessClientProvider))
-                      .getStudy(
-                    id: study.id,
-                  )
-                      .then((study) {
-                    print('Got study: $study');
-                  });
+                  pushPlatformRoute(
+                    context,
+                    rootNavigator: true,
+                    builder: (_) => StudyScreen(
+                      id: study.id,
+                    ),
+                  );
                 },
               );
             },

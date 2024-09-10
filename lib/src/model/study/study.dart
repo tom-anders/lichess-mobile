@@ -63,10 +63,9 @@ class StudyChapter with _$StudyChapter {
   const factory StudyChapter({
     required StudyChapterId id,
     required StudyChapterSetup setup,
-    required String? description,
-    required bool practise,
+    @JsonKey(defaultValue: false) required bool practise,
     required int? conceal,
-    required bool gamebook,
+    @JsonKey(defaultValue: false) required bool gamebook,
     required StudyChapterFeatures features,
   }) = _StudyChapter;
 
@@ -115,6 +114,7 @@ class StudyChapterMeta with _$StudyChapterMeta {
   const factory StudyChapterMeta({
     required StudyChapterId id,
     required String name,
+    required String? fen,
   }) = _StudyChapterMeta;
 
   factory StudyChapterMeta.fromJson(Map<String, Object?> json) =>
