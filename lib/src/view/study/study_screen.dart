@@ -65,6 +65,7 @@ class _Body extends ConsumerWidget {
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
+                // TODO table layout
                 final aspectRatio = constraints.biggest.aspectRatio;
                 final defaultBoardSize = constraints.biggest.shortestSide;
                 final isTablet = isTabletOrLarger(context);

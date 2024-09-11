@@ -4,6 +4,7 @@ import 'package:http/http.dart';
 import 'package:lichess_mobile/src/model/common/http.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
 import 'package:lichess_mobile/src/model/study/study.dart';
+import 'package:lichess_mobile/src/model/study/study_analysis.dart';
 import 'package:lichess_mobile/src/model/study/study_filter.dart';
 
 class StudyRepository {
@@ -55,13 +56,19 @@ class StudyRepository {
     );
   }
 
-  Future<Study> getStudy({required StudyId id, StudyChapterId? chapterId}) {
+  Future<(Study, StudyAnalysis)> getStudy(
+      {required StudyId id, StudyChapterId? chapterId}) {
     return client.readJson(
       Uri(path: '/study/$id${chapterId != null ? '/$chapterId' : ''}'),
       headers: {'Accept': 'application/json'},
       mapper: (Map<String, dynamic> json) {
-        return Study.fromJson(
-          pick(json, 'study').asMapOrThrow(),
+        return (
+          Study.fromJson(
+            pick(json, 'study').asMapOrThrow(),
+          ),
+          StudyAnalysis.fromJson(
+            pick(json, 'analysis').asMapOrThrow(),
+          ),
         );
       },
     );

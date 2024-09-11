@@ -61,6 +61,14 @@ extension type const StudyChapterId(String value) implements StringId {
   StudyChapterId.fromJson(dynamic json) : this(json as String);
 }
 
+extension type const StudyAnalyseNodeId(String value) implements StringId {
+  StudyAnalyseNodeId.fromJson(dynamic json) : this(json as String);
+}
+
+extension type const StudyNodeCommentId(String value) implements StringId {
+  StudyNodeCommentId.fromJson(dynamic json) : this(json as String);
+}
+
 extension IDPick on Pick {
   UserId asUserIdOrThrow() {
     final value = required().value;
