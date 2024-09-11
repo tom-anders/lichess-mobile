@@ -1,9 +1,12 @@
+import 'package:chessground/chessground.dart';
+import 'package:collection/collection.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:deep_pick/deep_pick.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:lichess_mobile/src/model/common/chess.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
+import 'package:lichess_mobile/src/model/settings/board_preferences.dart';
 import 'package:lichess_mobile/src/model/user/user.dart';
 
 part 'study_analysis.freezed.dart';
@@ -17,7 +20,7 @@ class StudyAnalysis with _$StudyAnalysis {
     required Side orientation,
     required String initialFen,
     required Variant variant,
-    required IList<StudyAnalyseNode> treeParts,
+    required IList<StudyTreePart> treeParts,
   }) = _StudyAnalysis;
 
   factory StudyAnalysis.fromJson(Map<String, dynamic> json) {
@@ -31,29 +34,57 @@ StudyAnalysis _studyAnalyseDataFromPick(RequiredPick pick) {
     initialFen: pick('game', 'initialFen').asStringOrThrow(),
     variant: pick('game', 'variant').asVariantOrThrow(),
     treeParts: pick('treeParts')
-        .asListOrThrow((pick) => StudyAnalyseNode.fromJson(pick.asMapOrThrow()))
+        .asListOrThrow(
+          (pick) => StudyTreePart.fromJson(pick.asMapOrThrow()),
+        )
         .toIList(),
   );
 }
 
 @Freezed(fromJson: true)
-class StudyAnalyseNode with _$StudyAnalyseNode {
-  const StudyAnalyseNode._();
+class StudyTreePart with _$StudyTreePart {
+  const StudyTreePart._();
 
-  const factory StudyAnalyseNode({
+  const factory StudyTreePart({
     required int ply,
     required String fen,
-    required StudyAnalyseNodeId id,
-    required SanMove san,
-    required UCIMove uci,
-    required IList<StudyNodeComment> comments,
-    required IList<StudyNodeGlyph> glyphs,
-    required IList<StudyNodeShapes> shapes,
-    required IList<StudyAnalyseNode>? children,
-  }) = _StudyAnalyseNode;
+    required StudyTreePartId? id,
+    required String? san,
+    required UCIMove? uci,
+    required IList<StudyNodeComment>? comments,
+    required IList<StudyNodeGlyph>? glyphs,
+    @ShapeConverter() required IList<Shape>? shapes,
+    required IList<StudyTreePart>? children,
+  }) = _StudyTreePart;
 
-  factory StudyAnalyseNode.fromJson(Map<String, Object?> json) =>
-      _$StudyAnalyseNodeFromJson(json);
+  factory StudyTreePart.fromJson(Map<String, Object?> json) =>
+      _$StudyTreePartFromJson(json);
+}
+
+class ShapeConverter implements JsonConverter<Shape, Map<String, Object?>> {
+  const ShapeConverter();
+
+  // assume we are serializing only valid uci strings
+  @override
+  Shape fromJson(Map<String, Object?> json) {
+    final pick = RequiredPick(json);
+    final brush = pick('brush').asStringOrThrow();
+    final color = (ShapeColor.values.firstWhereOrNull(
+              (color) => color.name == brush,
+            ) ??
+            ShapeColor.green)
+        .color;
+    final orig = pick('orig').asSquareOrThrow();
+    final dest = pick('dest').asSquareOrNull();
+    return dest != null
+        ? Arrow(color: color, orig: orig, dest: dest)
+        : Circle(color: color, orig: orig);
+  }
+
+  @override
+  Map<String, Object?> toJson(Shape shape) {
+    throw UnimplementedError();
+  }
 }
 
 @Freezed(fromJson: true)
@@ -75,25 +106,10 @@ class StudyNodeGlyph with _$StudyNodeGlyph {
   const StudyNodeGlyph._();
 
   const factory StudyNodeGlyph({
-    required int id,
+    @JsonKey(name: 'id') required int nag,
     required String symbol,
-    required String name,
   }) = _StudyNodeGlyph;
 
   factory StudyNodeGlyph.fromJson(Map<String, Object?> json) =>
       _$StudyNodeGlyphFromJson(json);
-}
-
-@Freezed(fromJson: true)
-class StudyNodeShapes with _$StudyNodeShapes {
-  const StudyNodeShapes._();
-
-  const factory StudyNodeShapes({
-    required String brush,
-    required Square orig,
-    required Square? dest,
-  }) = _StudyNodeShapes;
-
-  factory StudyNodeShapes.fromJson(Map<String, Object?> json) =>
-      _$StudyNodeShapesFromJson(json);
 }

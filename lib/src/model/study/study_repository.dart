@@ -56,8 +56,10 @@ class StudyRepository {
     );
   }
 
-  Future<(Study, StudyAnalysis)> getStudy(
-      {required StudyId id, StudyChapterId? chapterId}) {
+  Future<(Study, StudyAnalysis)> getStudy({
+    required StudyId id,
+    StudyChapterId? chapterId,
+  }) {
     return client.readJson(
       Uri(path: '/study/$id${chapterId != null ? '/$chapterId' : ''}'),
       headers: {'Accept': 'application/json'},

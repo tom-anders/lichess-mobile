@@ -4,6 +4,7 @@ import 'package:lichess_mobile/src/model/common/http.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
 import 'package:lichess_mobile/src/model/study/study.dart';
 import 'package:lichess_mobile/src/model/study/study_analysis.dart';
+import 'package:lichess_mobile/src/model/study/study_node.dart';
 import 'package:lichess_mobile/src/model/study/study_repository.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -17,7 +18,7 @@ class StudyController extends _$StudyController {
     final (study, analysis) = await ref.withClient(
       (client) => StudyRepository(client).getStudy(id: id),
     );
-    return StudyState(
+    return StudyState.fromServerResponse(
       study: study,
       analysis: analysis,
     );
@@ -34,7 +35,7 @@ class StudyController extends _$StudyController {
     );
 
     state = AsyncValue.data(
-      state.requireValue.copyWith(
+      StudyState.fromServerResponse(
         study: study,
         analysis: analysis,
       ),
@@ -46,12 +47,36 @@ class StudyController extends _$StudyController {
 class StudyState with _$StudyState {
   const factory StudyState({
     required Study study,
+    // TODO we probably don't even need to store this anymore.
+    // Should be enough to store orientation (and maybe initialFen and Variant?)
     required StudyAnalysis analysis,
+    required StudyRoot tree,
+    required StudyNode currentNode,
   }) = _StudyState;
+
+  factory StudyState.fromServerResponse({
+    required Study study,
+    required StudyAnalysis analysis,
+  }) {
+    final tree = StudyRoot.fromServerTreeParts(
+      analysis.treeParts,
+      study.chapter.setup.variant,
+    );
+    return StudyState(
+      study: study,
+      analysis: analysis,
+      tree: tree,
+      currentNode: tree,
+    );
+  }
 
   const StudyState._();
 
   StudyChapter get currentChapter => study.chapter;
+
+  bool get canGoBack => currentNode is! StudyRoot;
+
+  bool get canGoForward => currentNode.children.isNotEmpty;
 
   // TODO get from "analyis" field of the API response
   String get initialFen =>

@@ -61,8 +61,8 @@ extension type const StudyChapterId(String value) implements StringId {
   StudyChapterId.fromJson(dynamic json) : this(json as String);
 }
 
-extension type const StudyAnalyseNodeId(String value) implements StringId {
-  StudyAnalyseNodeId.fromJson(dynamic json) : this(json as String);
+extension type const StudyTreePartId(String value) implements StringId {
+  StudyTreePartId.fromJson(dynamic json) : this(json as String);
 }
 
 extension type const StudyNodeCommentId(String value) implements StringId {

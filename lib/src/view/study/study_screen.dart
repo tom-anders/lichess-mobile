@@ -1,4 +1,7 @@
+import 'package:chessground/chessground.dart';
+import 'package:collection/collection.dart';
 import 'package:dartchess/dartchess.dart';
+import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,12 +9,19 @@ import 'package:lichess_mobile/src/constants.dart';
 import 'package:lichess_mobile/src/model/analysis/analysis_controller.dart';
 import 'package:lichess_mobile/src/model/common/chess.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
+import 'package:lichess_mobile/src/model/common/uci.dart';
+import 'package:lichess_mobile/src/model/settings/board_preferences.dart';
 import 'package:lichess_mobile/src/model/study/study.dart';
 import 'package:lichess_mobile/src/model/study/study_controller.dart';
+import 'package:lichess_mobile/src/model/study/study_node.dart';
 import 'package:lichess_mobile/src/utils/screen.dart';
 import 'package:lichess_mobile/src/view/analysis/analysis_board.dart';
-import 'package:lichess_mobile/src/widgets/board_table.dart';
+import 'package:lichess_mobile/src/view/analysis/annotations.dart';
+import 'package:lichess_mobile/src/view/analysis/tree_view.dart';
+import 'package:lichess_mobile/src/view/study/study_tree_view.dart';
 import 'package:lichess_mobile/src/widgets/bottom_bar.dart';
+import 'package:lichess_mobile/src/widgets/bottom_bar_button.dart';
+import 'package:lichess_mobile/src/widgets/buttons.dart';
 import 'package:lichess_mobile/src/widgets/platform_scaffold.dart';
 import 'package:logging/logging.dart';
 
@@ -53,11 +63,12 @@ class _Body extends ConsumerWidget {
     required this.state,
   });
 
+  // TODO use controller instead
   final StudyState state;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final setup = Setup.parseFen(state.initialFen);
+    final boardPrefs = ref.watch(boardPreferencesProvider);
 
     return SafeArea(
       child: Column(
@@ -77,26 +88,59 @@ class _Body extends ConsumerWidget {
                     ? defaultBoardSize - kTabletBoardTableSidePadding * 2
                     : defaultBoardSize;
 
-                return AnalysisBoard(
-                  PgnGame(
-                    headers: {'FEN': setup.fen},
-                    moves: PgnNode<PgnNodeData>(),
-                    comments: [],
-                  ).makePgn(),
-                  AnalysisOptions(
-                    isLocalEvaluationAllowed: false,
-                    variant: state.currentChapter.setup.variant,
-                    orientation: Side.white,
-                    id: standaloneAnalysisId,
-                  ),
-                  boardSize,
-                  isTablet: isTablet,
+                final position = state.currentNode.position;
+
+                return Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.max,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Chessboard(
+                      size: boardSize,
+                      settings: boardPrefs.toBoardSettings(),
+                      fen: state.currentNode.fen,
+                      orientation: state.currentChapter.setup.orientation,
+                      shapes: state.currentNode.shapes?.toISet(),
+                      game: position != null
+                          ? GameData(
+                              playerSide: PlayerSide.both,
+                              isCheck: position.isCheck,
+                              sideToMove: position.turn,
+                              validMoves: makeLegalMoves(position),
+                              promotionMove: null, // TODO
+                              onMove: (move, {isDrop, captured}) {
+                                // TODO
+                              },
+                              onPromotionSelection: (role) {
+                                // TODO
+                              },
+                            )
+                          : null,
+                    ),
+                    Expanded(child: StudyTreeView(state.study.id)),
+                  ],
                 );
               },
             ),
           ),
-          const BottomBar(
-            children: [],
+          BottomBar(
+            children: [
+              BottomBarButton(
+                icon: Icons.arrow_right,
+                label: 'Next Chapter',
+                onTap: () {
+                  final chapters = state.study.chapters;
+                  final currentChapterIndex = chapters.indexWhere(
+                    (chapter) => chapter.id == state.study.chapter.id,
+                  );
+                  ref
+                      .read(studyControllerProvider(state.study.id).notifier)
+                      .loadChapter(
+                        state.study.chapters[currentChapterIndex + 1].id,
+                      );
+                },
+              ),
+            ],
           ),
         ],
       ),
