@@ -196,10 +196,61 @@ List<InlineSpan> moveWithComment({
         ...node.comments!.map((comment) => TextSpan(text: comment.text)),
     ];
 
-List<InlineSpan> _buildSideLine({
-  required StudyBranch sideLineStart,
+List<List<InlineSpan>> _buildSideLine({
+  required StudyBranch sideLineNode,
+  required bool startSideLine,
+  required int depth,
 }) {
-  return [TextSpan(text: 'sideline! ${sideLineStart.sanMove}')];
+  final move = [
+    if (startSideLine) TextSpan(text: '${" " * 2 * depth}└'),
+    ...moveWithComment(
+      node: sideLineNode,
+      isCurrentMove: false,
+      isSideline: true,
+      startMainline: false,
+      startSideline: startSideLine,
+    ),
+  ];
+
+  if (sideLineNode.children.isEmpty) {
+    return [move];
+  }
+
+  if (sideLineNode.children.length == 1) {
+    return [
+      [
+        ...move,
+        ..._buildSideLine(
+          sideLineNode: sideLineNode.children.first,
+          startSideLine: false,
+          depth: depth,
+        ).flattened,
+      ],
+    ];
+  }
+
+  if (sideLineNode.children.length == 2 &&
+      displaySideLineAsInline(sideLineNode.children[1])) {
+    return [
+      move,
+      _buildInlineSideLine(sideLineStart: sideLineNode.children[1]),
+      ..._buildSideLine(
+        sideLineNode: sideLineNode.children[0],
+        startSideLine: true,
+        depth: depth,
+      ),
+    ];
+  }
+
+  return [
+    move,
+    for (final child in sideLineNode.children)
+      ..._buildSideLine(
+        sideLineNode: child,
+        startSideLine: true,
+        depth: depth + 1,
+      ),
+  ];
 }
 
 // TODO make this a stateless widget?
@@ -213,6 +264,7 @@ Widget _buildMainline(StudyRoot root) {
         final (mainlineNode, sideLineNodes) =
             (children.first, children.skip(1));
 
+        // TODO use moveWithComment
         lines.last.addAll([
           // mainline move
           WidgetSpan(
@@ -243,7 +295,14 @@ Widget _buildMainline(StudyRoot root) {
             // Add sideline(s) on their own line
             lines.addAll(
               sideLineNodes
-                  .map((sideline) => _buildSideLine(sideLineStart: sideline)),
+                  .map(
+                    (sideline) => _buildSideLine(
+                      sideLineNode: sideline,
+                      startSideLine: true,
+                      depth: 0,
+                    ),
+                  )
+                  .flattened,
             );
 
             // Continue the mainline on a new line
