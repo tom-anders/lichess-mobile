@@ -145,7 +145,7 @@ class _StudyTreeViewState extends ConsumerState<StudyTreeView> {
 bool displaySideLineAsInline(StudyBranch node, [int depth = 6]) {
   assert(depth >= 0);
   if (depth == 0) return true;
-  if (node.children.isEmpty) return false;
+  if (node.children.isEmpty) return true;
   if (node.children.length > 1) return true;
   return displaySideLineAsInline(node.children.first, depth - 1);
 }
@@ -196,9 +196,11 @@ List<InlineSpan> moveWithComment({
         ...node.comments!.map((comment) => TextSpan(text: comment.text)),
     ];
 
-Widget _buildSideline({
-  required StudyBranch sidelineStart,
-}) {}
+List<InlineSpan> _buildSideLine({
+  required StudyBranch sideLineStart,
+}) {
+  return [TextSpan(text: 'sideline!')];
+}
 
 // TODO make this a stateless widget?
 Widget _buildMainline({
@@ -256,7 +258,7 @@ Widget _buildMainline({
       } else if (children.length > 1) {
         // TODO functional
         for (final sideline in mainlineNode.children.skip(1)) {
-          lines.add(_buildInlineSideLine(sideLineStart: sideline));
+          lines.add(_buildSideLine(sideLineStart: sideline));
         }
 
         // Continue the mainline on a new line
