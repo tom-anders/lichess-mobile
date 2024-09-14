@@ -195,7 +195,7 @@ List<InlineSpan> moveWithComment({
         ...node.comments!.map((comment) => TextSpan(text: comment.text)),
     ];
 
-List<List<InlineSpan>> _buildSideLine({
+Widget _buildSideLine({
   required StudyBranch sideLineNode,
   required bool startSideLine,
   required int depth,
@@ -212,49 +212,84 @@ List<List<InlineSpan>> _buildSideLine({
   ];
 
   if (sideLineNode.children.isEmpty) {
-    return [move];
+    return Text.rich(
+      TextSpan(
+        children: move,
+      ),
+    );
   }
 
   if (sideLineNode.children.length == 1) {
-    return [
-      [
-        ...move,
-        ..._buildSideLine(
-          sideLineNode: sideLineNode.children.first,
-          startSideLine: false,
-          depth: depth,
-        ).flattened,
-      ],
-    ];
+    return Text.rich(
+      TextSpan(
+        children: [
+          ...move,
+          WidgetSpan(
+            child: _buildSideLine(
+              sideLineNode: sideLineNode.children.first,
+              startSideLine: false,
+              depth: depth,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    //return [
+    //  [
+    //    ...move,
+    //    ..._buildSideLine(
+    //      sideLineNode: sideLineNode.children.first,
+    //      startSideLine: false,
+    //      depth: depth,
+    //    ).flattened,
+    //  ],
+    //];
   }
 
   if (sideLineNode.children.length == 2 &&
       displaySideLineAsInline(sideLineNode.children[1])) {
-    final continuation = _buildSideLine(
-      sideLineNode: sideLineNode.children[0],
-      startSideLine: false,
-      depth: depth,
-    ).flattened;
-    return [
-      [
-        ...move,
-        continuation.first,
-        ..._buildInlineSideLine(sideLineStart: sideLineNode.children[1]),
-        ...continuation.skip(1),
-      ],
-    ];
+    return Text.rich(
+      TextSpan(
+        children: [
+          ...move,
+          ...moveWithComment(
+            node: sideLineNode.children[0],
+            isCurrentMove: false,
+            isSideline: true,
+            startMainline: false,
+            startSideline: startSideLine,
+          ),
+          ..._buildInlineSideLine(sideLineStart: sideLineNode.children[1]),
+          WidgetSpan(
+            child: _buildSideLine(
+              sideLineNode: sideLineNode.children[0],
+              startSideLine: false,
+              depth: depth,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-  return [
-    move,
-    //  TODO this flattens nested sidelines!
-    for (final child in sideLineNode.children)
-      ..._buildSideLine(
-        sideLineNode: child,
-        startSideLine: true,
-        depth: depth + 1,
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text.rich(
+        TextSpan(
+          children: move,
+        ),
       ),
-  ];
+      //  TODO this flattens nested sidelines!
+      for (final child in sideLineNode.children)
+        _buildSideLine(
+          sideLineNode: child,
+          startSideLine: true,
+          depth: depth + 1,
+        ),
+    ],
+  );
 }
 
 // TODO make this a stateless widget?
@@ -298,15 +333,17 @@ Widget _buildMainline(StudyRoot root) {
           } else {
             // Add sideline(s) on their own line
             lines.addAll(
-              sideLineNodes
-                  .map(
-                    (sideline) => _buildSideLine(
+              sideLineNodes.map(
+                (sideline) => [
+                  WidgetSpan(
+                    child: _buildSideLine(
                       sideLineNode: sideline,
                       startSideLine: true,
                       depth: 0,
                     ),
-                  )
-                  .flattened,
+                  ),
+                ],
+              ),
             );
 
             // Continue the mainline on a new line
