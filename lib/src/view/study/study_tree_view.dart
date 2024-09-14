@@ -206,49 +206,55 @@ List<InlineSpan> _buildSideLine({
 Widget _buildMainline(StudyRoot root) {
   if (root.children.isEmpty) return const SizedBox.shrink();
 
-  final lines = [<InlineSpan>[]];
+  final lines = [root, ...root.mainline].map((node) => node.children).fold(
+    [<InlineSpan>[]],
+    (lines, children) {
+      if (children.isNotEmpty) {
+        final (mainlineNode, sideLineNodes) =
+            (children.first, children.skip(1));
 
-  for (final children
-      in [root, ...root.mainline].map((node) => node.children)) {
-    if (children.isNotEmpty) {
-      final (mainlineNode, sideLineNodes) = (children.first, children.skip(1));
-
-      lines.last.add(
-        WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          child: InlineMove(
-            node: mainlineNode,
-            isCurrentMove: false,
-            isSideline: false,
-            startMainline: lines.last.isEmpty,
-            startSideline: false,
-            onTap: () => {
-              // TODO
-            },
+        lines.last.addAll([
+          // mainline move
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: InlineMove(
+              node: mainlineNode,
+              isCurrentMove: false,
+              isSideline: false,
+              startMainline: lines.last.isEmpty,
+              startSideline: false,
+              onTap: () => {
+                // TODO
+              },
+            ),
           ),
-        ),
-      );
-      if (mainlineNode.comments != null) {
-        lines.last.addAll(
-          mainlineNode.comments!.map((comment) => TextSpan(text: comment.text)),
-        );
+          if (mainlineNode.comments != null)
+            ...mainlineNode.comments!
+                .map((comment) => TextSpan(text: comment.text)),
+        ]);
+
+        if (sideLineNodes.isNotEmpty) {
+          if (sideLineNodes.length == 1 &&
+              displaySideLineAsInline(sideLineNodes.first)) {
+            lines.last.addAll(
+              _buildInlineSideLine(sideLineStart: sideLineNodes.first),
+            );
+          } else {
+            // Add sideline(s) on their own line
+            lines.addAll(
+              sideLineNodes
+                  .map((sideline) => _buildSideLine(sideLineStart: sideline)),
+            );
+
+            // Continue the mainline on a new line
+            lines.add([]);
+          }
+        }
       }
 
-      if (sideLineNodes.length == 1 &&
-          displaySideLineAsInline(sideLineNodes.first)) {
-        lines.last
-            .addAll(_buildInlineSideLine(sideLineStart: sideLineNodes.first));
-      } else {
-        lines.addAll(
-          sideLineNodes
-              .map((sideline) => _buildSideLine(sideLineStart: sideline)),
-        );
-
-        // Continue the mainline on a new line
-        lines.add([]);
-      }
-    }
-  }
+      return lines;
+    },
+  );
 
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
