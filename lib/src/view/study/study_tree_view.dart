@@ -150,7 +150,7 @@ bool displaySideLineAsInline(StudyBranch node, [int depth = 6]) {
   return displaySideLineAsInline(node.children.first, depth - 1);
 }
 
-List<InlineSpan> inlineSideLine({required StudyBranch sideLineStart}) {
+List<InlineSpan> _buildInlineSideLine({required StudyBranch sideLineStart}) {
   return [
     const TextSpan(text: '('),
     ...[sideLineStart]
@@ -195,6 +195,10 @@ List<InlineSpan> moveWithComment({
       if (node.comments != null)
         ...node.comments!.map((comment) => TextSpan(text: comment.text)),
     ];
+
+Widget _buildSideline({
+  required StudyBranch sidelineStart,
+}) {}
 
 // TODO make this a stateless widget?
 Widget _buildMainline({
@@ -248,18 +252,14 @@ Widget _buildMainline({
       }
 
       if (children.length == 2 && displaySideLineAsInline(children[1])) {
-        lines.last.addAll(inlineSideLine(sideLineStart: children[1]));
+        lines.last.addAll(_buildInlineSideLine(sideLineStart: children[1]));
       } else if (children.length > 1) {
+        // TODO functional
         for (final sideline in mainlineNode.children.skip(1)) {
-          lines.add([
-            TextSpan(
-              text: '└ sideline: ${sideline.sanMove}',
-              style: const TextStyle(
-                height: 1.0,
-              ),
-            ),
-          ]);
+          lines.add(_buildInlineSideLine(sideLineStart: sideline));
         }
+
+        // Continue the mainline on a new line
         lines.add([]);
       }
     }
