@@ -119,7 +119,7 @@ class _StudyTreeViewState extends ConsumerState<StudyTreeView> {
     final moveWidgets = root != null
         ? [
             if (root.comments != null) _Comments(root.comments!),
-            _buildMainline(mainline: root.mainline),
+            _buildMainline(root),
           ]
         : <Widget>[];
 
@@ -199,43 +199,25 @@ List<InlineSpan> moveWithComment({
 List<InlineSpan> _buildSideLine({
   required StudyBranch sideLineStart,
 }) {
-  return [TextSpan(text: 'sideline!')];
+  return [TextSpan(text: 'sideline! ${sideLineStart.sanMove}')];
 }
 
 // TODO make this a stateless widget?
-Widget _buildMainline({
-  required Iterable<StudyBranch> mainline,
-}) {
-  if (mainline.isEmpty) return const SizedBox.shrink();
+Widget _buildMainline(StudyRoot root) {
+  if (root.children.isEmpty) return const SizedBox.shrink();
 
-  final lines = [
-    <InlineSpan>[
-      WidgetSpan(
-        alignment: PlaceholderAlignment.middle,
-        child: InlineMove(
-          node: mainline.first,
-          isCurrentMove: false,
-          isSideline: false,
-          startMainline: false,
-          startSideline: false,
-          onTap: () => {
-            // TODO
-          },
-        ),
-      ),
-      // TODO comments of first move
-    ]
-  ];
+  final lines = [<InlineSpan>[]];
 
-  for (final mainlineNode in mainline) {
-    final children = mainlineNode.children;
+  for (final children
+      in [root, ...root.mainline].map((node) => node.children)) {
     if (children.isNotEmpty) {
-      final mainlineChild = children.first;
+      final (mainlineNode, sideLineNodes) = (children.first, children.skip(1));
+
       lines.last.add(
         WidgetSpan(
           alignment: PlaceholderAlignment.middle,
           child: InlineMove(
-            node: mainlineChild,
+            node: mainlineNode,
             isCurrentMove: false,
             isSideline: false,
             startMainline: lines.last.isEmpty,
@@ -246,20 +228,21 @@ Widget _buildMainline({
           ),
         ),
       );
-      if (mainlineChild.comments != null) {
+      if (mainlineNode.comments != null) {
         lines.last.addAll(
-          mainlineChild.comments!
-              .map((comment) => TextSpan(text: comment.text)),
+          mainlineNode.comments!.map((comment) => TextSpan(text: comment.text)),
         );
       }
 
-      if (children.length == 2 && displaySideLineAsInline(children[1])) {
-        lines.last.addAll(_buildInlineSideLine(sideLineStart: children[1]));
-      } else if (children.length > 1) {
-        // TODO functional
-        for (final sideline in mainlineNode.children.skip(1)) {
-          lines.add(_buildSideLine(sideLineStart: sideline));
-        }
+      if (sideLineNodes.length == 1 &&
+          displaySideLineAsInline(sideLineNodes.first)) {
+        lines.last
+            .addAll(_buildInlineSideLine(sideLineStart: sideLineNodes.first));
+      } else {
+        lines.addAll(
+          sideLineNodes
+              .map((sideline) => _buildSideLine(sideLineStart: sideline)),
+        );
 
         // Continue the mainline on a new line
         lines.add([]);
