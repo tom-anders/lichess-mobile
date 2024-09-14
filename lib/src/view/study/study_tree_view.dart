@@ -142,12 +142,11 @@ class _StudyTreeViewState extends ConsumerState<StudyTreeView> {
 }
 
 /// True if the side line has no branching and is less than 6 moves deep.
-bool displaySideLineAsInline(StudyBranch node, [int depth = 6]) {
-  assert(depth >= 0);
-  if (depth == 0) return true;
+bool displaySideLineAsInline(StudyBranch node, [int depth = 0]) {
+  if (depth == 6) return false;
   if (node.children.isEmpty) return true;
-  if (node.children.length > 1) return true;
-  return displaySideLineAsInline(node.children.first, depth - 1);
+  if (node.children.length > 1) return false;
+  return displaySideLineAsInline(node.children.first, depth + 1);
 }
 
 List<InlineSpan> _buildInlineSideLine({required StudyBranch sideLineStart}) {
