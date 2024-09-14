@@ -247,6 +247,7 @@ List<List<InlineSpan>> _buildSideLine({
 
   return [
     move,
+    //  TODO this flattens nested sidelines!
     for (final child in sideLineNode.children)
       ..._buildSideLine(
         sideLineNode: child,
