@@ -231,14 +231,18 @@ List<List<InlineSpan>> _buildSideLine({
 
   if (sideLineNode.children.length == 2 &&
       displaySideLineAsInline(sideLineNode.children[1])) {
+    final continuation = _buildSideLine(
+      sideLineNode: sideLineNode.children[0],
+      startSideLine: false,
+      depth: depth,
+    ).flattened;
     return [
-      move,
-      _buildInlineSideLine(sideLineStart: sideLineNode.children[1]),
-      ..._buildSideLine(
-        sideLineNode: sideLineNode.children[0],
-        startSideLine: true,
-        depth: depth,
-      ),
+      [
+        ...move,
+        continuation.first,
+        ..._buildInlineSideLine(sideLineStart: sideLineNode.children[1]),
+        ...continuation.skip(1),
+      ],
     ];
   }
 
