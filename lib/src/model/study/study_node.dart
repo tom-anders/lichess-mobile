@@ -43,13 +43,6 @@ abstract class StudyNode {
     }
   }
 
-  bool hasBranching([int depth = 6]) {
-    if (depth == 0) return true;
-    if (children.isEmpty) return false;
-    if (children.length > 1) return true;
-    return children.first.hasBranching(depth - 1);
-  }
-
   /// Finds the child node with that id.
   StudyBranch? childById(UciCharPair id) {
     return children.firstWhereOrNull((node) => node.id == id);

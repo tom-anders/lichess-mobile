@@ -141,8 +141,16 @@ class _StudyTreeViewState extends ConsumerState<StudyTreeView> {
   }
 }
 
+/// True if the side line has no branching and is less than 6 moves deep.
+bool displaySideLineAsInline(StudyBranch node, [int depth = 6]) {
+  assert(depth >= 0);
+  if (depth == 0) return true;
+  if (node.children.isEmpty) return false;
+  if (node.children.length > 1) return true;
+  return displaySideLineAsInline(node.children.first, depth - 1);
+}
+
 List<InlineSpan> inlineSideLine({required StudyBranch sideLineStart}) {
-  assert(!sideLineStart.hasBranching());
   return [
     const TextSpan(text: '('),
     ...[sideLineStart]
@@ -156,21 +164,6 @@ List<InlineSpan> inlineSideLine({required StudyBranch sideLineStart}) {
             startMainline: false,
             startSideline: i == 0,
           ),
-
-          //WidgetSpan(
-          //  alignment: PlaceholderAlignment.middle,
-          //  child: InlineMove(
-          //    // TOODO we can pass the whole node to InlineMove, then we need less duplication
-          //    node: node,
-          //    isCurrentMove: false,
-          //    isSideline: true,
-          //    startMainline: false,
-          //    startSideline: i == 0,
-          //    onTap: () => {
-          //      print('tapped sideline move ${node.sanMove}'),
-          //    },
-          //  ),
-          //),
         )
         .flattened,
     const TextSpan(text: ')'),
@@ -254,24 +247,17 @@ Widget _buildMainline({
         );
       }
 
-      final bool hasSidelines = children.length > 1;
-      final bool inlineSideline =
-          children.length == 2 && !children[1].hasBranching();
-
-      if (inlineSideline) {
+      if (children.length == 2 && displaySideLineAsInline(children[1])) {
         lines.last.addAll(inlineSideLine(sideLineStart: children[1]));
-        //lines.last.add(
-        //  WidgetSpan(
-        //    child: InlineSideLine(sideLineStart: children[1]),
-        //  ),
-      } else if (hasSidelines) {
+      } else if (children.length > 1) {
         for (final sideline in mainlineNode.children.skip(1)) {
           lines.add([
             TextSpan(
-                text: '├ sideline: ${sideline.sanMove}',
-                style: const TextStyle(
-                  height: 1.0,
-                )),
+              text: '└ sideline: ${sideline.sanMove}',
+              style: const TextStyle(
+                height: 1.0,
+              ),
+            ),
           ]);
         }
         lines.add([]);
