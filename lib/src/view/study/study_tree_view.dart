@@ -196,94 +196,125 @@ List<InlineSpan> moveWithComment({
         ...node.comments!.map((comment) => TextSpan(text: comment.text)),
     ];
 
+// TODO isSideline
+class _Line extends StatelessWidget {
+  const _Line({
+    required this.nodes,
+    required this.depth,
+    required this.isSideLine,
+  });
+
+  factory _Line.sideline({
+    required List<StudyBranch> nodes,
+    required int depth,
+  }) {
+    return _Line(
+      nodes: nodes,
+      depth: depth,
+      isSideLine: true,
+    );
+  }
+
+  factory _Line.mainline({
+    required List<StudyBranch> nodes,
+  }) {
+    return _Line(
+      nodes: nodes,
+      depth: 0,
+      isSideLine: false,
+    );
+  }
+
+  final List<StudyBranch> nodes;
+
+  final int depth;
+
+  final bool isSideLine;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            color: _textColor(context, 0.6),
+            width: 4,
+            margin: EdgeInsets.only(left: 20.0 * depth),
+          ),
+          //Text(
+          //  '${" " * 2 * depth}└',
+          //), // TODO use sized box instead to draw a nicer line?
+          Expanded(
+            child: Text.rich(
+              // TODO add inline sidelines here
+              TextSpan(
+                children: nodes
+                    .mapIndexed(
+                      (i, node) => [
+                        ...moveWithComment(
+                          node: node,
+                          isCurrentMove: false, // TODO
+                          isSideline: isSideLine,
+                          startSideline: i == 0 && isSideLine,
+                          startMainline: i == 0 && !isSideLine,
+                        ),
+                        if (node.children.length == 2)
+                          ..._buildInlineSideLine(
+                              sideLineStart: node.children[1]),
+                      ],
+                    )
+                    .flattened
+                    .toList(),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 Widget _buildSideLine({
   required StudyBranch sideLineNode,
   required bool startSideLine,
   required int depth,
 }) {
-  final move = [
-    // TODO look not nice when the line wrap (because of long comments etc.)
-    //if (startSideLine) TextSpan(text: '${" " * 2 * depth}└'),
-    ...moveWithComment(
-      node: sideLineNode,
-      isCurrentMove: false,
-      isSideline: true,
-      startMainline: false,
-      startSideline: startSideLine,
-    ),
-  ];
-
   if (sideLineNode.children.isEmpty) {
-    return Row(
-      children: [
-        Text('${" " * 2 * depth}└'),
-        Expanded(
-          child: Text.rich(
-            TextSpan(children: move),
-          ),
-        ),
-      ],
+    return _Line.sideline(
+      nodes: [sideLineNode],
+      depth: depth,
     );
   }
 
-  final currentLine = move;
-
   StudyBranch currentNode = sideLineNode;
+  final sidelineNodes = [currentNode];
+
   while (true) {
     if (currentNode.children.isEmpty) {
-      Row(
-        children: [
-          Text('${" " * 2 * depth}└'),
-          Expanded(
-            child: Text.rich(
-              TextSpan(children: currentLine),
-            ),
-          ),
-        ],
+      return _Line.sideline(
+        nodes: sidelineNodes,
+        depth: depth,
       );
     }
 
     if (currentNode.children.length == 1) {
       currentNode = currentNode.children[0];
-      currentLine.addAll(
-        moveWithComment(
-          node: currentNode,
-          isCurrentMove: false,
-          isSideline: true,
-          startMainline: false,
-          startSideline: false,
-        ),
-      );
+      sidelineNodes.add(currentNode);
       continue;
     }
 
     if (currentNode.children.length == 2 &&
         displaySideLineAsInline(currentNode.children[1])) {
-      currentLine.addAll([
-        ...moveWithComment(
-          node: currentNode.children[0],
-          isCurrentMove: false,
-          isSideline: true,
-          startMainline: false,
-          startSideline: false,
-        ),
-        ..._buildInlineSideLine(sideLineStart: currentNode.children[1]),
-      ]);
       currentNode = currentNode.children[0];
+      sidelineNodes.add(currentNode);
     } else {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('${" " * 2 * depth}└'),
-              Expanded(
-                child: Text.rich(
-                  TextSpan(children: currentLine),
-                ),
-              ),
-            ],
+          _Line.sideline(
+            nodes: sidelineNodes,
+            depth: depth,
           ),
           // TODO use map()
           for (final child in currentNode.children)
