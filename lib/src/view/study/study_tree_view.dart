@@ -213,84 +213,67 @@ List<Widget> _buildSideLine({
   ];
 
   if (sideLineNode.children.isEmpty) {
-    return Text.rich(
-      TextSpan(
-        children: move,
-      ),
-    );
-  }
-
-  if (sideLineNode.children.length == 1) {
-    return Text.rich(
-      TextSpan(
-        children: [
-          ...move,
-          WidgetSpan(
-            child: _buildSideLine(
-              sideLineNode: sideLineNode.children.first,
-              startSideLine: false,
-              depth: depth,
-            ),
-          ),
-        ],
-      ),
-    );
-
-    //return [
-    //  [
-    //    ...move,
-    //    ..._buildSideLine(
-    //      sideLineNode: sideLineNode.children.first,
-    //      startSideLine: false,
-    //      depth: depth,
-    //    ).flattened,
-    //  ],
-    //];
-  }
-
-  if (sideLineNode.children.length == 2 &&
-      displaySideLineAsInline(sideLineNode.children[1])) {
-    return Text.rich(
-      TextSpan(
-        children: [
-          ...move,
-          ...moveWithComment(
-            node: sideLineNode.children[0],
-            isCurrentMove: false,
-            isSideline: true,
-            startMainline: false,
-            startSideline: startSideLine,
-          ),
-          ..._buildInlineSideLine(sideLineStart: sideLineNode.children[1]),
-          WidgetSpan(
-            child: _buildSideLine(
-              sideLineNode: sideLineNode.children[0],
-              startSideLine: false,
-              depth: depth,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
+    return [
       Text.rich(
         TextSpan(
           children: move,
         ),
       ),
-      //  TODO this flattens nested sidelines!
-      for (final child in sideLineNode.children)
-        _buildSideLine(
-          sideLineNode: child,
-          startSideLine: true,
-          depth: depth + 1,
+    ];
+  }
+
+  final currentLine = move;
+
+  StudyBranch currentNode = sideLineNode;
+  while (true) {
+    if (currentNode.children.isEmpty) {
+      return [
+        Text.rich(
+          TextSpan(children: currentLine),
         ),
-    ],
-  );
+      ];
+    }
+
+    if (currentNode.children.length == 1) {
+      currentLine.addAll(
+        moveWithComment(
+          node: currentNode,
+          isCurrentMove: false,
+          isSideline: true,
+          startMainline: false,
+          startSideline: false,
+        ),
+      );
+      currentNode = currentNode.children[0];
+    }
+
+    if (currentNode.children.length == 2 &&
+        displaySideLineAsInline(currentNode.children[1])) {
+      currentLine.addAll([
+        ...moveWithComment(
+          node: currentNode.children[0],
+          isCurrentMove: false,
+          isSideline: true,
+          startMainline: false,
+          startSideline: false,
+        ),
+        ..._buildInlineSideLine(sideLineStart: currentNode.children[1]),
+      ]);
+      currentNode = currentNode.children[0];
+    } else {
+      return [
+        Text.rich(
+          TextSpan(children: currentLine),
+        ),
+        for (final child in sideLineNode.children)
+          ..._buildSideLine(
+            sideLineNode: child,
+            startSideLine: true,
+            depth: depth + 1,
+          ),
+      ];
+    }
+  }
 }
 
 // TODO make this a stateless widget?
