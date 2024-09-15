@@ -292,6 +292,7 @@ Widget _buildSideLine({
   StudyBranch currentNode = sideLineNode;
   final sidelineNodes = [currentNode];
 
+  // TODO this could probably be written more elegantly, maybe recursion?
   while (true) {
     if (currentNode.children.isEmpty) {
       return _SideLine(
@@ -300,14 +301,9 @@ Widget _buildSideLine({
       );
     }
 
-    if (currentNode.children.length == 1) {
-      currentNode = currentNode.children[0];
-      sidelineNodes.add(currentNode);
-      continue;
-    }
-
-    if (currentNode.children.length == 2 &&
-        displaySideLineAsInline(currentNode.children[1])) {
+    if (currentNode.children.length == 1 ||
+        (currentNode.children.length == 2 &&
+            displaySideLineAsInline(currentNode.children[1]))) {
       currentNode = currentNode.children[0];
       sidelineNodes.add(currentNode);
     } else {
@@ -318,30 +314,17 @@ Widget _buildSideLine({
             sidelineNodes,
             depth: depth,
           ),
-          IntrinsicHeight(
-            child: Row(
-              children: [
-                Container(
-                  color: Colors.grey,
-                  width: 2,
-                  margin: EdgeInsets.only(left: 5.0, right: 5.0),
-                ),
-                Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      // TODO use map()
-                      for (final child in currentNode.children)
-                        //Text('sideline ${child.sanMove}'),
-                        _buildSideLine(
-                          sideLineNode: child,
-                          startSideLine: true,
-                          depth: depth + 1,
-                        ),
-                    ]))
-              ],
-            ),
-          )
+          _IndentedSideLines(
+            currentNode.children
+                .map(
+                  (child) => _buildSideLine(
+                    sideLineNode: child,
+                    startSideLine: true,
+                    depth: depth + 1,
+                  ),
+                )
+                .toList(),
+          ),
         ],
       );
     }
@@ -365,38 +348,52 @@ Widget _buildMainline(StudyRoot root) {
         .map(
           (nodes) => [
             _MainLinePart(nodes),
-            // TODO add some sort of IndentSideLines widget for this
-            IntrinsicHeight(
-              child: Row(
-                children: [
-                  Container(
-                    color: Colors.grey,
-                    width: 2,
-                    margin: EdgeInsets.only(right: 5.0),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: nodes.last.children
-                          .skip(1)
-                          .map(
-                            (sideline) => _buildSideLine(
-                              sideLineNode: sideline,
-                              startSideLine: true,
-                              depth: 0,
-                            ),
-                          )
-                          .toList(),
+            _IndentedSideLines(
+              nodes.last.children
+                  .skip(1)
+                  .map(
+                    (sideline) => _buildSideLine(
+                      sideLineNode: sideline,
+                      startSideLine: true,
+                      depth: 0,
                     ),
                   )
-                ],
-              ),
+                  .toList(),
             ),
           ],
         )
         .flattened
         .toList(),
   );
+}
+
+class _IndentedSideLines extends StatelessWidget {
+  const _IndentedSideLines(
+    this.sideLines,
+  );
+
+  final List<Widget> sideLines;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        children: [
+          Container(
+            color: Colors.grey,
+            width: 2,
+            margin: const EdgeInsets.only(left: 3.0, right: 5.0),
+          ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: sideLines,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 Color? _textColor(
