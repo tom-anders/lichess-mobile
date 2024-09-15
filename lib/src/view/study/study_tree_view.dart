@@ -202,7 +202,8 @@ Widget _buildSideLine({
   required int depth,
 }) {
   final move = [
-    if (startSideLine) TextSpan(text: '${" " * 2 * depth}└'),
+    // TODO look not nice when the line wrap (because of long comments etc.)
+    //if (startSideLine) TextSpan(text: '${" " * 2 * depth}└'),
     ...moveWithComment(
       node: sideLineNode,
       isCurrentMove: false,
@@ -213,10 +214,15 @@ Widget _buildSideLine({
   ];
 
   if (sideLineNode.children.isEmpty) {
-    return Text.rich(
-      TextSpan(
-        children: move,
-      ),
+    return Row(
+      children: [
+        Text('${" " * 2 * depth}└'),
+        Expanded(
+          child: Text.rich(
+            TextSpan(children: move),
+          ),
+        ),
+      ],
     );
   }
 
@@ -225,8 +231,15 @@ Widget _buildSideLine({
   StudyBranch currentNode = sideLineNode;
   while (true) {
     if (currentNode.children.isEmpty) {
-      return Text.rich(
-        TextSpan(children: currentLine),
+      Row(
+        children: [
+          Text('${" " * 2 * depth}└'),
+          Expanded(
+            child: Text.rich(
+              TextSpan(children: currentLine),
+            ),
+          ),
+        ],
       );
     }
 
@@ -261,8 +274,16 @@ Widget _buildSideLine({
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text.rich(
-            TextSpan(children: currentLine),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('${" " * 2 * depth}└'),
+              Expanded(
+                child: Text.rich(
+                  TextSpan(children: currentLine),
+                ),
+              ),
+            ],
           ),
           // TODO use map()
           for (final child in currentNode.children)
