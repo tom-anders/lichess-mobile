@@ -24,6 +24,7 @@ import 'package:lichess_mobile/src/view/study/study_screen.dart';
 import 'package:lichess_mobile/src/widgets/adaptive_bottom_sheet.dart';
 import 'package:lichess_mobile/src/widgets/buttons.dart';
 import 'package:lichess_mobile/src/widgets/list.dart';
+import 'package:path/path.dart';
 
 // fast replay debounce delay, same as piece animation duration, to avoid piece
 // animation jank at the end of the replay
@@ -195,7 +196,7 @@ List<InlineSpan> moveWithComment({
         ...node.comments!.map((comment) => TextSpan(text: comment.text)),
     ];
 
-Widget _buildSideLine({
+List<Widget> _buildSideLine({
   required StudyBranch sideLineNode,
   required bool startSideLine,
   required int depth,
@@ -296,75 +297,135 @@ Widget _buildSideLine({
 Widget _buildMainline(StudyRoot root) {
   if (root.children.isEmpty) return const SizedBox.shrink();
 
-  final lines = [root, ...root.mainline].map((node) => node.children).fold(
-    [<InlineSpan>[]],
-    (lines, children) {
-      if (children.isNotEmpty) {
-        final (mainlineNode, sideLineNodes) =
-            (children.first, children.skip(1));
+  final lines = <Widget>[];
 
-        // TODO use moveWithComment
-        lines.last.addAll([
-          // mainline move
-          WidgetSpan(
-            alignment: PlaceholderAlignment.middle,
-            child: InlineMove(
-              node: mainlineNode,
-              isCurrentMove: false,
-              isSideline: false,
-              startMainline: lines.last.isEmpty,
-              startSideline: false,
-              onTap: () => {
-                // TODO
-              },
-            ),
+  List<InlineSpan> currentMainlinePart = [];
+
+  for (final children
+      in [root, ...root.mainline].map((node) => node.children)) {
+    if (children.isNotEmpty) {
+      final (mainlineNode, sideLineNodes) = (children.first, children.skip(1));
+
+      // TODO use moveWithComment
+      currentMainlinePart.add(
+        // mainline move
+        WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          child: InlineMove(
+            node: mainlineNode,
+            isCurrentMove: false,
+            isSideline: false,
+            startMainline: currentMainlinePart.isEmpty,
+            startSideline: false,
+            onTap: () => {
+              // TODO
+            },
           ),
-          if (mainlineNode.comments != null)
-            ...mainlineNode.comments!
-                .map((comment) => TextSpan(text: comment.text)),
-        ]);
-
-        if (sideLineNodes.isNotEmpty) {
-          if (sideLineNodes.length == 1 &&
-              displaySideLineAsInline(sideLineNodes.first)) {
-            lines.last.addAll(
-              _buildInlineSideLine(sideLineStart: sideLineNodes.first),
-            );
-          } else {
-            // Add sideline(s) on their own line
-            lines.addAll(
-              sideLineNodes.map(
-                (sideline) => [
-                  WidgetSpan(
-                    child: _buildSideLine(
-                      sideLineNode: sideline,
-                      startSideLine: true,
-                      depth: 0,
-                    ),
-                  ),
-                ],
-              ),
-            );
-
-            // Continue the mainline on a new line
-            lines.add([]);
-          }
-        }
+        ),
+      );
+      if (mainlineNode.comments != null) {
+        currentMainlinePart.addAll(mainlineNode.comments!
+            .map((comment) => TextSpan(text: comment.text)));
       }
 
-      return lines;
-    },
-  );
+      if (sideLineNodes.isNotEmpty) {
+        if (sideLineNodes.length == 1 &&
+            displaySideLineAsInline(sideLineNodes.first)) {
+          currentMainlinePart.addAll(
+            _buildInlineSideLine(sideLineStart: sideLineNodes.first),
+          );
+        } else {
+          lines.add(
+            Text.rich(
+              TextSpan(
+                children: currentMainlinePart,
+              ),
+            ),
+          );
+
+          // Add sideline(s) on their own line
+          lines.addAll(
+            sideLineNodes
+                .map(
+                  (sideline) => _buildSideLine(
+                    sideLineNode: sideline,
+                    startSideLine: true,
+                    depth: 0,
+                  ),
+                )
+                .flattened,
+          );
+
+          // Continue the mainline on a new line
+          currentMainlinePart = [];
+        }
+      }
+    }
+  }
+
+  //final lines = [root, ...root.mainline].map((node) => node.children).fold(
+  //  [<InlineSpan>[]],
+  //  (lines, children) {
+  //    if (children.isNotEmpty) {
+  //      final (mainlineNode, sideLineNodes) =
+  //          (children.first, children.skip(1));
+  //
+  //      // TODO use moveWithComment
+  //      lines.last.addAll([
+  //        // mainline move
+  //        WidgetSpan(
+  //          alignment: PlaceholderAlignment.middle,
+  //          child: InlineMove(
+  //            node: mainlineNode,
+  //            isCurrentMove: false,
+  //            isSideline: false,
+  //            startMainline: lines.last.isEmpty,
+  //            startSideline: false,
+  //            onTap: () => {
+  //              // TODO
+  //            },
+  //          ),
+  //        ),
+  //        if (mainlineNode.comments != null)
+  //          ...mainlineNode.comments!
+  //              .map((comment) => TextSpan(text: comment.text)),
+  //      ]);
+  //
+  //      if (sideLineNodes.isNotEmpty) {
+  //        if (sideLineNodes.length == 1 &&
+  //            displaySideLineAsInline(sideLineNodes.first)) {
+  //          lines.last.addAll(
+  //            _buildInlineSideLine(sideLineStart: sideLineNodes.first),
+  //          );
+  //        } else {
+  //          // Add sideline(s) on their own line
+  //          lines.addAll(
+  //            sideLineNodes.map(
+  //              (sideline) => [
+  //                WidgetSpan(
+  //                  child: _buildSideLine(
+  //                    sideLineNode: sideline,
+  //                    startSideLine: true,
+  //                    depth: 0,
+  //                  ),
+  //                ),
+  //              ],
+  //            ),
+  //          );
+  //
+  //          // Continue the mainline on a new line
+  //          lines.add([]);
+  //        }
+  //      }
+  //    }
+  //
+  //    return lines;
+  //  },
+  //);
 
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
-    children: lines.map((line) {
-      return Text.rich(
-        TextSpan(
-          children: line,
-        ),
-      );
-    }).toList(),
+    children: lines,
   );
 }
 
