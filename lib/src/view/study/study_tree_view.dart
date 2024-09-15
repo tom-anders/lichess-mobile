@@ -196,11 +196,17 @@ List<InlineSpan> moveWithComment({
         ...node.comments!.map((comment) => TextSpan(text: comment.text)),
     ];
 
-List<Widget> _buildSideLine({
+Widget _buildSideLine({
   required StudyBranch sideLineNode,
   required bool startSideLine,
   required int depth,
 }) {
+  print(
+      'Building sideline: ${sideLineNode.sanMove}, with num children: ${sideLineNode.children.length}');
+  //return sideLineNode.children
+  //    .map((node) => Text('${"<" * (depth + 1)} Sideline ${node.sanMove}'))
+  //    .toList();
+
   final move = [
     if (startSideLine) TextSpan(text: '${" " * 2 * depth}└'),
     ...moveWithComment(
@@ -213,28 +219,27 @@ List<Widget> _buildSideLine({
   ];
 
   if (sideLineNode.children.isEmpty) {
-    return [
-      Text.rich(
-        TextSpan(
-          children: move,
-        ),
+    return Text.rich(
+      TextSpan(
+        children: move,
       ),
-    ];
+    );
   }
 
   final currentLine = move;
 
   StudyBranch currentNode = sideLineNode;
   while (true) {
+    print(
+        'currentNode: ${currentNode.sanMove} with ${currentNode.children.length} children');
     if (currentNode.children.isEmpty) {
-      return [
-        Text.rich(
-          TextSpan(children: currentLine),
-        ),
-      ];
+      return Text.rich(
+        TextSpan(children: currentLine),
+      );
     }
 
     if (currentNode.children.length == 1) {
+      print('add move for sideline node ${currentNode.sanMove}');
       currentLine.addAll(
         moveWithComment(
           node: currentNode,
@@ -245,6 +250,7 @@ List<Widget> _buildSideLine({
         ),
       );
       currentNode = currentNode.children[0];
+      continue;
     }
 
     if (currentNode.children.length == 2 &&
@@ -261,17 +267,22 @@ List<Widget> _buildSideLine({
       ]);
       currentNode = currentNode.children[0];
     } else {
-      return [
-        Text.rich(
-          TextSpan(children: currentLine),
-        ),
-        for (final child in sideLineNode.children)
-          ..._buildSideLine(
-            sideLineNode: child,
-            startSideLine: true,
-            depth: depth + 1,
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text.rich(
+            TextSpan(children: currentLine),
           ),
-      ];
+          // TODO use map()
+          for (final child in currentNode.children)
+            //Text('sideline ${child.sanMove}'),
+            _buildSideLine(
+              sideLineNode: child,
+              startSideLine: true,
+              depth: depth + 1,
+            ),
+        ],
+      );
     }
   }
 }
@@ -284,6 +295,7 @@ Widget _buildMainline(StudyRoot root) {
 
   List<InlineSpan> currentMainlinePart = [];
 
+  // TODO use partition() to find nodes where we have to split the mainline into parts
   for (final children
       in [root, ...root.mainline].map((node) => node.children)) {
     if (children.isNotEmpty) {
@@ -328,83 +340,29 @@ Widget _buildMainline(StudyRoot root) {
 
           // Add sideline(s) on their own line
           lines.addAll(
-            sideLineNodes
-                .map(
-                  (sideline) => _buildSideLine(
-                    sideLineNode: sideline,
-                    startSideLine: true,
-                    depth: 0,
-                  ),
-                )
-                .flattened,
+            sideLineNodes.map(
+              (sideline) => _buildSideLine(
+                sideLineNode: sideline,
+                startSideLine: true,
+                depth: 0,
+              ),
+            ),
           );
 
           // Continue the mainline on a new line
           currentMainlinePart = [];
         }
       }
+    } else {
+      lines.add(
+        Text.rich(
+          TextSpan(
+            children: currentMainlinePart,
+          ),
+        ),
+      );
     }
   }
-
-  //final lines = [root, ...root.mainline].map((node) => node.children).fold(
-  //  [<InlineSpan>[]],
-  //  (lines, children) {
-  //    if (children.isNotEmpty) {
-  //      final (mainlineNode, sideLineNodes) =
-  //          (children.first, children.skip(1));
-  //
-  //      // TODO use moveWithComment
-  //      lines.last.addAll([
-  //        // mainline move
-  //        WidgetSpan(
-  //          alignment: PlaceholderAlignment.middle,
-  //          child: InlineMove(
-  //            node: mainlineNode,
-  //            isCurrentMove: false,
-  //            isSideline: false,
-  //            startMainline: lines.last.isEmpty,
-  //            startSideline: false,
-  //            onTap: () => {
-  //              // TODO
-  //            },
-  //          ),
-  //        ),
-  //        if (mainlineNode.comments != null)
-  //          ...mainlineNode.comments!
-  //              .map((comment) => TextSpan(text: comment.text)),
-  //      ]);
-  //
-  //      if (sideLineNodes.isNotEmpty) {
-  //        if (sideLineNodes.length == 1 &&
-  //            displaySideLineAsInline(sideLineNodes.first)) {
-  //          lines.last.addAll(
-  //            _buildInlineSideLine(sideLineStart: sideLineNodes.first),
-  //          );
-  //        } else {
-  //          // Add sideline(s) on their own line
-  //          lines.addAll(
-  //            sideLineNodes.map(
-  //              (sideline) => [
-  //                WidgetSpan(
-  //                  child: _buildSideLine(
-  //                    sideLineNode: sideline,
-  //                    startSideLine: true,
-  //                    depth: 0,
-  //                  ),
-  //                ),
-  //              ],
-  //            ),
-  //          );
-  //
-  //          // Continue the mainline on a new line
-  //          lines.add([]);
-  //        }
-  //      }
-  //    }
-  //
-  //    return lines;
-  //  },
-  //);
 
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
