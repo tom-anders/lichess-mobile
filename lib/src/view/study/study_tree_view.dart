@@ -231,6 +231,7 @@ Widget _buildSideLine({
     }
 
     if (currentNode.children.length == 1) {
+      currentNode = currentNode.children[0];
       currentLine.addAll(
         moveWithComment(
           node: currentNode,
@@ -240,7 +241,6 @@ Widget _buildSideLine({
           startSideline: false,
         ),
       );
-      currentNode = currentNode.children[0];
       continue;
     }
 
@@ -286,7 +286,6 @@ Widget _buildMainline(StudyRoot root) {
 
   List<InlineSpan> currentMainlinePart = [];
 
-  // TODO use partition() to find nodes where we have to split the mainline into parts
   for (final children
       in [root, ...root.mainline].map((node) => node.children)) {
     if (children.isNotEmpty) {
@@ -310,8 +309,13 @@ Widget _buildMainline(StudyRoot root) {
         ),
       );
       if (mainlineNode.comments != null) {
-        currentMainlinePart.addAll(mainlineNode.comments!
-            .map((comment) => TextSpan(text: comment.text)));
+        currentMainlinePart.addAll(
+          mainlineNode.comments!.map(
+            (comment) => TextSpan(
+              text: comment.text,
+            ),
+          ),
+        );
       }
 
       if (sideLineNodes.isNotEmpty) {
