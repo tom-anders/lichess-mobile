@@ -233,44 +233,34 @@ class _Line extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IntrinsicHeight(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            color: _textColor(context, 0.6),
-            width: 4,
-            margin: EdgeInsets.only(left: 20.0 * depth),
-          ),
-          //Text(
-          //  '${" " * 2 * depth}└',
-          //), // TODO use sized box instead to draw a nicer line?
-          Expanded(
-            child: Text.rich(
-              // TODO add inline sidelines here
-              TextSpan(
-                children: nodes
-                    .mapIndexed(
-                      (i, node) => [
-                        ...moveWithComment(
-                          node: node,
-                          isCurrentMove: false, // TODO
-                          isSideline: isSideLine,
-                          startSideline: i == 0 && isSideLine,
-                          startMainline: i == 0 && !isSideLine,
-                        ),
-                        if (node.children.length == 2)
-                          ..._buildInlineSideLine(
-                              sideLineStart: node.children[1]),
-                      ],
-                    )
-                    .flattened
-                    .toList(),
-              ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Text.rich(
+            // TODO add inline sidelines here
+            TextSpan(
+              children: nodes
+                  .mapIndexed(
+                    (i, node) => [
+                      ...moveWithComment(
+                        node: node,
+                        isCurrentMove: false, // TODO
+                        isSideline: isSideLine,
+                        startSideline: i == 0 && isSideLine,
+                        startMainline: i == 0 && !isSideLine,
+                      ),
+                      if (node.children.length == 2)
+                        ..._buildInlineSideLine(
+                            sideLineStart: node.children[1]),
+                    ],
+                  )
+                  .flattened
+                  .toList(),
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -316,14 +306,28 @@ Widget _buildSideLine({
             nodes: sidelineNodes,
             depth: depth,
           ),
-          // TODO use map()
-          for (final child in currentNode.children)
-            //Text('sideline ${child.sanMove}'),
-            _buildSideLine(
-              sideLineNode: child,
-              startSideLine: true,
-              depth: depth + 1,
+          IntrinsicHeight(
+            child: Row(
+              children: [
+                Container(
+                  color: Colors.grey,
+                  width: 2,
+                  margin: EdgeInsets.only(left: 5.0, right: 5.0),
+                ),
+                Expanded(
+                    child: Column(children: [
+                  // TODO use map()
+                  for (final child in currentNode.children)
+                    //Text('sideline ${child.sanMove}'),
+                    _buildSideLine(
+                      sideLineNode: child,
+                      startSideLine: true,
+                      depth: depth + 1,
+                    ),
+                ]))
+              ],
             ),
+          )
         ],
       );
     }
@@ -386,12 +390,29 @@ Widget _buildMainline(StudyRoot root) {
           );
 
           // Add sideline(s) on their own line
-          lines.addAll(
-            sideLineNodes.map(
-              (sideline) => _buildSideLine(
-                sideLineNode: sideline,
-                startSideLine: true,
-                depth: 0,
+          lines.add(
+            IntrinsicHeight(
+              child: Row(
+                children: [
+                  Container(
+                    color: Colors.grey,
+                    width: 2,
+                    margin: EdgeInsets.only(right: 5.0),
+                  ),
+                  Expanded(
+                    child: Column(
+                      children: sideLineNodes
+                          .map(
+                            (sideline) => _buildSideLine(
+                              sideLineNode: sideline,
+                              startSideLine: true,
+                              depth: 0,
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  )
+                ],
               ),
             ),
           );
