@@ -197,70 +197,74 @@ List<InlineSpan> moveWithComment({
     ];
 
 // TODO isSideline
-class _Line extends StatelessWidget {
-  const _Line({
-    required this.nodes,
+class _SideLine extends StatelessWidget {
+  const _SideLine(
+    this.nodes, {
     required this.depth,
-    required this.isSideLine,
   });
-
-  factory _Line.sideline({
-    required List<StudyBranch> nodes,
-    required int depth,
-  }) {
-    return _Line(
-      nodes: nodes,
-      depth: depth,
-      isSideLine: true,
-    );
-  }
-
-  factory _Line.mainline({
-    required List<StudyBranch> nodes,
-  }) {
-    return _Line(
-      nodes: nodes,
-      depth: 0,
-      isSideLine: false,
-    );
-  }
 
   final List<StudyBranch> nodes;
 
   final int depth;
 
-  final bool isSideLine;
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      TextSpan(
+        children: nodes
+            .mapIndexed(
+              (i, node) => [
+                ...moveWithComment(
+                  node: node,
+                  isCurrentMove: false, // TODO
+                  isSideline: true,
+                  startSideline: i == 0,
+                  startMainline: false,
+                ),
+                if (node.children.length == 2)
+                  ..._buildInlineSideLine(sideLineStart: node.children[1]),
+              ],
+            )
+            .flattened
+            .toList(),
+      ),
+    );
+  }
+}
+
+class _MainLinePart extends StatelessWidget {
+  const _MainLinePart(
+    this.nodes,
+  );
+
+  final List<StudyNode> nodes;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: Text.rich(
-            // TODO add inline sidelines here
-            TextSpan(
-              children: nodes
-                  .mapIndexed(
-                    (i, node) => [
-                      ...moveWithComment(
-                        node: node,
-                        isCurrentMove: false, // TODO
-                        isSideline: isSideLine,
-                        startSideline: i == 0 && isSideLine,
-                        startMainline: i == 0 && !isSideLine,
-                      ),
-                      if (node.children.length == 2)
-                        ..._buildInlineSideLine(
-                            sideLineStart: node.children[1]),
-                    ],
-                  )
-                  .flattened
-                  .toList(),
-            ),
-          ),
-        ),
-      ],
+    final inlineSideLinePositions =
+        nodes.mapIndexed((i, node) => node.children.length == 2 ? i : null);
+    return Text.rich(
+      TextSpan(
+        children: nodes
+            .mapIndexed(
+              (i, node) => [
+                if (node.children.isNotEmpty) ...[
+                  ...moveWithComment(
+                    node: node.children.first,
+                    isCurrentMove: false, // TODO
+                    isSideline: false,
+                    startSideline: false,
+                    startMainline:
+                        i == 0 || inlineSideLinePositions.contains(i - 1),
+                  ),
+                  if (node.children.length == 2)
+                    ..._buildInlineSideLine(sideLineStart: node.children[1]),
+                ],
+              ],
+            )
+            .flattened
+            .toList(),
+      ),
     );
   }
 }
@@ -271,8 +275,8 @@ Widget _buildSideLine({
   required int depth,
 }) {
   if (sideLineNode.children.isEmpty) {
-    return _Line.sideline(
-      nodes: [sideLineNode],
+    return _SideLine(
+      [sideLineNode],
       depth: depth,
     );
   }
@@ -282,8 +286,8 @@ Widget _buildSideLine({
 
   while (true) {
     if (currentNode.children.isEmpty) {
-      return _Line.sideline(
-        nodes: sidelineNodes,
+      return _SideLine(
+        sidelineNodes,
         depth: depth,
       );
     }
@@ -302,8 +306,8 @@ Widget _buildSideLine({
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _Line.sideline(
-            nodes: sidelineNodes,
+          _SideLine(
+            sidelineNodes,
             depth: depth,
           ),
           IntrinsicHeight(
@@ -315,16 +319,18 @@ Widget _buildSideLine({
                   margin: EdgeInsets.only(left: 5.0, right: 5.0),
                 ),
                 Expanded(
-                    child: Column(children: [
-                  // TODO use map()
-                  for (final child in currentNode.children)
-                    //Text('sideline ${child.sanMove}'),
-                    _buildSideLine(
-                      sideLineNode: child,
-                      startSideLine: true,
-                      depth: depth + 1,
-                    ),
-                ]))
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      // TODO use map()
+                      for (final child in currentNode.children)
+                        //Text('sideline ${child.sanMove}'),
+                        _buildSideLine(
+                          sideLineNode: child,
+                          startSideLine: true,
+                          depth: depth + 1,
+                        ),
+                    ]))
               ],
             ),
           )
@@ -333,6 +339,13 @@ Widget _buildSideLine({
     }
   }
 }
+
+bool hasNonInlineSideLine(StudyNode node) =>
+    node.children.length > 2 ||
+    (node.children.length == 2 && !displaySideLineAsInline(node.children[1]));
+
+Iterable<List<StudyNode>> _mainlineParts(StudyRoot root) =>
+    [root, ...root.mainline].splitAfter(hasNonInlineSideLine);
 
 // TODO make this a stateless widget?
 Widget _buildMainline(StudyRoot root) {
@@ -401,6 +414,7 @@ Widget _buildMainline(StudyRoot root) {
                   ),
                   Expanded(
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: sideLineNodes
                           .map(
                             (sideline) => _buildSideLine(
@@ -434,7 +448,40 @@ Widget _buildMainline(StudyRoot root) {
 
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
-    children: lines,
+    children: _mainlineParts(root)
+        .map(
+          (nodes) => [
+            _MainLinePart(nodes),
+            IntrinsicHeight(
+              child: Row(
+                children: [
+                  Container(
+                    color: Colors.grey,
+                    width: 2,
+                    margin: EdgeInsets.only(right: 5.0),
+                  ),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: nodes.last.children
+                          .skip(1)
+                          .map(
+                            (sideline) => _buildSideLine(
+                              sideLineNode: sideline,
+                              startSideLine: true,
+                              depth: 0,
+                            ),
+                          )
+                          .toList(),
+                    ),
+                  )
+                ],
+              ),
+            ),
+          ],
+        )
+        .flattened
+        .toList(),
   );
 }
 
