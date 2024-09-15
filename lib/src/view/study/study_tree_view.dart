@@ -351,107 +351,13 @@ Iterable<List<StudyNode>> _mainlineParts(StudyRoot root) =>
 Widget _buildMainline(StudyRoot root) {
   if (root.children.isEmpty) return const SizedBox.shrink();
 
-  final lines = <Widget>[];
-
-  List<InlineSpan> currentMainlinePart = [];
-
-  for (final children
-      in [root, ...root.mainline].map((node) => node.children)) {
-    if (children.isNotEmpty) {
-      final (mainlineNode, sideLineNodes) = (children.first, children.skip(1));
-
-      // TODO use moveWithComment
-      currentMainlinePart.add(
-        // mainline move
-        WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          child: InlineMove(
-            node: mainlineNode,
-            isCurrentMove: false,
-            isSideline: false,
-            startMainline: currentMainlinePart.isEmpty,
-            startSideline: false,
-            onTap: () => {
-              // TODO
-            },
-          ),
-        ),
-      );
-      if (mainlineNode.comments != null) {
-        currentMainlinePart.addAll(
-          mainlineNode.comments!.map(
-            (comment) => TextSpan(
-              text: comment.text,
-            ),
-          ),
-        );
-      }
-
-      if (sideLineNodes.isNotEmpty) {
-        if (sideLineNodes.length == 1 &&
-            displaySideLineAsInline(sideLineNodes.first)) {
-          currentMainlinePart.addAll(
-            _buildInlineSideLine(sideLineStart: sideLineNodes.first),
-          );
-        } else {
-          lines.add(
-            Text.rich(
-              TextSpan(
-                children: currentMainlinePart,
-              ),
-            ),
-          );
-
-          // Add sideline(s) on their own line
-          lines.add(
-            IntrinsicHeight(
-              child: Row(
-                children: [
-                  Container(
-                    color: Colors.grey,
-                    width: 2,
-                    margin: EdgeInsets.only(right: 5.0),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: sideLineNodes
-                          .map(
-                            (sideline) => _buildSideLine(
-                              sideLineNode: sideline,
-                              startSideLine: true,
-                              depth: 0,
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  )
-                ],
-              ),
-            ),
-          );
-
-          // Continue the mainline on a new line
-          currentMainlinePart = [];
-        }
-      }
-    } else {
-      lines.add(
-        Text.rich(
-          TextSpan(
-            children: currentMainlinePart,
-          ),
-        ),
-      );
-    }
-  }
-
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: _mainlineParts(root)
         .map(
           (nodes) => [
             _MainLinePart(nodes),
+            // TODO add some sort of IndentSideLines widget for this
             IntrinsicHeight(
               child: Row(
                 children: [
