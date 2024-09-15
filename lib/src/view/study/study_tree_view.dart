@@ -198,10 +198,10 @@ List<InlineSpan> moveWithComment({
 
 // TODO isSideline
 class _SideLine extends StatelessWidget {
-  const _SideLine(
+  _SideLine(
     this.nodes, {
     required this.depth,
-  });
+  }) : assert(nodes.isNotEmpty);
 
   final List<StudyBranch> nodes;
 
@@ -209,24 +209,35 @@ class _SideLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final moves = [
+      ...moveWithComment(
+        node: nodes.first,
+        isCurrentMove: false, // TODO
+        isSideline: true,
+        startSideline: true,
+        startMainline: false,
+      ),
+      ...nodes
+          .take(nodes.length - 1)
+          .map(
+            (node) => [
+              ...moveWithComment(
+                node: node.children.first,
+                isCurrentMove: false, // TODO
+                isSideline: true,
+                startSideline: false,
+                startMainline: false,
+              ),
+              if (node.children.length == 2)
+                ..._buildInlineSideLine(sideLineStart: node.children[1]),
+            ],
+          )
+          .flattened,
+    ];
+
     return Text.rich(
       TextSpan(
-        children: nodes
-            .mapIndexed(
-              (i, node) => [
-                ...moveWithComment(
-                  node: node,
-                  isCurrentMove: false, // TODO
-                  isSideline: true,
-                  startSideline: i == 0,
-                  startMainline: false,
-                ),
-                if (node.children.length == 2)
-                  ..._buildInlineSideLine(sideLineStart: node.children[1]),
-              ],
-            )
-            .flattened
-            .toList(),
+        children: moves,
       ),
     );
   }
@@ -241,8 +252,6 @@ class _MainLinePart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final inlineSideLinePositions =
-        nodes.mapIndexed((i, node) => node.children.length == 2 ? i : null);
     return Text.rich(
       TextSpan(
         children: nodes
@@ -254,8 +263,7 @@ class _MainLinePart extends StatelessWidget {
                     isCurrentMove: false, // TODO
                     isSideline: false,
                     startSideline: false,
-                    startMainline:
-                        i == 0 || inlineSideLinePositions.contains(i - 1),
+                    startMainline: i == 0,
                   ),
                   if (node.children.length == 2)
                     ..._buildInlineSideLine(sideLineStart: node.children[1]),
