@@ -201,12 +201,6 @@ Widget _buildSideLine({
   required bool startSideLine,
   required int depth,
 }) {
-  print(
-      'Building sideline: ${sideLineNode.sanMove}, with num children: ${sideLineNode.children.length}');
-  //return sideLineNode.children
-  //    .map((node) => Text('${"<" * (depth + 1)} Sideline ${node.sanMove}'))
-  //    .toList();
-
   final move = [
     if (startSideLine) TextSpan(text: '${" " * 2 * depth}└'),
     ...moveWithComment(
@@ -230,8 +224,6 @@ Widget _buildSideLine({
 
   StudyBranch currentNode = sideLineNode;
   while (true) {
-    print(
-        'currentNode: ${currentNode.sanMove} with ${currentNode.children.length} children');
     if (currentNode.children.isEmpty) {
       return Text.rich(
         TextSpan(children: currentLine),
@@ -239,7 +231,6 @@ Widget _buildSideLine({
     }
 
     if (currentNode.children.length == 1) {
-      print('add move for sideline node ${currentNode.sanMove}');
       currentLine.addAll(
         moveWithComment(
           node: currentNode,
