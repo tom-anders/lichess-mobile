@@ -224,7 +224,7 @@ class _SideLine extends StatelessWidget {
                 node: node.children.first,
                 isCurrentMove: false, // TODO
                 isSideline: true,
-                startSideline: false,
+                startSideline: node.comments != null,
                 startMainline: false,
               ),
               if (node.children.length == 2 &&
