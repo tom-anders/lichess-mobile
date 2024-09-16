@@ -383,7 +383,12 @@ class _IndentedSideLines extends StatelessWidget {
           Container(
             color: Colors.grey,
             width: 2,
-            margin: const EdgeInsets.only(left: 3.0, right: 5.0),
+            margin: const EdgeInsets.only(
+              left: 3.0,
+              right: 5.0,
+              top: 5.0,
+              bottom: 5.0,
+            ),
           ),
           Expanded(
             child: Column(
