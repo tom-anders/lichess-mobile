@@ -196,7 +196,6 @@ List<InlineSpan> moveWithComment({
         ...node.comments!.map((comment) => TextSpan(text: comment.text)),
     ];
 
-// TODO isSideline
 class _SideLine extends StatelessWidget {
   _SideLine(
     this.nodes, {
@@ -228,7 +227,8 @@ class _SideLine extends StatelessWidget {
                 startSideline: false,
                 startMainline: false,
               ),
-              if (node.children.length == 2)
+              if (node.children.length == 2 &&
+                  displaySideLineAsInline(node.children[1]))
                 ..._buildInlineSideLine(sideLineStart: node.children[1]),
             ],
           )
@@ -265,7 +265,8 @@ class _MainLinePart extends StatelessWidget {
                     startSideline: false,
                     startMainline: i == 0,
                   ),
-                  if (node.children.length == 2)
+                  if (node.children.length == 2 &&
+                      displaySideLineAsInline(node.children[1]))
                     ..._buildInlineSideLine(sideLineStart: node.children[1]),
                 ],
               ],
