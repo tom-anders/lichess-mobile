@@ -263,7 +263,7 @@ class _MainLinePart extends StatelessWidget {
                     isCurrentMove: false, // TODO
                     isSideline: false,
                     startSideline: false,
-                    startMainline: i == 0,
+                    startMainline: i == 0 || nodes[i].comments != null,
                   ),
                   if (node.children.length == 2 &&
                       displaySideLineAsInline(node.children[1]))
