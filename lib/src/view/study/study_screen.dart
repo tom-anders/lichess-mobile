@@ -43,17 +43,17 @@ class StudyScreen extends ConsumerWidget {
       data: (state) {
         return PlatformScaffold(
           appBar: PlatformAppBar(
-            title: Text(state.study.name),
+            title: Text(state.currentChapterTitle),
           ),
           body: _Body(id: id),
         );
       },
       loading: () {
-        return PlatformScaffold(
+        return const PlatformScaffold(
           appBar: PlatformAppBar(
-            title: Text(context.l10n.studyMenu),
+            title: Text(''),
           ),
-          body: const Center(child: CircularProgressIndicator()),
+          body: Center(child: CircularProgressIndicator()),
         );
       },
       error: (error, st) {
