@@ -63,8 +63,7 @@ class StudyController extends _$StudyController implements PgnTreeViewNotifier {
     final rootComments = IList(game.comments.map((c) => PgnComment.fromPgn(c)));
 
     final options = AnalysisOptions(
-      isLocalEvaluationAllowed:
-          false, // TODO disable for hot reload for now. Also, get this from study data
+      isLocalEvaluationAllowed: study.chapter.features.computer,
       variant: study.chapter.setup.variant,
       orientation: study.chapter.setup.orientation,
       id: standaloneAnalysisId,
