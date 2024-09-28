@@ -141,41 +141,33 @@ List<InlineSpan> _buildInlineSideLine({
         final pathToNode = path;
         path = path + node.id;
 
-        return WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          child: Text.rich(
+        return [
+          if (i == 0) ...[
+            if (followsComment) const WidgetSpan(child: SizedBox(width: 4.0)),
             TextSpan(
-              children: [
-                if (i == 0) ...[
-                  if (followsComment)
-                    const WidgetSpan(child: SizedBox(width: 4.0)),
-                  TextSpan(
-                    text: '(',
-                    style: textStyle,
-                  ),
-                ],
-                ...moveWithComment(
-                  node,
-                  parent: i == 0 ? parent : sidelineNodes[i - 1],
-                  lineInfo: (
-                    type: LineType.inlineSideline,
-                    startLine: i == 0 || sidelineNodes[i - 1].hasTextComment
-                  ),
-                  pathToNode: pathToNode,
-                  textStyle: textStyle,
-                  params: params,
-                ),
-                if (last)
-                  TextSpan(
-                    text: ')',
-                    style: textStyle,
-                  ),
-              ],
+              text: '(',
+              style: textStyle,
             ),
+          ],
+          ...moveWithComment(
+            node,
+            parent: i == 0 ? parent : sidelineNodes[i - 1],
+            lineInfo: (
+              type: LineType.inlineSideline,
+              startLine: i == 0 || sidelineNodes[i - 1].hasTextComment
+            ),
+            pathToNode: pathToNode,
+            textStyle: textStyle,
+            params: params,
           ),
-        );
+          if (last)
+            TextSpan(
+              text: ')',
+              style: textStyle,
+            ),
+        ];
       },
-    ),
+    ).flattened,
     const WidgetSpan(child: SizedBox(width: 4.0)),
   ];
 }
