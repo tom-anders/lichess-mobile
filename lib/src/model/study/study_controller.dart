@@ -173,7 +173,7 @@ class StudyController extends _$StudyController implements PgnTreeViewNotifier {
 
   void userNext() {
     final state = this.state.valueOrNull;
-    if (state == null || !state.currentNode.hasChild) return;
+    if (state == null || state.currentNode.children.isEmpty) return;
     _setPath(
       state.currentPath + _root.nodeAt(state.currentPath).children.first.id,
       replaying: true,
@@ -509,7 +509,7 @@ class StudyState with _$StudyState {
 
   Position get position => currentNode.position;
   StudyChapter get currentChapter => study.chapter;
-  bool get canGoNext => currentNode.hasChild;
+  bool get canGoNext => currentNode.children.isNotEmpty;
   bool get canGoBack => currentPath.size > UciPath.empty.size;
 
   String get currentChapterTitle => study.chapters
@@ -526,7 +526,7 @@ class StudyCurrentNode with _$StudyCurrentNode {
 
   const factory StudyCurrentNode({
     required Position position,
-    required bool hasChild,
+    required List<Move> children,
     required bool isRoot,
     SanMove? sanMove,
     IList<PgnComment>? startingComments,
@@ -535,12 +535,13 @@ class StudyCurrentNode with _$StudyCurrentNode {
   }) = _StudyCurrentNode;
 
   factory StudyCurrentNode.fromNode(Node node) {
+    final children = node.children.map((n) => n.sanMove.move).toList();
     if (node is Branch) {
       return StudyCurrentNode(
         sanMove: node.sanMove,
         position: node.position,
-        isRoot: node is Root,
-        hasChild: node.children.isNotEmpty,
+        isRoot: false,
+        children: children,
         startingComments: IList(node.startingComments),
         comments: IList(node.comments),
         nags: IList(node.nags),
@@ -548,8 +549,8 @@ class StudyCurrentNode with _$StudyCurrentNode {
     } else {
       return StudyCurrentNode(
         position: node.position,
-        hasChild: node.children.isNotEmpty,
-        isRoot: node is Root,
+        children: children,
+        isRoot: true,
       );
     }
   }
