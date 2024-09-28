@@ -154,14 +154,31 @@ class _StudyBoard extends ConsumerWidget {
     final boardPrefs = ref.watch(boardPreferencesProvider);
     final studyState = ref.watch(studyControllerProvider(id)).requireValue;
 
-    final position = studyState.currentNode.position;
+    final showVariationArrows = true; // TODO make this a setting
 
     final shapes = (studyState.currentNode.isRoot
-            ? studyState.pgnRootComments
-            : studyState.currentNode.comments)
-        ?.map((comment) => comment.shapes)
-        .flattened
-        .map((shape) => shape.chessground);
+                ? studyState.pgnRootComments
+                : studyState.currentNode.comments)
+            ?.map((comment) => comment.shapes)
+            .flattened
+            .map((shape) => shape.chessground)
+            .toList() ??
+        [];
+
+    final variationArrows =
+        (showVariationArrows && studyState.currentNode.children.length > 1)
+            ? studyState.currentNode.children.mapIndexed((i, move) {
+                final color =
+                    Colors.white.withValues(alpha: i == 0 ? 0.9 : 0.5);
+                return Arrow(
+                  color: color,
+                  orig: (move as NormalMove).from,
+                  dest: move.to,
+                );
+              }).toList()
+            : <Shape>[];
+
+    final position = studyState.currentNode.position;
 
     return Chessboard(
       size: boardSize,
@@ -173,7 +190,7 @@ class _StudyBoard extends ConsumerWidget {
           ),
       fen: studyState.position.board.fen,
       orientation: studyState.pov,
-      shapes: shapes?.toISet(),
+      shapes: [...shapes, ...variationArrows].toISet(),
       game: GameData(
         playerSide: PlayerSide.both,
         isCheck: position.isCheck,
