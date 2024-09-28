@@ -156,6 +156,10 @@ class _BottomBar extends ConsumerWidget {
     final canGoNext = ref.watch(
       studyProvider.select((value) => value.valueOrNull?.canGoNext ?? false),
     );
+    final hasNextChapter = ref.watch(
+      studyProvider
+          .select((value) => value.valueOrNull?.hasNextChapter ?? false),
+    );
 
     final onGoForward =
         canGoNext ? ref.read(studyProvider.notifier).userNext : null;
@@ -186,10 +190,13 @@ class _BottomBar extends ConsumerWidget {
         ),
         BottomBarButton(
           icon: Icons.arrow_right,
+          showLabel: true,
           label: 'Next Chapter',
-          onTap: () {
-            ref.read(studyControllerProvider(id).notifier).nextChapter();
-          },
+          onTap: hasNextChapter
+              ? () {
+                  ref.read(studyControllerProvider(id).notifier).nextChapter();
+                }
+              : null,
         ),
       ],
     );

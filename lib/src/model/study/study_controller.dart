@@ -517,6 +517,7 @@ class StudyState with _$StudyState {
         (chapter) => chapter.id == currentChapter.id,
       )
       .name;
+  bool get hasNextChapter => study.chapter.id != study.chapters.last.id;
 }
 
 @freezed
