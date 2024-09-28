@@ -114,7 +114,7 @@ class _Body extends ConsumerWidget {
                         isCheck: position.isCheck,
                         sideToMove: position.turn,
                         validMoves: makeLegalMoves(position),
-                        promotionMove: null, // TODO
+                        promotionMove: studyState.promotionMove,
                         onMove: (move, {isDrop, captured}) {
                           ref
                               .read(studyControllerProvider(id).notifier)
