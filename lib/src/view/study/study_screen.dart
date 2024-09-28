@@ -74,16 +74,12 @@ class _Body extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final boardPrefs = ref.watch(boardPreferencesProvider);
-    final studyState = ref.watch(studyControllerProvider(id)).requireValue;
-
     return SafeArea(
       child: Column(
         children: [
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                // TODO table layout
                 final aspectRatio = constraints.biggest.aspectRatio;
                 final defaultBoardSize = constraints.biggest.shortestSide;
                 final isTablet = isTabletOrLarger(context);
@@ -95,37 +91,19 @@ class _Body extends ConsumerWidget {
                     ? defaultBoardSize - kTabletBoardTableSidePadding * 2
                     : defaultBoardSize;
 
-                final position = studyState.currentNode.position;
+                final direction =
+                    aspectRatio > 1 ? Axis.horizontal : Axis.vertical;
 
-                return Column(
+                return Flex(
+                  direction: direction,
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.max,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Chessboard(
-                      size: boardSize,
-                      settings: boardPrefs.toBoardSettings(),
-                      fen: studyState.position.board.fen,
-                      orientation: studyState.pov,
-                      // TODO use pgn shapes
-                      //shapes: studyState.currentNode.shapes?.toISet(),
-                      game: GameData(
-                        playerSide: PlayerSide.both,
-                        isCheck: position.isCheck,
-                        sideToMove: position.turn,
-                        validMoves: makeLegalMoves(position),
-                        promotionMove: studyState.promotionMove,
-                        onMove: (move, {isDrop, captured}) {
-                          ref
-                              .read(studyControllerProvider(id).notifier)
-                              .onUserMove(move);
-                        },
-                        onPromotionSelection: (role) {
-                          ref
-                              .read(studyControllerProvider(id).notifier)
-                              .onPromotionSelection(role);
-                        },
-                      ),
+                    _StudyBoard(
+                      id: id,
+                      boardSize: boardSize,
+                      isTablet: isTablet,
                     ),
                     Expanded(child: StudyTreeView(id)),
                   ],
@@ -135,6 +113,56 @@ class _Body extends ConsumerWidget {
           ),
           _BottomBar(id: id),
         ],
+      ),
+    );
+  }
+}
+
+class _StudyBoard extends ConsumerWidget {
+  const _StudyBoard({
+    required this.id,
+    required this.boardSize,
+    required this.isTablet,
+  });
+
+  final StudyId id;
+
+  final double boardSize;
+
+  final bool isTablet;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final boardPrefs = ref.watch(boardPreferencesProvider);
+    final studyState = ref.watch(studyControllerProvider(id)).requireValue;
+    final position = studyState.currentNode.position;
+
+    return Chessboard(
+      size: boardSize,
+      settings: boardPrefs.toBoardSettings().copyWith(
+            borderRadius: isTablet
+                ? const BorderRadius.all(Radius.circular(4.0))
+                : BorderRadius.zero,
+            boxShadow: isTablet ? boardShadows : const <BoxShadow>[],
+          ),
+      fen: studyState.position.board.fen,
+      orientation: studyState.pov,
+      // TODO use pgn shapes
+      //shapes: studyState.currentNode.shapes?.toISet(),
+      game: GameData(
+        playerSide: PlayerSide.both,
+        isCheck: position.isCheck,
+        sideToMove: position.turn,
+        validMoves: makeLegalMoves(position),
+        promotionMove: studyState.promotionMove,
+        onMove: (move, {isDrop, captured}) {
+          ref.read(studyControllerProvider(id).notifier).onUserMove(move);
+        },
+        onPromotionSelection: (role) {
+          ref
+              .read(studyControllerProvider(id).notifier)
+              .onPromotionSelection(role);
+        },
       ),
     );
   }
