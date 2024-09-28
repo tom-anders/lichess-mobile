@@ -511,6 +511,12 @@ class StudyState with _$StudyState {
   StudyChapter get currentChapter => study.chapter;
   bool get canGoNext => currentNode.hasChild;
   bool get canGoBack => currentPath.size > UciPath.empty.size;
+
+  String get currentChapterTitle => study.chapters
+      .firstWhere(
+        (chapter) => chapter.id == currentChapter.id,
+      )
+      .name;
 }
 
 @freezed
