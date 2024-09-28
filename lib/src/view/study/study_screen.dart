@@ -118,6 +118,24 @@ class _Body extends ConsumerWidget {
   }
 }
 
+extension on PgnCommentShape {
+  Shape get chessground {
+    final shapeColor = switch (color) {
+      CommentShapeColor.green => ShapeColor.green,
+      CommentShapeColor.red => ShapeColor.red,
+      CommentShapeColor.blue => ShapeColor.blue,
+      CommentShapeColor.yellow => ShapeColor.yellow,
+    };
+    return from != to
+        ? Arrow(
+            color: shapeColor.color,
+            orig: from,
+            dest: to,
+          )
+        : Circle(color: shapeColor.color, orig: from);
+  }
+}
+
 class _StudyBoard extends ConsumerWidget {
   const _StudyBoard({
     required this.id,
@@ -135,7 +153,15 @@ class _StudyBoard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final boardPrefs = ref.watch(boardPreferencesProvider);
     final studyState = ref.watch(studyControllerProvider(id)).requireValue;
+
     final position = studyState.currentNode.position;
+
+    final shapes = (studyState.currentNode.isRoot
+            ? studyState.pgnRootComments
+            : studyState.currentNode.comments)
+        ?.map((comment) => comment.shapes)
+        .flattened
+        .map((shape) => shape.chessground);
 
     return Chessboard(
       size: boardSize,
@@ -147,8 +173,7 @@ class _StudyBoard extends ConsumerWidget {
           ),
       fen: studyState.position.board.fen,
       orientation: studyState.pov,
-      // TODO use pgn shapes
-      //shapes: studyState.currentNode.shapes?.toISet(),
+      shapes: shapes?.toISet(),
       game: GameData(
         playerSide: PlayerSide.both,
         isCheck: position.isCheck,
