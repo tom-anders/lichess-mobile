@@ -39,7 +39,7 @@ class StudyController extends _$StudyController implements PgnTreeViewNotifier {
       );
       state = const AsyncValue.loading();
       state = AsyncValue.data(
-        await loadChapter(
+        await _fetchChapter(
           state.requireValue.study.id,
           chapterId:
               state.requireValue.study.chapters[currentChapterIndex + 1].id,
@@ -48,7 +48,17 @@ class StudyController extends _$StudyController implements PgnTreeViewNotifier {
     }
   }
 
-  Future<StudyState> loadChapter(
+  Future<void> goToChapter(StudyChapterId chapterId) async {
+    state = const AsyncValue.loading();
+    state = AsyncValue.data(
+      await _fetchChapter(
+        state.requireValue.study.id,
+        chapterId: chapterId,
+      ),
+    );
+  }
+
+  Future<StudyState> _fetchChapter(
     StudyId id, {
     StudyChapterId? chapterId,
   }) async {
@@ -126,7 +136,7 @@ class StudyController extends _$StudyController implements PgnTreeViewNotifier {
       evaluationService.disposeEngine();
     });
 
-    return loadChapter(id);
+    return _fetchChapter(id);
   }
 
   EvaluationContext _evaluationContext(Variant variant) => EvaluationContext(
