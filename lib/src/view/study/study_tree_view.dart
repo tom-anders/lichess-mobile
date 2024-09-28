@@ -9,7 +9,7 @@ import 'package:lichess_mobile/src/widgets/pgn_tree_view.dart';
 // fast replay debounce delay, same as piece animation duration, to avoid piece
 // animation jank at the end of the replay
 const kFastReplayDebounceDelay = Duration(milliseconds: 150);
-const kOpeningHeaderHeight = 32.0;
+const kNextChapterButtonHeight = 32.0;
 const kInlineMoveSpacing = 3.0;
 
 class StudyTreeView extends ConsumerStatefulWidget {
@@ -101,17 +101,53 @@ class _StudyTreeViewState extends ConsumerState<StudyTreeView> {
       slivers: [
         SliverFillRemaining(
           hasScrollBody: false,
-          child: PgnTreeView(
-            root: root,
-            rootComments: rootComments,
-            params: (
-              shouldShowComments: true,
-              shouldShowAnnotations: true,
-              currentPath: currentPath,
-              notifier: () =>
-                  ref.read(studyControllerProvider(widget.id).notifier),
-              currentMoveKey: currentMoveKey,
-            ),
+          child: Column(
+            children: [
+              Expanded(
+                child: PgnTreeView(
+                  root: root,
+                  rootComments: rootComments,
+                  params: (
+                    shouldShowComments: true,
+                    shouldShowAnnotations: true,
+                    currentPath: currentPath,
+                    notifier: () =>
+                        ref.read(studyControllerProvider(widget.id).notifier),
+                    currentMoveKey: currentMoveKey,
+                  ),
+                ),
+              ),
+              Container(
+                height: 32.0,
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.secondaryContainer,
+                ),
+                child: GestureDetector(
+                  onTap: () {
+                    ref
+                        .read(studyControllerProvider(widget.id).notifier)
+                        .nextChapter();
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Center(
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            WidgetSpan(
+                              child: Icon(Icons.play_arrow),
+                              alignment: PlaceholderAlignment.middle,
+                            ),
+                            TextSpan(text: 'Next chapter'),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],

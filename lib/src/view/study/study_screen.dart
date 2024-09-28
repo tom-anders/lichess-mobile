@@ -315,15 +315,6 @@ class _BottomBar extends ConsumerWidget {
             showTooltip: false,
           ),
         ),
-        BottomBarButton(
-          icon: Icons.arrow_right,
-          label: 'Next Chapter',
-          onTap: hasNextChapter
-              ? () {
-                  ref.read(studyControllerProvider(id).notifier).nextChapter();
-                }
-              : null,
-        ),
       ],
     );
   }
