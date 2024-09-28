@@ -95,13 +95,15 @@ class _StudyTreeViewState extends ConsumerState<StudyTreeView> {
       return const Center(child: CircularProgressIndicator());
     }
 
+    final root = studyState.requireValue.root;
+    final rootComments = studyState.requireValue.pgnRootComments;
     return CustomScrollView(
       slivers: [
         SliverFillRemaining(
           hasScrollBody: false,
           child: PgnTreeView(
-            root: studyState.requireValue.root,
-            rootComments: studyState.requireValue.pgnRootComments,
+            root: root,
+            rootComments: rootComments,
             params: (
               shouldShowComments: true,
               shouldShowAnnotations: true,

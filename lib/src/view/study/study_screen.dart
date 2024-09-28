@@ -158,29 +158,30 @@ class _StudyBoard extends ConsumerWidget {
 
     final showVariationArrows = true; // TODO make this a setting
 
-    final shapes = (studyState.currentNode.isRoot
+    final legalPosition = studyState.currentNode != null;
+    final shapes = (!legalPosition || studyState.currentNode!.isRoot
                 ? studyState.pgnRootComments
-                : studyState.currentNode.comments)
+                : studyState.currentNode!.comments)
             ?.map((comment) => comment.shapes)
             .flattened
             .map((shape) => shape.chessground)
             .toList() ??
         [];
 
-    final variationArrows =
-        (showVariationArrows && studyState.currentNode.children.length > 1)
-            ? studyState.currentNode.children.mapIndexed((i, move) {
-                final color =
-                    Colors.white.withValues(alpha: i == 0 ? 0.9 : 0.5);
-                return Arrow(
-                  color: color,
-                  orig: (move as NormalMove).from,
-                  dest: move.to,
-                );
-              }).toList()
-            : <Shape>[];
+    final variationArrows = (showVariationArrows &&
+            legalPosition &&
+            studyState.currentNode!.children.length > 1)
+        ? studyState.currentNode!.children.mapIndexed((i, move) {
+            final color = Colors.white.withValues(alpha: i == 0 ? 0.9 : 0.5);
+            return Arrow(
+              color: color,
+              orig: (move as NormalMove).from,
+              dest: move.to,
+            );
+          }).toList()
+        : <Shape>[];
 
-    final position = studyState.currentNode.position;
+    final position = studyState.currentNode?.position;
 
     return Chessboard(
       size: boardSize,
@@ -190,24 +191,28 @@ class _StudyBoard extends ConsumerWidget {
                 : BorderRadius.zero,
             boxShadow: isTablet ? boardShadows : const <BoxShadow>[],
           ),
-      fen: studyState.position.board.fen,
+      fen: studyState.position?.board.fen ??
+          studyState.study.currentChapterMeta.fen ??
+          kInitialFEN,
       orientation: studyState.pov,
       shapes: [...shapes, ...variationArrows].toISet(),
-      game: GameData(
-        playerSide: PlayerSide.both,
-        isCheck: position.isCheck,
-        sideToMove: position.turn,
-        validMoves: makeLegalMoves(position),
-        promotionMove: studyState.promotionMove,
-        onMove: (move, {isDrop, captured}) {
-          ref.read(studyControllerProvider(id).notifier).onUserMove(move);
-        },
-        onPromotionSelection: (role) {
-          ref
-              .read(studyControllerProvider(id).notifier)
-              .onPromotionSelection(role);
-        },
-      ),
+      game: studyState.position != null
+          ? GameData(
+              playerSide: PlayerSide.both,
+              isCheck: position!.isCheck,
+              sideToMove: position.turn,
+              validMoves: makeLegalMoves(position),
+              promotionMove: studyState.promotionMove,
+              onMove: (move, {isDrop, captured}) {
+                ref.read(studyControllerProvider(id).notifier).onUserMove(move);
+              },
+              onPromotionSelection: (role) {
+                ref
+                    .read(studyControllerProvider(id).notifier)
+                    .onPromotionSelection(role);
+              },
+            )
+          : null,
     );
   }
 }

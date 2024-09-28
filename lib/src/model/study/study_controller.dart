@@ -79,8 +79,23 @@ class StudyController extends _$StudyController implements PgnTreeViewNotifier {
       id: standaloneAnalysisId,
     );
 
-    // TODO catch the case here where the position is illegal.
-    _root = Root.fromPgnGame(game);
+    try {
+      _root = Root.fromPgnGame(game);
+    } on PositionSetupException {
+      return StudyState(
+        variant: options.variant,
+        study: study,
+        currentPath: UciPath.empty,
+        isOnMainline: true,
+        root: null,
+        currentNode: null,
+        pgnHeaders: pgnHeaders,
+        pgnRootComments: rootComments,
+        pov: options.orientation,
+        isLocalEvaluationAllowed: false,
+        isLocalEvaluationEnabled: false,
+      );
+    }
 
     // don't use ref.watch here: we don't want to invalidate state when the
     // analysis preferences change
@@ -146,11 +161,11 @@ class StudyController extends _$StudyController implements PgnTreeViewNotifier {
 
   void onUserMove(NormalMove move) {
     final state = this.state.valueOrNull;
-    if (state == null) return;
+    if (state == null || state.position == null) return;
 
-    if (!state.position.isLegal(move)) return;
+    if (!state.position!.isLegal(move)) return;
 
-    if (isPromotionPawnMove(state.position, move)) {
+    if (isPromotionPawnMove(state.position!, move)) {
       this.state = AsyncValue.data(state.copyWith(promotionMove: move));
       return;
     }
@@ -182,7 +197,7 @@ class StudyController extends _$StudyController implements PgnTreeViewNotifier {
 
   void userNext() {
     final state = this.state.valueOrNull;
-    if (state == null || state.currentNode.children.isEmpty) return;
+    if (state?.position == null || state!.currentNode!.children.isEmpty) return;
     _setPath(
       state.currentPath + _root.nodeAt(state.currentPath).children.first.id,
       replaying: true,
@@ -469,15 +484,15 @@ class StudyState with _$StudyState {
     /// The variant of the current chapter
     required Variant variant,
 
-    /// Immutable view of the whole tree
-    required ViewRoot root,
+    /// Immutable view of the whole tree. Null if the chapter's starting position is illegal.
+    required ViewRoot? root,
 
-    /// The current node in the study tree view.
+    /// The current node in the study tree view. Null if the chapter's starting position is illegal.
     ///
     /// This is an immutable copy of the actual [Node] at the `currentPath`.
     /// We don't want to use [Node.view] here because it'd copy the whole tree
     /// under the current node and it's expensive.
-    required StudyCurrentNode currentNode,
+    required StudyCurrentNode? currentNode,
 
     /// The path to the current node in the analysis view.
     required UciPath currentPath,
@@ -507,8 +522,9 @@ class StudyState with _$StudyState {
     IList<PgnComment>? pgnRootComments,
   }) = _StudyState;
 
-  IMap<Square, ISet<Square>> get validMoves =>
-      makeLegalMoves(currentNode.position);
+  IMap<Square, ISet<Square>> get validMoves => currentNode != null
+      ? makeLegalMoves(currentNode!.position)
+      : const IMap.empty();
 
   /// Whether the engine is available for evaluation
   bool get isEngineAvailable =>
@@ -516,9 +532,9 @@ class StudyState with _$StudyState {
       engineSupportedVariants.contains(variant) &&
       isLocalEvaluationEnabled;
 
-  Position get position => currentNode.position;
+  Position? get position => currentNode?.position;
   StudyChapter get currentChapter => study.chapter;
-  bool get canGoNext => currentNode.children.isNotEmpty;
+  bool get canGoNext => currentNode?.children.isNotEmpty == true;
   bool get canGoBack => currentPath.size > UciPath.empty.size;
 
   String get currentChapterTitle => study.chapters
