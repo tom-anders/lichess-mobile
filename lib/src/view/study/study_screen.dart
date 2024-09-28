@@ -20,6 +20,8 @@ import 'package:lichess_mobile/src/view/analysis/analysis_board.dart';
 import 'package:lichess_mobile/src/view/analysis/annotations.dart';
 import 'package:lichess_mobile/src/view/analysis/tree_view.dart';
 import 'package:lichess_mobile/src/view/study/study_tree_view.dart';
+import 'package:lichess_mobile/src/widgets/adaptive_action_sheet.dart';
+import 'package:lichess_mobile/src/widgets/adaptive_choice_picker.dart';
 import 'package:lichess_mobile/src/widgets/bottom_bar.dart';
 import 'package:lichess_mobile/src/widgets/bottom_bar_button.dart';
 import 'package:lichess_mobile/src/widgets/buttons.dart';
@@ -231,6 +233,18 @@ class _BottomBar extends ConsumerWidget {
           .select((value) => value.valueOrNull?.hasNextChapter ?? false),
     );
 
+    final chapters = ref.watch(
+      studyProvider.select(
+        (value) => value.valueOrNull?.study.chapters ?? const IList.empty(),
+      ),
+    );
+
+    final currentChapterId = ref.watch(
+      studyProvider.select(
+        (value) => value.valueOrNull?.currentChapter.id,
+      ),
+    );
+
     final onGoForward =
         canGoNext ? ref.read(studyProvider.notifier).userNext : null;
     final onGoBack =
@@ -238,6 +252,21 @@ class _BottomBar extends ConsumerWidget {
 
     return BottomBar(
       children: [
+        BottomBarButton(
+          label: 'Chapters',
+          icon: Icons.menu,
+          onTap: () => showChoicePicker<StudyChapterMeta>(
+            context,
+            choices: chapters.unlock,
+            selectedItem: chapters
+                .firstWhere((chapter) => chapter.id == currentChapterId),
+            labelBuilder: (chapter) => Text(chapter.name),
+            onSelectedItemChanged: (chapter) {
+              ref.read(studyProvider.notifier).goToChapter(chapter.id);
+            },
+          ),
+          showTooltip: false,
+        ),
         RepeatButton(
           onLongPress: onGoBack,
           child: BottomBarButton(
@@ -260,7 +289,6 @@ class _BottomBar extends ConsumerWidget {
         ),
         BottomBarButton(
           icon: Icons.arrow_right,
-          showLabel: true,
           label: 'Next Chapter',
           onTap: hasNextChapter
               ? () {
