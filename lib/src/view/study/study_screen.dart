@@ -4,27 +4,18 @@ import 'package:dartchess/dartchess.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lichess_mobile/src/constants.dart';
-import 'package:lichess_mobile/src/model/analysis/analysis_controller.dart';
-import 'package:lichess_mobile/src/model/common/chess.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
-import 'package:lichess_mobile/src/model/common/uci.dart';
 import 'package:lichess_mobile/src/model/settings/board_preferences.dart';
-import 'package:lichess_mobile/src/model/study/study.dart';
 import 'package:lichess_mobile/src/model/study/study_controller.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:lichess_mobile/src/utils/screen.dart';
-import 'package:lichess_mobile/src/view/analysis/analysis_board.dart';
-import 'package:lichess_mobile/src/view/analysis/annotations.dart';
-import 'package:lichess_mobile/src/view/analysis/tree_view.dart';
 import 'package:lichess_mobile/src/view/study/study_tree_view.dart';
-import 'package:lichess_mobile/src/widgets/adaptive_action_sheet.dart';
-import 'package:lichess_mobile/src/widgets/adaptive_choice_picker.dart';
 import 'package:lichess_mobile/src/widgets/bottom_bar.dart';
 import 'package:lichess_mobile/src/widgets/bottom_bar_button.dart';
 import 'package:lichess_mobile/src/widgets/buttons.dart';
+import 'package:lichess_mobile/src/widgets/list.dart';
 import 'package:lichess_mobile/src/widgets/platform_scaffold.dart';
 import 'package:logging/logging.dart';
 
@@ -260,14 +251,46 @@ class _BottomBar extends ConsumerWidget {
         BottomBarButton(
           label: 'Chapters',
           icon: Icons.menu,
-          onTap: () => showChoicePicker<StudyChapterMeta>(
-            context,
-            choices: chapters.unlock,
-            selectedItem: chapters
-                .firstWhere((chapter) => chapter.id == currentChapterId),
-            labelBuilder: (chapter) => Text(chapter.name),
-            onSelectedItemChanged: (chapter) {
-              ref.read(studyProvider.notifier).goToChapter(chapter.id);
+          onTap: () => showAdaptiveDialog<void>(
+            context: context,
+            builder: (context) {
+              return SimpleDialog(
+                title: const Text('Chapters'),
+                children: [
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.8,
+                    width: MediaQuery.of(context).size.width * 0.8,
+                    child: ListView.separated(
+                      itemBuilder: (context, index) {
+                        final chapter = chapters[index];
+                        final selected = chapter.id == currentChapterId;
+                        final checkedIcon = Theme.of(context).platform ==
+                                TargetPlatform.android
+                            ? const Icon(Icons.check)
+                            : Icon(
+                                CupertinoIcons.check_mark_circled_solid,
+                                color: CupertinoTheme.of(context).primaryColor,
+                              );
+                        return PlatformListTile(
+                          selected: selected,
+                          trailing: selected ? checkedIcon : null,
+                          title: Text(chapter.name),
+                          onTap: () {
+                            ref.read(studyProvider.notifier).goToChapter(
+                                  chapter.id,
+                                );
+                            Navigator.of(context).pop();
+                          },
+                        );
+                      },
+                      separatorBuilder: (_, __) => const PlatformDivider(
+                        height: 1,
+                      ),
+                      itemCount: chapters.length,
+                    ),
+                  ),
+                ],
+              );
             },
           ),
           showTooltip: false,
