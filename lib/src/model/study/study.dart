@@ -27,6 +27,9 @@ class Study with _$Study {
     required StudyChat? chat,
   }) = _Study;
 
+  StudyChapterMeta get currentChapterMeta =>
+      chapters.firstWhere((c) => c.id == chapter.id);
+
   factory Study.fromJson(Map<String, Object?> json) => _$StudyFromJson(json);
 }
 

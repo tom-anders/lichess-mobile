@@ -54,7 +54,7 @@ class PgnTreeView extends StatelessWidget {
     required this.params,
   });
 
-  final ViewRoot root;
+  final ViewRoot? root;
 
   final IList<PgnComment>? rootComments;
 
@@ -80,38 +80,41 @@ class PgnTreeView extends StatelessWidget {
                 children: comments(rootComments!, textStyle: _baseTextStyle),
               ),
             ),
-          ..._mainlineParts(root).map(
-            (nodes) {
-              final mainlineInitialPath = path;
+          if (root != null)
+            ..._mainlineParts(root!).map(
+              (nodes) {
+                final mainlineInitialPath = path;
 
-              final sidelineInitialPath = UciPath.join(
-                path,
-                UciPath.fromIds(
-                  nodes.take(nodes.length - 1).map((n) => n.children.first.id),
-                ),
-              );
-
-              path = sidelineInitialPath;
-              if (nodes.last.children.isNotEmpty) {
-                path = path + nodes.last.children.first.id;
-              }
-
-              return [
-                _MainLinePart(
-                  params: params,
-                  initialPath: mainlineInitialPath,
-                  nodes: nodes,
-                ),
-                if (nodes.last.children.length > 1)
-                  _IndentedSideLines(
-                    nodes.last.children.skip(1),
-                    parent: nodes.last,
-                    params: params,
-                    initialPath: sidelineInitialPath,
+                final sidelineInitialPath = UciPath.join(
+                  path,
+                  UciPath.fromIds(
+                    nodes
+                        .take(nodes.length - 1)
+                        .map((n) => n.children.first.id),
                   ),
-              ];
-            },
-          ).flattened,
+                );
+
+                path = sidelineInitialPath;
+                if (nodes.last.children.isNotEmpty) {
+                  path = path + nodes.last.children.first.id;
+                }
+
+                return [
+                  _MainLinePart(
+                    params: params,
+                    initialPath: mainlineInitialPath,
+                    nodes: nodes,
+                  ),
+                  if (nodes.last.children.length > 1)
+                    _IndentedSideLines(
+                      nodes.last.children.skip(1),
+                      parent: nodes.last,
+                      params: params,
+                      initialPath: sidelineInitialPath,
+                    ),
+                ];
+              },
+            ).flattened,
         ],
       ),
     );
