@@ -59,6 +59,14 @@ class AnalysisPreferences extends _$AnalysisPreferences
     );
   }
 
+  Future<void> toggleShowVariationArrows() {
+    return _save(
+      state.copyWith(
+        showVariationArrows: !state.showVariationArrows,
+      ),
+    );
+  }
+
   Future<void> setNumEvalLines(int numEvalLines) {
     assert(numEvalLines >= 1 && numEvalLines <= 3);
     return save(
@@ -86,6 +94,7 @@ class AnalysisPrefs with _$AnalysisPrefs implements SerializablePreferences {
     required bool enableLocalEvaluation,
     required bool showEvaluationGauge,
     required bool showBestMoveArrow,
+    required bool showVariationArrows,
     required bool showAnnotations,
     required bool showPgnComments,
     @Assert('numEvalLines >= 1 && numEvalLines <= 3') required int numEvalLines,
@@ -97,6 +106,7 @@ class AnalysisPrefs with _$AnalysisPrefs implements SerializablePreferences {
     enableLocalEvaluation: true,
     showEvaluationGauge: true,
     showBestMoveArrow: true,
+    showVariationArrows: true,
     showAnnotations: true,
     showPgnComments: true,
     numEvalLines: 2,

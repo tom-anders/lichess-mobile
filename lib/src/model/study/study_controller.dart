@@ -1,11 +1,14 @@
 import 'dart:async';
 
+import 'package:chessground/chessground.dart';
+import 'package:collection/collection.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:lichess_mobile/src/model/analysis/analysis_controller.dart';
 import 'package:lichess_mobile/src/model/analysis/analysis_preferences.dart';
 import 'package:lichess_mobile/src/model/common/chess.dart';
+import 'package:lichess_mobile/src/model/common/eval.dart';
 import 'package:lichess_mobile/src/model/common/http.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
 import 'package:lichess_mobile/src/model/common/node.dart';
@@ -17,6 +20,7 @@ import 'package:lichess_mobile/src/model/engine/work.dart';
 import 'package:lichess_mobile/src/model/study/study.dart';
 import 'package:lichess_mobile/src/model/study/study_repository.dart';
 import 'package:lichess_mobile/src/utils/rate_limit.dart';
+import 'package:lichess_mobile/src/view/engine/engine_gauge.dart';
 import 'package:lichess_mobile/src/widgets/pgn_tree_view.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -69,31 +73,26 @@ class StudyController extends _$StudyController implements PgnTreeViewNotifier {
 
     final game = PgnGame.parsePgn(pgn);
 
-    final pgnHeaders = IMap(game.headers);
     final rootComments = IList(game.comments.map((c) => PgnComment.fromPgn(c)));
 
-    final options = AnalysisOptions(
-      isLocalEvaluationAllowed: study.chapter.features.computer,
-      variant: study.chapter.setup.variant,
-      orientation: study.chapter.setup.orientation,
-      id: standaloneAnalysisId,
-    );
+    final variant = study.chapter.setup.variant;
+    final orientation = study.chapter.setup.orientation;
 
     try {
       _root = Root.fromPgnGame(game);
     } on PositionSetupException {
       return StudyState(
-        variant: options.variant,
+        variant: variant,
         study: study,
         currentPath: UciPath.empty,
         isOnMainline: true,
         root: null,
-        currentNode: null,
-        pgnHeaders: pgnHeaders,
+        currentNode: StudyCurrentNode.illegalPosition(),
         pgnRootComments: rootComments,
-        pov: options.orientation,
+        pov: orientation,
         isLocalEvaluationAllowed: false,
         isLocalEvaluationEnabled: false,
+        gamebookActive: false,
       );
     }
 
@@ -107,22 +106,25 @@ class StudyController extends _$StudyController implements PgnTreeViewNotifier {
     Move? lastMove;
 
     final studyState = StudyState(
-      variant: options.variant,
+      variant: variant,
       study: study,
       currentPath: currentPath,
       isOnMainline: true,
       root: _root.view,
       currentNode: StudyCurrentNode.fromNode(_root),
-      pgnHeaders: pgnHeaders,
       pgnRootComments: rootComments,
       lastMove: lastMove,
-      pov: options.orientation,
-      isLocalEvaluationAllowed: options.isLocalEvaluationAllowed,
+      pov: orientation,
+      isLocalEvaluationAllowed:
+          study.chapter.features.computer && !study.chapter.gamebook,
       isLocalEvaluationEnabled: prefs.enableLocalEvaluation,
+      gamebookActive: study.chapter.gamebook,
     );
 
     final evaluationService = ref.watch(evaluationServiceProvider);
     if (studyState.isEngineAvailable) {
+      evaluationService.stop();
+
       evaluationService
           .initEngine(
         _evaluationContext(studyState.variant),
@@ -144,13 +146,11 @@ class StudyController extends _$StudyController implements PgnTreeViewNotifier {
   @override
   Future<StudyState> build(StudyId id) async {
     final evaluationService = ref.watch(evaluationServiceProvider);
-
     ref.onDispose(() {
       _startEngineEvalTimer?.cancel();
       _engineEvalDebounce.dispose();
       evaluationService.disposeEngine();
     });
-
     return _fetchChapter(id);
   }
 
@@ -160,23 +160,37 @@ class StudyController extends _$StudyController implements PgnTreeViewNotifier {
       );
 
   void onUserMove(NormalMove move) {
-    final state = this.state.valueOrNull;
-    if (state == null || state.position == null) return;
+    if (!state.hasValue || state.requireValue.position == null) return;
 
-    if (!state.position!.isLegal(move)) return;
+    if (!state.requireValue.position!.isLegal(move)) return;
 
-    if (isPromotionPawnMove(state.position!, move)) {
-      this.state = AsyncValue.data(state.copyWith(promotionMove: move));
+    if (isPromotionPawnMove(state.requireValue.position!, move)) {
+      state = AsyncValue.data(state.requireValue.copyWith(promotionMove: move));
       return;
     }
 
-    final (newPath, isNewNode) = _root.addMoveAt(state.currentPath, move);
+    final (newPath, isNewNode) =
+        _root.addMoveAt(state.requireValue.currentPath, move);
     if (newPath != null) {
       _setPath(
         newPath,
         shouldRecomputeRootView: isNewNode,
         shouldForceShowVariation: true,
       );
+    }
+
+    if (state.requireValue.gamebookActive) {
+      final comments = state.requireValue.currentNode.comments;
+      // If there's no explicit comment why the move was good/bad, trigger next/previous move automatically
+      if (comments == null || comments.isEmpty) {
+        Timer(const Duration(seconds: 1), () {
+          if (state.requireValue.isOnMainline) {
+            userNext();
+          } else {
+            userPrevious();
+          }
+        });
+      }
     }
   }
 
@@ -197,7 +211,7 @@ class StudyController extends _$StudyController implements PgnTreeViewNotifier {
 
   void userNext() {
     final state = this.state.valueOrNull;
-    if (state?.position == null || state!.currentNode!.children.isEmpty) return;
+    if (state!.currentNode.children.isEmpty) return;
     _setPath(
       state.currentPath + _root.nodeAt(state.currentPath).children.first.id,
       replaying: true,
@@ -242,7 +256,6 @@ class StudyController extends _$StudyController implements PgnTreeViewNotifier {
 
   @override
   void userJump(UciPath path) {
-    //print('jumping to ${path.uci} (${path.size})');
     _setPath(path);
   }
 
@@ -286,23 +299,22 @@ class StudyController extends _$StudyController implements PgnTreeViewNotifier {
   }
 
   Future<void> toggleLocalEvaluation() async {
-    final state = this.state.valueOrNull;
-    if (state == null) return;
+    if (!state.hasValue) return;
 
     ref
         .read(analysisPreferencesProvider.notifier)
         .toggleEnableLocalEvaluation();
 
-    this.state = AsyncValue.data(
-      state.copyWith(
-        isLocalEvaluationEnabled: !state.isLocalEvaluationEnabled,
+    state = AsyncValue.data(
+      state.requireValue.copyWith(
+        isLocalEvaluationEnabled: !state.requireValue.isLocalEvaluationEnabled,
       ),
     );
 
-    if (state.isEngineAvailable) {
+    if (state.requireValue.isEngineAvailable) {
       final prefs = ref.read(analysisPreferencesProvider);
       await ref.read(evaluationServiceProvider).initEngine(
-            _evaluationContext(state.variant),
+            _evaluationContext(state.requireValue.variant),
             options: EvaluationOptions(
               multiPv: prefs.numEvalLines,
               cores: prefs.numEngineCores,
@@ -474,6 +486,8 @@ class StudyController extends _$StudyController implements PgnTreeViewNotifier {
   }
 }
 
+enum GamebookMoveFeedback { correct, incorrect }
+
 @freezed
 class StudyState with _$StudyState {
   const StudyState._();
@@ -487,12 +501,12 @@ class StudyState with _$StudyState {
     /// Immutable view of the whole tree. Null if the chapter's starting position is illegal.
     required ViewRoot? root,
 
-    /// The current node in the study tree view. Null if the chapter's starting position is illegal.
+    /// The current node in the study tree view.
     ///
     /// This is an immutable copy of the actual [Node] at the `currentPath`.
     /// We don't want to use [Node.view] here because it'd copy the whole tree
     /// under the current node and it's expensive.
-    required StudyCurrentNode? currentNode,
+    required StudyCurrentNode currentNode,
 
     /// The path to the current node in the analysis view.
     required UciPath currentPath,
@@ -509,21 +523,21 @@ class StudyState with _$StudyState {
     /// Whether the user has enabled local evaluation.
     required bool isLocalEvaluationEnabled,
 
+    /// Whether we're currently in gamebook mode, where the user has to find the right moves.
+    required bool gamebookActive,
+
     /// The last move played.
     Move? lastMove,
 
     /// Possible promotion move to be played.
     NormalMove? promotionMove,
 
-    /// The PGN headers of the study chapter.
-    required IMap<String, String> pgnHeaders,
-
     /// The PGN root comments of the study
     IList<PgnComment>? pgnRootComments,
   }) = _StudyState;
 
-  IMap<Square, ISet<Square>> get validMoves => currentNode != null
-      ? makeLegalMoves(currentNode!.position)
+  IMap<Square, ISet<Square>> get validMoves => currentNode.position != null
+      ? makeLegalMoves(currentNode.position!)
       : const IMap.empty();
 
   /// Whether the engine is available for evaluation
@@ -532,9 +546,18 @@ class StudyState with _$StudyState {
       engineSupportedVariants.contains(variant) &&
       isLocalEvaluationEnabled;
 
-  Position? get position => currentNode?.position;
+  EngineGaugeParams? get engineGaugeParams => isEngineAvailable
+      ? EngineGaugeParams(
+          orientation: pov,
+          isLocalEngineAvailable: isEngineAvailable,
+          position: position!,
+          savedEval: currentNode.eval,
+        )
+      : null;
+
+  Position? get position => currentNode.position;
   StudyChapter get currentChapter => study.chapter;
-  bool get canGoNext => currentNode?.children.isNotEmpty == true;
+  bool get canGoNext => currentNode.children.isNotEmpty;
   bool get canGoBack => currentPath.size > UciPath.empty.size;
 
   String get currentChapterTitle => study.chapters
@@ -543,6 +566,25 @@ class StudyState with _$StudyState {
       )
       .name;
   bool get hasNextChapter => study.chapter.id != study.chapters.last.id;
+
+  bool get isAtEndOfChapter => isOnMainline && currentNode.children.isEmpty;
+
+  GamebookMoveFeedback? get gamebookMoveFeedback =>
+      currentNode.position!.turn != pov
+          ? isOnMainline
+              ? GamebookMoveFeedback.correct
+              : GamebookMoveFeedback.incorrect
+          : null;
+
+  IList<PgnCommentShape> get pgnShapes => IList(
+        (currentNode.isRoot ? pgnRootComments : currentNode.comments)
+            ?.map((comment) => comment.shapes)
+            .flattened,
+      );
+
+  PlayerSide get playerSide => gamebookActive
+      ? (pov == Side.white ? PlayerSide.white : PlayerSide.black)
+      : PlayerSide.both;
 }
 
 @freezed
@@ -550,14 +592,24 @@ class StudyCurrentNode with _$StudyCurrentNode {
   const StudyCurrentNode._();
 
   const factory StudyCurrentNode({
-    required Position position,
+    // Null if the chapter's starting position is illegal.
+    required Position? position,
     required List<Move> children,
     required bool isRoot,
     SanMove? sanMove,
     IList<PgnComment>? startingComments,
     IList<PgnComment>? comments,
     IList<int>? nags,
+    ClientEval? eval,
   }) = _StudyCurrentNode;
+
+  factory StudyCurrentNode.illegalPosition() {
+    return const StudyCurrentNode(
+      position: null,
+      children: [],
+      isRoot: true,
+    );
+  }
 
   factory StudyCurrentNode.fromNode(Node node) {
     final children = node.children.map((n) => n.sanMove.move).toList();
@@ -567,6 +619,7 @@ class StudyCurrentNode with _$StudyCurrentNode {
         position: node.position,
         isRoot: false,
         children: children,
+        eval: node.eval,
         startingComments: IList(node.startingComments),
         comments: IList(node.comments),
         nags: IList(node.nags),
@@ -575,6 +628,7 @@ class StudyCurrentNode with _$StudyCurrentNode {
       return StudyCurrentNode(
         position: node.position,
         children: children,
+        eval: node.eval,
         isRoot: true,
       );
     }

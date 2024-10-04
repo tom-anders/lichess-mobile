@@ -6,16 +6,27 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lichess_mobile/src/constants.dart';
+import 'package:lichess_mobile/src/model/analysis/analysis_preferences.dart';
+import 'package:lichess_mobile/src/model/common/chess.dart';
+import 'package:lichess_mobile/src/model/common/eval.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
+import 'package:lichess_mobile/src/model/engine/evaluation_service.dart';
 import 'package:lichess_mobile/src/model/settings/board_preferences.dart';
 import 'package:lichess_mobile/src/model/study/study_controller.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:lichess_mobile/src/utils/screen.dart';
+import 'package:lichess_mobile/src/view/analysis/annotations.dart';
+import 'package:lichess_mobile/src/view/engine/engine_gauge.dart';
+import 'package:lichess_mobile/src/view/engine/engine_lines.dart';
+import 'package:lichess_mobile/src/view/study/study_gamebook.dart';
+import 'package:lichess_mobile/src/view/study/study_settings.dart';
 import 'package:lichess_mobile/src/view/study/study_tree_view.dart';
+import 'package:lichess_mobile/src/widgets/adaptive_bottom_sheet.dart';
 import 'package:lichess_mobile/src/widgets/bottom_bar.dart';
 import 'package:lichess_mobile/src/widgets/bottom_bar_button.dart';
 import 'package:lichess_mobile/src/widgets/buttons.dart';
 import 'package:lichess_mobile/src/widgets/list.dart';
+import 'package:lichess_mobile/src/widgets/platform.dart';
 import 'package:lichess_mobile/src/widgets/platform_scaffold.dart';
 import 'package:logging/logging.dart';
 
@@ -37,6 +48,19 @@ class StudyScreen extends ConsumerWidget {
         return PlatformScaffold(
           appBar: PlatformAppBar(
             title: Text(state.currentChapterTitle),
+            actions: [
+              AppBarIconButton(
+                onPressed: () => showAdaptiveBottomSheet<void>(
+                  context: context,
+                  isScrollControlled: true,
+                  showDragHandle: true,
+                  isDismissible: true,
+                  builder: (_) => StudySettings(id),
+                ),
+                semanticsLabel: context.l10n.settingsSettings,
+                icon: const Icon(Icons.settings),
+              ),
+            ],
           ),
           body: _Body(id: id),
         );
@@ -73,7 +97,6 @@ class _Body extends ConsumerWidget {
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final aspectRatio = constraints.biggest.aspectRatio;
                 final defaultBoardSize = constraints.biggest.shortestSide;
                 final isTablet = isTabletOrLarger(context);
                 final remainingHeight =
@@ -84,23 +107,127 @@ class _Body extends ConsumerWidget {
                     ? defaultBoardSize - kTabletBoardTableSidePadding * 2
                     : defaultBoardSize;
 
-                final direction =
-                    aspectRatio > 1 ? Axis.horizontal : Axis.vertical;
+                final landscape = constraints.biggest.aspectRatio > 1;
 
-                return Flex(
-                  direction: direction,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.max,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    _StudyBoard(
-                      id: id,
-                      boardSize: boardSize,
-                      isTablet: isTablet,
-                    ),
-                    Expanded(child: StudyTreeView(id)),
-                  ],
+                final engineGaugeParams = ref.watch(
+                  studyControllerProvider(id)
+                      .select((state) => state.valueOrNull?.engineGaugeParams),
                 );
+
+                final currentNode = ref.watch(
+                  studyControllerProvider(id)
+                      .select((state) => state.requireValue.currentNode),
+                );
+
+                final gamebookActive = ref.watch(
+                  studyControllerProvider(id)
+                      .select((state) => state.requireValue.gamebookActive),
+                );
+
+                final engineLines = EngineLines(
+                  clientEval: currentNode.eval,
+                  isGameOver: currentNode.position?.isGameOver ?? false,
+                  onTapMove: ref
+                      .read(
+                        studyControllerProvider(id).notifier,
+                      )
+                      .onUserMove,
+                  isLandscape: landscape,
+                );
+
+                final engineGauge = engineGaugeParams != null
+                    ? EngineGauge(
+                        params: engineGaugeParams,
+                        displayMode: landscape
+                            ? EngineGaugeDisplayMode.vertical
+                            : EngineGaugeDisplayMode.horizontal,
+                      )
+                    : null;
+
+                return landscape
+                    ? Row(
+                        mainAxisSize: MainAxisSize.max,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.all(
+                              isTablet ? kTabletBoardTableSidePadding : 0.0,
+                            ),
+                            child: Row(
+                              children: [
+                                _StudyBoard(
+                                  id: id,
+                                  boardSize: boardSize,
+                                  isTablet: isTablet,
+                                ),
+                                if (engineGauge != null) ...[
+                                  const SizedBox(width: 4.0),
+                                  engineGauge,
+                                ],
+                              ],
+                            ),
+                          ),
+                          Flexible(
+                            fit: FlexFit.loose,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.start,
+                              children: [
+                                if (engineGaugeParams != null) engineLines,
+                                Expanded(
+                                  child: PlatformCard(
+                                    clipBehavior: Clip.hardEdge,
+                                    borderRadius: const BorderRadius.all(
+                                      Radius.circular(4.0),
+                                    ),
+                                    margin: const EdgeInsets.all(
+                                      kTabletBoardTableSidePadding,
+                                    ),
+                                    semanticContainer: false,
+                                    child: StudyTreeView(id),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.max,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.all(
+                              isTablet ? kTabletBoardTableSidePadding : 0.0,
+                            ),
+                            child: Column(
+                              children: [
+                                if (engineGauge != null) ...[
+                                  engineGauge,
+                                  engineLines,
+                                ],
+                                _StudyBoard(
+                                  id: id,
+                                  boardSize: boardSize,
+                                  isTablet: isTablet,
+                                ),
+                              ],
+                            ),
+                          ),
+                          Expanded(
+                            child: Padding(
+                              padding: isTablet
+                                  ? const EdgeInsets.symmetric(
+                                      horizontal: kTabletBoardTableSidePadding,
+                                    )
+                                  : EdgeInsets.zero,
+                              child:
+                                  gamebookActive && currentNode.position != null
+                                      ? StudyGamebook(id)
+                                      : StudyTreeView(id),
+                            ),
+                          ),
+                        ],
+                      );
               },
             ),
           ),
@@ -129,7 +256,7 @@ extension on PgnCommentShape {
   }
 }
 
-class _StudyBoard extends ConsumerWidget {
+class _StudyBoard extends ConsumerStatefulWidget {
   const _StudyBoard({
     required this.id,
     required this.boardSize,
@@ -143,68 +270,140 @@ class _StudyBoard extends ConsumerWidget {
   final bool isTablet;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_StudyBoard> createState() => _StudyBoardState();
+}
+
+class _StudyBoardState extends ConsumerState<_StudyBoard> {
+  ISet<Shape> userShapes = ISet();
+
+  @override
+  Widget build(BuildContext context) {
     final boardPrefs = ref.watch(boardPreferencesProvider);
-    final studyState = ref.watch(studyControllerProvider(id)).requireValue;
+    final studyState =
+        ref.watch(studyControllerProvider(widget.id)).requireValue;
 
-    final showVariationArrows = true; // TODO make this a setting
+    final currentNode = studyState.currentNode;
+    final position = currentNode.position;
 
-    final legalPosition = studyState.currentNode != null;
-    final shapes = (!legalPosition || studyState.currentNode!.isRoot
-                ? studyState.pgnRootComments
-                : studyState.currentNode!.comments)
-            ?.map((comment) => comment.shapes)
-            .flattened
-            .map((shape) => shape.chessground)
-            .toList() ??
-        [];
+    final showVariationArrows = ref.watch(
+          analysisPreferencesProvider.select(
+            (prefs) => prefs.showVariationArrows,
+          ),
+        ) &&
+        !studyState.gamebookActive &&
+        currentNode.children.length > 1;
 
-    final variationArrows = (showVariationArrows &&
-            legalPosition &&
-            studyState.currentNode!.children.length > 1)
-        ? studyState.currentNode!.children.mapIndexed((i, move) {
-            final color = Colors.white.withValues(alpha: i == 0 ? 0.9 : 0.5);
-            return Arrow(
-              color: color,
-              orig: (move as NormalMove).from,
-              dest: move.to,
-            );
-          }).toList()
-        : <Shape>[];
+    final pgnShapes = ISet(
+      studyState.pgnShapes.map((shape) => shape.chessground),
+    );
 
-    final position = studyState.currentNode?.position;
+    final variationArrows = ISet<Shape>(
+      showVariationArrows
+          ? currentNode.children.mapIndexed((i, move) {
+              final color = Colors.white.withValues(alpha: i == 0 ? 0.9 : 0.5);
+              return Arrow(
+                color: color,
+                orig: (move as NormalMove).from,
+                dest: move.to,
+              );
+            }).toList()
+          : [],
+    );
+
+    final showAnnotationsOnBoard = ref.watch(
+      analysisPreferencesProvider.select((value) => value.showAnnotations),
+    );
+
+    final showBestMoveArrow = ref.watch(
+      analysisPreferencesProvider.select(
+        (value) => value.showBestMoveArrow,
+      ),
+    );
+    final bestMoves = ref.watch(
+      engineEvaluationProvider.select((s) => s.eval?.bestMoves),
+    );
+    final ISet<Shape> bestMoveShapes =
+        showBestMoveArrow && studyState.isEngineAvailable && bestMoves != null
+            ? computeBestMoveShapes(
+                bestMoves,
+                currentNode.position!.turn,
+                boardPrefs.pieceSet.assets,
+              )
+            : ISet();
+
+    final sanMove = currentNode.sanMove;
+    final annotation = makeAnnotation(studyState.currentNode.nags);
 
     return Chessboard(
-      size: boardSize,
+      size: widget.boardSize,
       settings: boardPrefs.toBoardSettings().copyWith(
-            borderRadius: isTablet
+            borderRadius: widget.isTablet
                 ? const BorderRadius.all(Radius.circular(4.0))
                 : BorderRadius.zero,
-            boxShadow: isTablet ? boardShadows : const <BoxShadow>[],
+            boxShadow: widget.isTablet ? boardShadows : const <BoxShadow>[],
+            drawShape: DrawShapeOptions(
+              enable: true,
+              onCompleteShape: _onCompleteShape,
+              onClearShapes: _onClearShapes,
+              newShapeColor: boardPrefs.shapeColor.color,
+            ),
           ),
       fen: studyState.position?.board.fen ??
           studyState.study.currentChapterMeta.fen ??
           kInitialFEN,
+      lastMove: studyState.lastMove as NormalMove?,
       orientation: studyState.pov,
-      shapes: [...shapes, ...variationArrows].toISet(),
-      game: studyState.position != null
+      shapes: pgnShapes
+          .union(userShapes)
+          .union(variationArrows)
+          .union(bestMoveShapes),
+      annotations:
+          showAnnotationsOnBoard && sanMove != null && annotation != null
+              ? altCastles.containsKey(sanMove.move.uci)
+                  ? IMap({
+                      Move.parse(altCastles[sanMove.move.uci]!)!.to: annotation,
+                    })
+                  : IMap({sanMove.move.to: annotation})
+              : null,
+      game: position != null
           ? GameData(
-              playerSide: PlayerSide.both,
-              isCheck: position!.isCheck,
+              playerSide: studyState.playerSide,
+              isCheck: position.isCheck,
               sideToMove: position.turn,
               validMoves: makeLegalMoves(position),
               promotionMove: studyState.promotionMove,
               onMove: (move, {isDrop, captured}) {
-                ref.read(studyControllerProvider(id).notifier).onUserMove(move);
+                ref
+                    .read(studyControllerProvider(widget.id).notifier)
+                    .onUserMove(move);
               },
               onPromotionSelection: (role) {
                 ref
-                    .read(studyControllerProvider(id).notifier)
+                    .read(studyControllerProvider(widget.id).notifier)
                     .onPromotionSelection(role);
               },
             )
           : null,
     );
+  }
+
+  void _onCompleteShape(Shape shape) {
+    if (userShapes.any((element) => element == shape)) {
+      setState(() {
+        userShapes = userShapes.remove(shape);
+      });
+      return;
+    } else {
+      setState(() {
+        userShapes = userShapes.add(shape);
+      });
+    }
+  }
+
+  void _onClearShapes() {
+    setState(() {
+      userShapes = ISet();
+    });
   }
 }
 
@@ -223,10 +422,6 @@ class _BottomBar extends ConsumerWidget {
     );
     final canGoNext = ref.watch(
       studyProvider.select((value) => value.valueOrNull?.canGoNext ?? false),
-    );
-    final hasNextChapter = ref.watch(
-      studyProvider
-          .select((value) => value.valueOrNull?.hasNextChapter ?? false),
     );
 
     final chapters = ref.watch(

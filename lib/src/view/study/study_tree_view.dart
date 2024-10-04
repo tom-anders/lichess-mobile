@@ -89,14 +89,15 @@ class _StudyTreeViewState extends ConsumerState<StudyTreeView> {
       },
     );
 
-    final studyState = ref.watch(studyControllerProvider(widget.id));
+    final studyState =
+        ref.watch(studyControllerProvider(widget.id)).valueOrNull;
 
-    if (!studyState.hasValue) {
+    if (studyState == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final root = studyState.requireValue.root;
-    final rootComments = studyState.requireValue.pgnRootComments;
+    final root = studyState.root;
+    final rootComments = studyState.pgnRootComments;
     return CustomScrollView(
       slivers: [
         SliverFillRemaining(
@@ -117,36 +118,37 @@ class _StudyTreeViewState extends ConsumerState<StudyTreeView> {
                   ),
                 ),
               ),
-              Container(
-                height: 32.0,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.secondaryContainer,
-                ),
-                child: GestureDetector(
-                  onTap: () {
-                    ref
-                        .read(studyControllerProvider(widget.id).notifier)
-                        .nextChapter();
-                  },
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Center(
-                      child: Text.rich(
-                        TextSpan(
-                          children: [
-                            WidgetSpan(
-                              child: Icon(Icons.play_arrow),
-                              alignment: PlaceholderAlignment.middle,
-                            ),
-                            TextSpan(text: 'Next chapter'),
-                          ],
+              if (studyState.hasNextChapter)
+                Container(
+                  height: 32.0,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.secondaryContainer,
+                  ),
+                  child: GestureDetector(
+                    onTap: () {
+                      ref
+                          .read(studyControllerProvider(widget.id).notifier)
+                          .nextChapter();
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Center(
+                        child: Text.rich(
+                          TextSpan(
+                            children: [
+                              WidgetSpan(
+                                child: Icon(Icons.play_arrow),
+                                alignment: PlaceholderAlignment.middle,
+                              ),
+                              TextSpan(text: 'Next chapter'),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
