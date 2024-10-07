@@ -19,6 +19,7 @@ import 'package:lichess_mobile/src/model/engine/evaluation_service.dart';
 import 'package:lichess_mobile/src/model/engine/work.dart';
 import 'package:lichess_mobile/src/model/game/player.dart';
 import 'package:lichess_mobile/src/utils/rate_limit.dart';
+import 'package:lichess_mobile/src/view/analysis/tree_view.dart';
 import 'package:lichess_mobile/src/view/engine/engine_gauge.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -60,7 +61,8 @@ class AnalysisOptions with _$AnalysisOptions {
 }
 
 @riverpod
-class AnalysisController extends _$AnalysisController {
+class AnalysisController extends _$AnalysisController
+    implements PgnTreeNotifier {
   late Root _root;
 
   final _engineEvalDebounce = Debouncer(const Duration(milliseconds: 150));
