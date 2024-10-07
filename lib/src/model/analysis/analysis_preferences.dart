@@ -60,7 +60,7 @@ class AnalysisPreferences extends _$AnalysisPreferences
   }
 
   Future<void> toggleShowVariationArrows() {
-    return _save(
+    return save(
       state.copyWith(
         showVariationArrows: !state.showVariationArrows,
       ),

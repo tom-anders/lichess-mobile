@@ -21,7 +21,6 @@ import 'package:lichess_mobile/src/model/game/player.dart';
 import 'package:lichess_mobile/src/utils/rate_limit.dart';
 import 'package:lichess_mobile/src/view/analysis/tree_view.dart';
 import 'package:lichess_mobile/src/view/engine/engine_gauge.dart';
-import 'package:lichess_mobile/src/widgets/pgn_tree_view.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'analysis_controller.freezed.dart';
@@ -269,6 +268,7 @@ class AnalysisController extends _$AnalysisController
     _setPath(path);
   }
 
+  @override
   void expandVariations(UciPath path) {
     final node = _root.nodeAt(path);
     for (final child in node.children) {
@@ -280,6 +280,7 @@ class AnalysisController extends _$AnalysisController
     state = state.copyWith(root: _root.view);
   }
 
+  @override
   void collapseVariations(UciPath path) {
     final node = _root.parentAt(path);
 

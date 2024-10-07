@@ -5,11 +5,9 @@ import 'package:collection/collection.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:lichess_mobile/src/model/analysis/analysis_controller.dart';
 import 'package:lichess_mobile/src/model/analysis/analysis_preferences.dart';
 import 'package:lichess_mobile/src/model/common/chess.dart';
 import 'package:lichess_mobile/src/model/common/eval.dart';
-import 'package:lichess_mobile/src/model/common/http.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
 import 'package:lichess_mobile/src/model/common/node.dart';
 import 'package:lichess_mobile/src/model/common/service/move_feedback.dart';
@@ -19,16 +17,17 @@ import 'package:lichess_mobile/src/model/engine/evaluation_service.dart';
 import 'package:lichess_mobile/src/model/engine/work.dart';
 import 'package:lichess_mobile/src/model/study/study.dart';
 import 'package:lichess_mobile/src/model/study/study_repository.dart';
+import 'package:lichess_mobile/src/network/http.dart';
 import 'package:lichess_mobile/src/utils/rate_limit.dart';
+import 'package:lichess_mobile/src/view/analysis/tree_view.dart';
 import 'package:lichess_mobile/src/view/engine/engine_gauge.dart';
-import 'package:lichess_mobile/src/widgets/pgn_tree_view.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'study_controller.freezed.dart';
 part 'study_controller.g.dart';
 
 @riverpod
-class StudyController extends _$StudyController implements PgnTreeViewNotifier {
+class StudyController extends _$StudyController implements PgnTreeNotifier {
   late Root _root;
 
   final _engineEvalDebounce = Debouncer(const Duration(milliseconds: 150));
@@ -260,20 +259,29 @@ class StudyController extends _$StudyController implements PgnTreeViewNotifier {
   }
 
   @override
-  void showAllVariations(UciPath path) {
+  void expandVariations(UciPath path) {
     if (!state.hasValue) return;
 
-    final parent = _root.parentAt(path);
-    for (final node in parent.children) {
-      node.isHidden = false;
+    final node = _root.nodeAt(path);
+    for (final child in node.children) {
+      child.isHidden = false;
+      for (final grandChild in child.children) {
+        grandChild.isHidden = false;
+      }
     }
     state = AsyncValue.data(state.requireValue.copyWith(root: _root.view));
   }
 
   @override
-  void hideVariation(UciPath path) {
+  void collapseVariations(UciPath path) {
     if (!state.hasValue) return;
-    _root.hideVariationAt(path);
+
+    final node = _root.parentAt(path);
+
+    for (final child in node.children) {
+      child.isHidden = true;
+    }
+
     state = AsyncValue.data(state.requireValue.copyWith(root: _root.view));
   }
 
