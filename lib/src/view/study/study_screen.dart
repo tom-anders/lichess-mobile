@@ -132,7 +132,6 @@ class _Body extends ConsumerWidget {
                         studyControllerProvider(id).notifier,
                       )
                       .onUserMove,
-                  isLandscape: landscape,
                 );
 
                 final engineGauge = engineGaugeParams != null

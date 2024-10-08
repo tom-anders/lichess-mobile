@@ -577,6 +577,15 @@ class StudyState with _$StudyState {
 
   bool get isAtEndOfChapter => isOnMainline && currentNode.children.isEmpty;
 
+  String? get gamebookComment {
+    final comment =
+        (currentNode.isRoot ? pgnRootComments : currentNode.comments)
+            ?.map((comment) => comment.text)
+            .nonNulls
+            .join('\n');
+    return comment?.isNotEmpty == true ? comment : null;
+  }
+
   GamebookMoveFeedback? get gamebookMoveFeedback => isAtEndOfChapter
       ? GamebookMoveFeedback.lessonComplete
       : currentNode.position!.turn != pov

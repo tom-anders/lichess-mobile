@@ -11,6 +11,7 @@ import 'package:lichess_mobile/src/styles/lichess_colors.dart';
 import 'package:lichess_mobile/src/styles/styles.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:lichess_mobile/src/view/puzzle/puzzle_feedback_widget.dart';
+import 'package:lichess_mobile/src/widgets/bottom_bar_button.dart';
 import 'package:lichess_mobile/src/widgets/buttons.dart';
 import 'package:lichess_mobile/src/model/study/study_controller.dart';
 import 'package:lichess_mobile/src/utils/rate_limit.dart';
@@ -36,28 +37,19 @@ class _StudyTreeViewState extends ConsumerState<StudyGamebook> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final currentNode = studyState.currentNode;
-
-    final currentNodeComments =
-        (currentNode.isRoot ? studyState.pgnRootComments : currentNode.comments)
-                ?.map((comment) => comment.text)
-                .nonNulls
-                .join('\n') ??
-            '';
-
-    final comments = currentNodeComments.isNotEmpty
-        ? currentNodeComments
-        : studyState.gamebookMoveFeedback == null
+    final comment = studyState.gamebookComment ??
+        (studyState.gamebookMoveFeedback == null
             ? 'What would you play in this position?'
             : studyState.gamebookMoveFeedback == GamebookMoveFeedback.correct
                 ? 'Good move'
-                : '';
+                : '');
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
       child: Column(
         children: [
-          Text(comments),
+          const Spacer(),
+          Text(comment),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -104,50 +96,46 @@ class GamebookFeedbackWidget extends ConsumerWidget {
 
     return switch (feedback) {
       null => FindTheBestMoveTile(pov: pov),
-      GamebookMoveFeedback.correct => Container(
-          decoration: const BoxDecoration(
-            borderRadius: BorderRadius.all(
-              Radius.circular(4.0),
-            ),
-            color: LichessColors.good,
-          ),
-          child: const Center(
-            child: Text(
-              'Next',
-            ),
-          ),
+      GamebookMoveFeedback.correct => BottomBarButton(
+          onTap: ref.read(studyControllerProvider(id).notifier).userNext,
+          icon: Icons.play_arrow,
+          label: 'Next',
+          showLabel: true,
         ),
-      GamebookMoveFeedback.incorrect => Container(
-          decoration: const BoxDecoration(
-            borderRadius: BorderRadius.all(
-              Radius.circular(4.0),
-            ),
-            color: LichessColors.good,
-          ),
-          child: const Center(
-            child: Text(
-              'Retry',
-            ),
-          ),
+      GamebookMoveFeedback.incorrect => BottomBarButton(
+          onTap: ref.read(studyControllerProvider(id).notifier).userPrevious,
+          icon: Icons.replay,
+          label: 'Retry',
+          showLabel: true,
         ),
       GamebookMoveFeedback.lessonComplete => Row(
           children: [
             if (hasNextChapter)
-              FatButton(
-                onPressed:
+              // TODO use custom button (bigger and rounded color backgrond)
+              BottomBarButton(
+                icon: Icons.play_arrow,
+                label: 'Next chapter',
+                onTap:
                     ref.read(studyControllerProvider(id).notifier).nextChapter,
-                semanticsLabel: 'Next chapter',
-                child: const Text('Next chapter'),
+                showLabel: true,
               ),
-            FatButton(
-              onPressed: () {}, // TODO
-              semanticsLabel: 'Play again',
-              child: const Text('Play again'),
+            //FatButton(
+            //  onPressed:
+            //      ref.read(studyControllerProvider(id).notifier).nextChapter,
+            //  semanticsLabel: 'Next chapter',
+            //  child: const Text('Next chapter'),
+            //),
+            BottomBarButton(
+              onTap: () {}, // TODO
+              label: 'Play again',
+              icon: Icons.replay,
+              showLabel: true,
             ),
-            FatButton(
-              onPressed: () {}, // TODO
-              semanticsLabel: 'Analysis board',
-              child: const Text('Analysis board'),
+            BottomBarButton(
+              onTap: () {}, // TODO
+              label: 'Analysis board',
+              icon: Icons.biotech,
+              showLabel: true,
             ),
           ],
         ),
