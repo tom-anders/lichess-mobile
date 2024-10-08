@@ -494,7 +494,7 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
   }
 }
 
-enum GamebookMoveFeedback { correct, incorrect }
+enum GamebookMoveFeedback { correct, incorrect, lessonComplete }
 
 @freezed
 class StudyState with _$StudyState {
@@ -577,8 +577,9 @@ class StudyState with _$StudyState {
 
   bool get isAtEndOfChapter => isOnMainline && currentNode.children.isEmpty;
 
-  GamebookMoveFeedback? get gamebookMoveFeedback =>
-      currentNode.position!.turn != pov
+  GamebookMoveFeedback? get gamebookMoveFeedback => isAtEndOfChapter
+      ? GamebookMoveFeedback.lessonComplete
+      : currentNode.position!.turn != pov
           ? isOnMainline
               ? GamebookMoveFeedback.correct
               : GamebookMoveFeedback.incorrect

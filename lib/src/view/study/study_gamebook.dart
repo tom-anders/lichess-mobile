@@ -1,9 +1,16 @@
+import 'package:dartchess/dartchess.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
 import 'package:lichess_mobile/src/model/common/uci.dart';
+import 'package:lichess_mobile/src/model/settings/board_preferences.dart';
+import 'package:lichess_mobile/src/model/settings/brightness.dart';
+import 'package:lichess_mobile/src/styles/lichess_colors.dart';
+import 'package:lichess_mobile/src/styles/styles.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
+import 'package:lichess_mobile/src/view/puzzle/puzzle_feedback_widget.dart';
 import 'package:lichess_mobile/src/widgets/buttons.dart';
 import 'package:lichess_mobile/src/model/study/study_controller.dart';
 import 'package:lichess_mobile/src/utils/rate_limit.dart';
@@ -50,73 +57,100 @@ class _StudyTreeViewState extends ConsumerState<StudyGamebook> {
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
       child: Column(
         children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Text(
-                comments,
-                style: const TextStyle(
-                  fontSize: 16.0,
+          Text(comments),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              GamebookFeedbackWidget(
+                id: widget.id,
+              ),
+              SizedBox.square(
+                dimension: 70,
+                child: SvgPicture.asset(
+                  'assets/images/octopus.svg',
                 ),
               ),
-            ),
+            ],
           ),
-          if (studyState.gamebookMoveFeedback == GamebookMoveFeedback.correct &&
-              !studyState.isAtEndOfChapter)
-            FatButton(
-              onPressed: () {
-                ref
-                    .read(studyControllerProvider(widget.id).notifier)
-                    .userNext();
-              },
-              //icon: const Icon(Icons.play_arrow),
-              semanticsLabel: 'Next', // TODO l10n
-              child: const Text('Next'), // TODO l10n
-            ),
-          if (studyState.gamebookMoveFeedback == GamebookMoveFeedback.incorrect)
-            FatButton(
-              onPressed: () {
-                ref
-                    .read(studyControllerProvider(widget.id).notifier)
-                    .userPrevious();
-              },
-              //icon: const Icon(Icons.play_arrow),
-              semanticsLabel: 'Retry', // TODO l10n
-              child: const Text('Retry'), // TODO l10n
-            ),
-          // TODO potentially move these to bottom bar
-          if (studyState.isAtEndOfChapter)
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                if (!currentNode.isRoot)
-                  SecondaryButton(
-                    onPressed: () {},
-                    semanticsLabel: 'Play again', // TODO l10n
-                    //icon: const Icon(Icons.restart_alt),
-                    child: const Text('Play again'), // TODO l10n
-                  ),
-                if (studyState.hasNextChapter)
-                  FatButton(
-                    onPressed: () {
-                      ref
-                          .read(studyControllerProvider(widget.id).notifier)
-                          .nextChapter();
-                    },
-                    //icon: const Icon(Icons.play_arrow),
-                    semanticsLabel: 'Next Chapter', // TODO l10n
-                    child: const Text('Next Chapter'), // TODO l10n
-                  ),
-                if (!currentNode.isRoot)
-                  SecondaryButton(
-                    onPressed: () {},
-                    semanticsLabel: 'Analysis board', // TODO l10n
-                    //icon: const Icon(Icons.biotech),
-                    child: const Text('Analysis board'), // TODO l10n
-                  ),
-              ],
-            ),
         ],
       ),
     );
+  }
+}
+
+class GamebookFeedbackWidget extends ConsumerWidget {
+  const GamebookFeedbackWidget({
+    required this.id,
+  });
+
+  final StudyId id;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final feedback = ref.watch(
+      studyControllerProvider(id)
+          .select((state) => state.valueOrNull?.gamebookMoveFeedback),
+    );
+
+    final pov = ref.watch(
+      studyControllerProvider(id)
+          .select((state) => state.valueOrNull?.pov ?? Side.white),
+    );
+
+    final hasNextChapter = ref.watch(
+      studyControllerProvider(id)
+          .select((state) => state.valueOrNull?.hasNextChapter == true),
+    );
+
+    return switch (feedback) {
+      null => FindTheBestMoveTile(pov: pov),
+      GamebookMoveFeedback.correct => Container(
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.all(
+              Radius.circular(4.0),
+            ),
+            color: LichessColors.good,
+          ),
+          child: const Center(
+            child: Text(
+              'Next',
+            ),
+          ),
+        ),
+      GamebookMoveFeedback.incorrect => Container(
+          decoration: const BoxDecoration(
+            borderRadius: BorderRadius.all(
+              Radius.circular(4.0),
+            ),
+            color: LichessColors.good,
+          ),
+          child: const Center(
+            child: Text(
+              'Retry',
+            ),
+          ),
+        ),
+      GamebookMoveFeedback.lessonComplete => Row(
+          children: [
+            if (hasNextChapter)
+              FatButton(
+                onPressed:
+                    ref.read(studyControllerProvider(id).notifier).nextChapter,
+                semanticsLabel: 'Next chapter',
+                child: const Text('Next chapter'),
+              ),
+            FatButton(
+              onPressed: () {}, // TODO
+              semanticsLabel: 'Play again',
+              child: const Text('Play again'),
+            ),
+            FatButton(
+              onPressed: () {}, // TODO
+              semanticsLabel: 'Analysis board',
+              child: const Text('Analysis board'),
+            ),
+          ],
+        ),
+    };
   }
 }

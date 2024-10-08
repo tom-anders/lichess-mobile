@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lichess_mobile/src/model/puzzle/puzzle.dart';
 import 'package:lichess_mobile/src/model/puzzle/puzzle_controller.dart';
 import 'package:lichess_mobile/src/model/settings/board_preferences.dart';
-import 'package:lichess_mobile/src/model/settings/brightness.dart';
 import 'package:lichess_mobile/src/styles/styles.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:lichess_mobile/src/utils/string.dart';
@@ -23,15 +22,6 @@ class PuzzleFeedbackWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final pieceSet =
-        ref.watch(boardPreferencesProvider.select((value) => value.pieceSet));
-    final boardTheme =
-        ref.watch(boardPreferencesProvider.select((state) => state.boardTheme));
-    final brightness = ref.watch(currentBrightnessProvider);
-
-    final piece = state.pov == Side.white ? kWhiteKingKind : kBlackKingKind;
-    final asset = pieceSet.assets[piece]!;
-
     switch (state.mode) {
       case PuzzleMode.view:
         final puzzleRating =
@@ -84,34 +74,56 @@ class PuzzleFeedbackWidget extends ConsumerWidget {
             subtitle: Text(context.l10n.puzzleKeepGoing),
           );
         } else {
-          return _FeedbackTile(
-            leading: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(4.0),
-                color: brightness == Brightness.light
-                    ? boardTheme.colors.lightSquare
-                    : boardTheme.colors.darkSquare,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(2.0),
-                child: Image.asset(
-                  asset.assetName,
-                  width: 48,
-                  height: 48,
-                  bundle: asset.bundle,
-                  package: asset.package,
-                ),
-              ),
-            ),
-            title: Text(context.l10n.yourTurn),
-            subtitle: Text(
-              state.pov == Side.white
-                  ? context.l10n.puzzleFindTheBestMoveForWhite
-                  : context.l10n.puzzleFindTheBestMoveForBlack,
-            ),
-          );
+          return FindTheBestMoveTile(pov: state.pov);
         }
     }
+  }
+}
+
+class FindTheBestMoveTile extends ConsumerWidget {
+  const FindTheBestMoveTile({
+    required this.pov,
+  });
+
+  final Side pov;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final pieceSet =
+        ref.watch(boardPreferencesProvider.select((value) => value.pieceSet));
+    final boardTheme =
+        ref.watch(boardPreferencesProvider.select((state) => state.boardTheme));
+
+    final piece = pov == Side.white ? kWhiteKingKind : kBlackKingKind;
+    final asset = pieceSet.assets[piece]!;
+
+    final brightness = Theme.of(context).brightness;
+    return _FeedbackTile(
+      leading: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(4.0),
+          color: brightness == Brightness.light
+              ? boardTheme.colors.lightSquare
+              : boardTheme.colors.darkSquare,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(2.0),
+          child: Image.asset(
+            asset.assetName,
+            width: 48,
+            height: 48,
+            bundle: asset.bundle,
+            package: asset.package,
+          ),
+        ),
+      ),
+      title: Text(context.l10n.yourTurn),
+      subtitle: Text(
+        pov == Side.white
+            ? context.l10n.puzzleFindTheBestMoveForWhite
+            : context.l10n.puzzleFindTheBestMoveForBlack,
+      ),
+    );
   }
 }
 
