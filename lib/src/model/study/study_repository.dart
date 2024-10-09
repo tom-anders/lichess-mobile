@@ -57,11 +57,12 @@ class StudyRepository {
     );
   }
 
-  Future<(Study study, String pgn)> getStudy({
+  Future<(Study study, StudyGamebookComments gamebookComments, String pgn)>
+      getStudy({
     required StudyId id,
     StudyChapterId? chapterId,
   }) async {
-    final study = await client.readJson(
+    final (study, gamebookComments) = await client.readJson(
       Uri(
         path: (chapterId != null) ? '/study/$id/$chapterId' : '/study/$id',
         queryParameters: {
@@ -70,8 +71,13 @@ class StudyRepository {
       ),
       headers: {'Accept': 'application/json'},
       mapper: (Map<String, dynamic> json) {
-        return Study.fromJson(
-          pick(json, 'study').asMapOrThrow(),
+        return (
+          Study.fromJson(
+            pick(json, 'study').asMapOrThrow(),
+          ),
+          StudyGamebookComments.fromJson(
+            pick(json, 'analysis').asMapOrThrow(),
+          ),
         );
       },
     );
@@ -81,6 +87,6 @@ class StudyRepository {
       headers: {'Accept': 'application/x-chess-pgn'},
     );
 
-    return (study, utf8.decode(bytes));
+    return (study, gamebookComments, utf8.decode(bytes));
   }
 }

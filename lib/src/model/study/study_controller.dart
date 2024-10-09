@@ -61,7 +61,7 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
     StudyId id, {
     StudyChapterId? chapterId,
   }) async {
-    final (study, pgn) = await ref.withClient(
+    final (study, gamebookComments, pgn) = await ref.withClient(
       (client) =>
           StudyRepository(client).getStudy(id: id, chapterId: chapterId),
     );
@@ -114,6 +114,8 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
           study.chapter.features.computer && !study.chapter.gamebook,
       isLocalEvaluationEnabled: prefs.enableLocalEvaluation,
       gamebookActive: study.chapter.gamebook,
+      gamebookHints: gamebookComments.hints,
+      gamebookDeviationComments: gamebookComments.deviationComments,
     );
 
     final evaluationService = ref.watch(evaluationServiceProvider);
@@ -188,9 +190,9 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
     }
 
     if (state.requireValue.gamebookActive) {
-      final comments = state.requireValue.currentNode.comments;
+      final comment = state.requireValue.gamebookComment;
       // If there's no explicit comment why the move was good/bad, trigger next/previous move automatically
-      if (comments == null || comments.isEmpty) {
+      if (comment == null) {
         Timer(const Duration(milliseconds: 750), () {
           if (state.requireValue.isOnMainline) {
             userNext();
@@ -550,6 +552,18 @@ class StudyState with _$StudyState {
     /// Whether we're currently in gamebook mode, where the user has to find the right moves.
     required bool gamebookActive,
 
+    /// In gamebook mode, an additional hint for the user to find the correct move.
+    ///
+    /// Each index corresponds to a ply in the PGN.
+    /// If the hint is null at a given ply, the study author didn't provide a hint for that move.
+    @Default(IList<String?>.empty()) IList<String?> gamebookHints,
+
+    /// In gamebook mode, a comment to show when the user makes a wrong move.
+    ///
+    /// Each index corresponds to a ply in the PGN.
+    /// If the deviation comment is null at a given ply, the study author didn't provide a comment.
+    @Default(IList<String?>.empty()) IList<String?> gamebookDeviationComments,
+
     /// The last move played.
     Move? lastMove,
 
@@ -601,8 +615,17 @@ class StudyState with _$StudyState {
             ?.map((comment) => comment.text)
             .nonNulls
             .join('\n');
-    return comment?.isNotEmpty == true ? comment : null;
+    return comment?.isNotEmpty == true
+        ? comment
+        : gamebookState == GamebookState.incorrectMove
+            ? gamebookDeviationComment
+            : null;
   }
+
+  String? get gamebookHint => gamebookHints.getOrNull(currentPath.size);
+
+  String? get gamebookDeviationComment =>
+      gamebookDeviationComments.getOrNull(currentPath.size);
 
   GamebookState? get gamebookState {
     if (isAtEndOfChapter) return GamebookState.lessonComplete;

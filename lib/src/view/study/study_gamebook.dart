@@ -40,11 +40,13 @@ class _StudyTreeViewState extends ConsumerState<StudyGamebook> {
     }
 
     final comment = studyState.gamebookComment ??
-        (studyState.gamebookState == GamebookState.findTheMove
-            ? 'What would you play in this position?'
-            : studyState.gamebookState == GamebookState.correctMove
-                ? 'Good move'
-                : '');
+        switch (studyState.gamebookState) {
+          GamebookState.findTheMove => 'What would you play in this position?',
+          GamebookState.correctMove => 'Good move',
+          GamebookState.lessonComplete =>
+            'Congratulations! You completed this lesson.',
+          _ => ''
+        };
 
     return Padding(
       padding: const EdgeInsets.all(10),
@@ -67,6 +69,8 @@ class _StudyTreeViewState extends ConsumerState<StudyGamebook> {
               ),
             ),
           ),
+          if (studyState.gamebookHint != null)
+            _Hint(hint: studyState.gamebookHint!),
           Padding(
             padding: const EdgeInsets.only(top: 5),
             child: GamebookFeedbackWidget(
@@ -75,6 +79,38 @@ class _StudyTreeViewState extends ConsumerState<StudyGamebook> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _Hint extends StatefulWidget {
+  const _Hint({
+    required this.hint,
+  });
+
+  final String hint;
+
+  @override
+  State<_Hint> createState() => _HintState();
+}
+
+class _HintState extends State<_Hint> {
+  bool showHint = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 40,
+      child: showHint
+          ? Center(child: Text(widget.hint))
+          : TextButton(
+              onPressed: () {
+                setState(() {
+                  showHint = true;
+                });
+              },
+              child: const Text('Get a hint'),
+            ),
     );
   }
 }

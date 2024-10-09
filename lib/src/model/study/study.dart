@@ -1,5 +1,6 @@
 import 'package:collection/collection.dart';
 import 'package:dartchess/dartchess.dart';
+import 'package:deep_pick/deep_pick.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:lichess_mobile/src/model/common/chess.dart';
@@ -29,6 +30,39 @@ class Study with _$Study {
       chapters.firstWhere((c) => c.id == chapter.id);
 
   factory Study.fromJson(Map<String, Object?> json) => _$StudyFromJson(json);
+}
+
+// In the API response, this contains a lot more information, but we get most of this
+// from the PGN instead. We're only interested in extracting the hints and deviation comments here,
+// as they're not in the PGN.
+@Freezed(fromJson: true)
+class StudyGamebookComments with _$StudyGamebookComments {
+  const StudyGamebookComments._();
+
+  const factory StudyGamebookComments({
+    required IList<String?> hints,
+    required IList<String?> deviationComments,
+  }) = _StudyGamebookComments;
+
+  factory StudyGamebookComments.fromJson(Map<String, Object?> json) =>
+      _studyGamebookCommentsFromJson(pick(json).required());
+}
+
+StudyGamebookComments _studyGamebookCommentsFromJson(RequiredPick pick) {
+  final treeParts = pick('treeParts').asListOrThrow((part) => part);
+
+  final hints = <String?>[];
+  final deviationComments = <String?>[];
+
+  for (final part in treeParts) {
+    hints.add(part('gamebook', 'hint').asStringOrNull());
+    deviationComments.add(part('gamebook', 'deviation').asStringOrNull());
+  }
+
+  return StudyGamebookComments(
+    hints: hints.lock,
+    deviationComments: deviationComments.lock,
+  );
 }
 
 @Freezed(fromJson: true)
