@@ -34,6 +34,8 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
 
   Timer? _startEngineEvalTimer;
 
+  Timer? _opponentFirstMoveTimer;
+
   Future<void> nextChapter() async {
     if (state.hasValue) {
       final chapters = state.requireValue.study.chapters;
@@ -138,9 +140,11 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
 
   // The PGNs of some gamebook studies start with the opponent's turn, so trigger their move after a delay
   void _ensureItsOurTurnIfGamebook() {
-    if (state.requireValue.gamebookActive &&
+    _opponentFirstMoveTimer?.cancel();
+    if (state.requireValue.isAtStartOfChapter &&
+        state.requireValue.gamebookActive &&
         state.requireValue.position!.turn != state.requireValue.pov) {
-      Timer(const Duration(milliseconds: 750), () {
+      _opponentFirstMoveTimer = Timer(const Duration(milliseconds: 750), () {
         userNext();
       });
     }
@@ -151,6 +155,7 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
     final evaluationService = ref.watch(evaluationServiceProvider);
     ref.onDispose(() {
       _startEngineEvalTimer?.cancel();
+      _opponentFirstMoveTimer?.cancel();
       _engineEvalDebounce.dispose();
       evaluationService.disposeEngine();
     });
