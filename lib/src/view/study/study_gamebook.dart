@@ -47,7 +47,7 @@ class _StudyTreeViewState extends ConsumerState<StudyGamebook> {
                 : '');
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+      padding: const EdgeInsets.all(10),
       child: Column(
         //crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -55,17 +55,23 @@ class _StudyTreeViewState extends ConsumerState<StudyGamebook> {
             child: Scrollbar(
               thumbVisibility: true,
               child: SingleChildScrollView(
-                child: Text(
-                  comment,
-                  style: const TextStyle(
-                    fontSize: 16,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 5),
+                  child: Text(
+                    comment,
+                    style: const TextStyle(
+                      fontSize: 16,
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-          GamebookFeedbackWidget(
-            id: widget.id,
+          Padding(
+            padding: const EdgeInsets.only(top: 5),
+            child: GamebookFeedbackWidget(
+              id: widget.id,
+            ),
           ),
         ],
       ),
