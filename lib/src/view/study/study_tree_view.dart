@@ -16,7 +16,7 @@ class StudyTreeView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final root = ref.watch(
-      studyControllerProvider(id).select((value) => value.requireValue.root!),
+      studyControllerProvider(id).select((value) => value.requireValue.root),
     );
 
     final currentPath = ref.watch(
@@ -41,14 +41,17 @@ class StudyTreeView extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: DebouncedPgnTreeView(
-                  root: root,
-                  currentPath: currentPath,
-                  pgnRootComments: pgnRootComments,
-                  notifier: ref.read(studyControllerProvider(id).notifier),
-                ),
-              ),
+              if (root != null)
+                Expanded(
+                  child: DebouncedPgnTreeView(
+                    root: root,
+                    currentPath: currentPath,
+                    pgnRootComments: pgnRootComments,
+                    notifier: ref.read(studyControllerProvider(id).notifier),
+                  ),
+                )
+              else
+                const Spacer(),
               if (hasNextChapter)
                 Container(
                   height: 32.0,
