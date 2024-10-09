@@ -182,7 +182,7 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
       final comments = state.requireValue.currentNode.comments;
       // If there's no explicit comment why the move was good/bad, trigger next/previous move automatically
       if (comments == null || comments.isEmpty) {
-        Timer(const Duration(seconds: 1), () {
+        Timer(const Duration(milliseconds: 750), () {
           if (state.requireValue.isOnMainline) {
             userNext();
           } else {
@@ -582,6 +582,8 @@ class StudyState with _$StudyState {
   bool get hasNextChapter => study.chapter.id != study.chapters.last.id;
 
   bool get isAtEndOfChapter => isOnMainline && currentNode.children.isEmpty;
+
+  bool get isAtStartOfChapter => currentPath.isEmpty;
 
   String? get gamebookComment {
     final comment =

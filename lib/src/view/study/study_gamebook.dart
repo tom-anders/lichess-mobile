@@ -11,6 +11,8 @@ import 'package:lichess_mobile/src/styles/lichess_colors.dart';
 import 'package:lichess_mobile/src/styles/styles.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:lichess_mobile/src/view/puzzle/puzzle_feedback_widget.dart';
+import 'package:lichess_mobile/src/view/study/study_screen.dart';
+import 'package:lichess_mobile/src/widgets/bottom_bar.dart';
 import 'package:lichess_mobile/src/widgets/bottom_bar_button.dart';
 import 'package:lichess_mobile/src/widgets/buttons.dart';
 import 'package:lichess_mobile/src/model/study/study_controller.dart';
@@ -47,11 +49,19 @@ class _StudyTreeViewState extends ConsumerState<StudyGamebook> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
       child: Column(
+        //crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            child: Text(
-              comment,
-              style: const TextStyle(fontSize: 18),
+            child: Scrollbar(
+              thumbVisibility: true,
+              child: SingleChildScrollView(
+                child: Text(
+                  comment,
+                  style: const TextStyle(
+                    fontSize: 16,
+                  ),
+                ),
+              ),
             ),
           ),
           GamebookFeedbackWidget(
@@ -72,56 +82,25 @@ class GamebookFeedbackWidget extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final feedback = ref.watch(
-      studyControllerProvider(id)
-          .select((state) => state.valueOrNull?.gamebookMoveFeedback),
-    );
+    final state = ref.watch(studyControllerProvider(id)).requireValue;
 
-    final pov = ref.watch(
-      studyControllerProvider(id)
-          .select((state) => state.valueOrNull?.pov ?? Side.white),
-    );
-
-    final hasNextChapter = ref.watch(
-      studyControllerProvider(id)
-          .select((state) => state.valueOrNull?.hasNextChapter == true),
-    );
-
-    return switch (feedback) {
-      null => FindTheBestMoveTile(pov: pov),
-      GamebookMoveFeedback.correct => GamebookButton(
-          onTap: ref.read(studyControllerProvider(id).notifier).userNext,
-          icon: Icons.play_arrow,
-          label: 'Next',
-          highlighted: true,
+    return switch (state.gamebookMoveFeedback) {
+      null => FindTheBestMoveTile(pov: state.pov),
+      GamebookMoveFeedback.correct => FatButton(
+          onPressed: ref.read(studyControllerProvider(id).notifier).userNext,
+          semanticsLabel: 'Next',
+          child: const Text('Next'),
         ),
-      GamebookMoveFeedback.incorrect => GamebookButton(
-          onTap: ref.read(studyControllerProvider(id).notifier).userPrevious,
-          icon: Icons.replay,
-          label: 'Retry',
-          highlighted: true,
+      GamebookMoveFeedback.incorrect => FatButton(
+          onPressed:
+              ref.read(studyControllerProvider(id).notifier).userPrevious,
+          semanticsLabel: 'Retry',
+          child: const Text('Retry'),
         ),
-      GamebookMoveFeedback.lessonComplete => Row(
-          children: [
-            if (hasNextChapter)
-              GamebookButton(
-                icon: Icons.play_arrow,
-                label: 'Next chapter',
-                highlighted: true,
-                onTap:
-                    ref.read(studyControllerProvider(id).notifier).nextChapter,
-              ),
-            GamebookButton(
-              onTap: ref.read(studyControllerProvider(id).notifier).reset,
-              label: 'Play again',
-              icon: Icons.replay,
-            ),
-            GamebookButton(
-              onTap: () {}, // TODO
-              label: 'Analysis board',
-              icon: Icons.biotech,
-            ),
-          ],
+      GamebookMoveFeedback.lessonComplete => FatButton(
+          semanticsLabel: 'Next chapter',
+          onPressed: ref.read(studyControllerProvider(id).notifier).nextChapter,
+          child: const Text('Next chapter'),
         ),
     };
   }

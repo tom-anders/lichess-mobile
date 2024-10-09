@@ -18,6 +18,7 @@ import 'package:lichess_mobile/src/utils/screen.dart';
 import 'package:lichess_mobile/src/view/analysis/annotations.dart';
 import 'package:lichess_mobile/src/view/engine/engine_gauge.dart';
 import 'package:lichess_mobile/src/view/engine/engine_lines.dart';
+import 'package:lichess_mobile/src/view/study/study_bottom_bar.dart';
 import 'package:lichess_mobile/src/view/study/study_gamebook.dart';
 import 'package:lichess_mobile/src/view/study/study_settings.dart';
 import 'package:lichess_mobile/src/view/study/study_tree_view.dart';
@@ -91,6 +92,11 @@ class _Body extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final gamebookActive = ref.watch(
+      studyControllerProvider(id)
+          .select((state) => state.requireValue.gamebookActive),
+    );
+
     return SafeArea(
       child: Column(
         children: [
@@ -117,11 +123,6 @@ class _Body extends ConsumerWidget {
                 final currentNode = ref.watch(
                   studyControllerProvider(id)
                       .select((state) => state.requireValue.currentNode),
-                );
-
-                final gamebookActive = ref.watch(
-                  studyControllerProvider(id)
-                      .select((state) => state.requireValue.gamebookActive),
                 );
 
                 final engineLines = EngineLines(
@@ -219,10 +220,9 @@ class _Body extends ConsumerWidget {
                                       horizontal: kTabletBoardTableSidePadding,
                                     )
                                   : EdgeInsets.zero,
-                              child:
-                                  gamebookActive && currentNode.position != null
-                                      ? StudyGamebook(id)
-                                      : StudyTreeView(id),
+                              child: gamebookActive
+                                  ? StudyGamebook(id)
+                                  : StudyTreeView(id),
                             ),
                           ),
                         ],
@@ -230,7 +230,7 @@ class _Body extends ConsumerWidget {
               },
             ),
           ),
-          _BottomBar(id: id),
+          StudyBottomBar(id: id),
         ],
       ),
     );
@@ -403,113 +403,5 @@ class _StudyBoardState extends ConsumerState<_StudyBoard> {
     setState(() {
       userShapes = ISet();
     });
-  }
-}
-
-class _BottomBar extends ConsumerWidget {
-  const _BottomBar({
-    required this.id,
-  });
-
-  final StudyId id;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final studyProvider = studyControllerProvider(id);
-    final canGoBack = ref.watch(
-      studyProvider.select((value) => value.valueOrNull?.canGoBack ?? false),
-    );
-    final canGoNext = ref.watch(
-      studyProvider.select((value) => value.valueOrNull?.canGoNext ?? false),
-    );
-
-    final chapters = ref.watch(
-      studyProvider.select(
-        (value) => value.valueOrNull?.study.chapters ?? const IList.empty(),
-      ),
-    );
-
-    final currentChapterId = ref.watch(
-      studyProvider.select(
-        (value) => value.valueOrNull?.currentChapter.id,
-      ),
-    );
-
-    final onGoForward =
-        canGoNext ? ref.read(studyProvider.notifier).userNext : null;
-    final onGoBack =
-        canGoBack ? ref.read(studyProvider.notifier).userPrevious : null;
-
-    return BottomBar(
-      children: [
-        BottomBarButton(
-          label: 'Chapters',
-          icon: Icons.menu,
-          onTap: () => showAdaptiveDialog<void>(
-            context: context,
-            builder: (context) {
-              return SimpleDialog(
-                title: const Text('Chapters'),
-                children: [
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height * 0.8,
-                    width: MediaQuery.of(context).size.width * 0.8,
-                    child: ListView.separated(
-                      itemBuilder: (context, index) {
-                        final chapter = chapters[index];
-                        final selected = chapter.id == currentChapterId;
-                        final checkedIcon = Theme.of(context).platform ==
-                                TargetPlatform.android
-                            ? const Icon(Icons.check)
-                            : Icon(
-                                CupertinoIcons.check_mark_circled_solid,
-                                color: CupertinoTheme.of(context).primaryColor,
-                              );
-                        return PlatformListTile(
-                          selected: selected,
-                          trailing: selected ? checkedIcon : null,
-                          title: Text(chapter.name),
-                          onTap: () {
-                            ref.read(studyProvider.notifier).goToChapter(
-                                  chapter.id,
-                                );
-                            Navigator.of(context).pop();
-                          },
-                        );
-                      },
-                      separatorBuilder: (_, __) => const PlatformDivider(
-                        height: 1,
-                      ),
-                      itemCount: chapters.length,
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-          showTooltip: false,
-        ),
-        RepeatButton(
-          onLongPress: onGoBack,
-          child: BottomBarButton(
-            key: const ValueKey('goto-previous'),
-            onTap: onGoBack,
-            label: 'Previous',
-            icon: CupertinoIcons.chevron_back,
-            showTooltip: false,
-          ),
-        ),
-        RepeatButton(
-          onLongPress: onGoForward,
-          child: BottomBarButton(
-            key: const ValueKey('goto-next'),
-            icon: CupertinoIcons.chevron_forward,
-            onTap: onGoForward,
-            label: context.l10n.next,
-            showTooltip: false,
-          ),
-        ),
-      ],
-    );
   }
 }
