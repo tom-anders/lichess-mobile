@@ -606,15 +606,15 @@ class StudyState with _$StudyState {
 
   GamebookState? get gamebookState {
     if (isAtEndOfChapter) return GamebookState.lessonComplete;
-    if (isAtStartOfChapter) return null;
 
-    if (currentNode.position!.turn != pov) {
-      return isOnMainline
-          ? GamebookState.correctMove
-          : GamebookState.incorrectMove;
-    }
+    final bool myTurn = currentNode.position!.turn == pov;
+    if (isAtStartOfChapter && !myTurn) return null;
 
-    return GamebookState.findTheMove;
+    return myTurn
+        ? GamebookState.findTheMove
+        : isOnMainline
+            ? GamebookState.correctMove
+            : GamebookState.incorrectMove;
   }
 
   IList<PgnCommentShape> get pgnShapes => IList(
