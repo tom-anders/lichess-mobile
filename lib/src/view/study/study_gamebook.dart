@@ -40,9 +40,9 @@ class _StudyTreeViewState extends ConsumerState<StudyGamebook> {
     }
 
     final comment = studyState.gamebookComment ??
-        (studyState.gamebookMoveFeedback == null
+        (studyState.gamebookState == GamebookState.findTheMove
             ? 'What would you play in this position?'
-            : studyState.gamebookMoveFeedback == GamebookMoveFeedback.correct
+            : studyState.gamebookState == GamebookState.correctMove
                 ? 'Good move'
                 : '');
 
@@ -84,20 +84,21 @@ class GamebookFeedbackWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(studyControllerProvider(id)).requireValue;
 
-    return switch (state.gamebookMoveFeedback) {
-      null => FindTheBestMoveTile(pov: state.pov),
-      GamebookMoveFeedback.correct => FatButton(
+    return switch (state.gamebookState) {
+      null => const SizedBox.shrink(),
+      GamebookState.findTheMove => FindTheBestMoveTile(pov: state.pov),
+      GamebookState.correctMove => FatButton(
           onPressed: ref.read(studyControllerProvider(id).notifier).userNext,
           semanticsLabel: 'Next',
           child: const Text('Next'),
         ),
-      GamebookMoveFeedback.incorrect => FatButton(
+      GamebookState.incorrectMove => FatButton(
           onPressed:
               ref.read(studyControllerProvider(id).notifier).userPrevious,
           semanticsLabel: 'Retry',
           child: const Text('Retry'),
         ),
-      GamebookMoveFeedback.lessonComplete => FatButton(
+      GamebookState.lessonComplete => FatButton(
           semanticsLabel: 'Next chapter',
           onPressed: ref.read(studyControllerProvider(id).notifier).nextChapter,
           child: const Text('Next chapter'),

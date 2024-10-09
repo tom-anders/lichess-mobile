@@ -40,14 +40,7 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
       final currentChapterIndex = chapters.indexWhere(
         (chapter) => chapter.id == state.requireValue.study.chapter.id,
       );
-      state = const AsyncValue.loading();
-      state = AsyncValue.data(
-        await _fetchChapter(
-          state.requireValue.study.id,
-          chapterId:
-              state.requireValue.study.chapters[currentChapterIndex + 1].id,
-        ),
-      );
+      goToChapter(chapters[currentChapterIndex + 1].id);
     }
   }
 
@@ -59,6 +52,7 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
         chapterId: chapterId,
       ),
     );
+    _ensureItsOurTurnIfGamebook();
   }
 
   Future<StudyState> _fetchChapter(
@@ -140,6 +134,16 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
     }
 
     return studyState;
+  }
+
+  // The PGNs of some gamebook studies start with the opponent's turn, so trigger their move after a delay
+  void _ensureItsOurTurnIfGamebook() {
+    if (state.requireValue.gamebookActive &&
+        state.requireValue.position!.turn != state.requireValue.pov) {
+      Timer(const Duration(milliseconds: 750), () {
+        userNext();
+      });
+    }
   }
 
   @override
@@ -256,6 +260,7 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
   void reset() {
     if (state.hasValue) {
       _setPath(UciPath.empty);
+      _ensureItsOurTurnIfGamebook();
     }
   }
 
@@ -500,7 +505,7 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
   }
 }
 
-enum GamebookMoveFeedback { correct, incorrect, lessonComplete }
+enum GamebookState { findTheMove, correctMove, incorrectMove, lessonComplete }
 
 @freezed
 class StudyState with _$StudyState {
@@ -594,13 +599,18 @@ class StudyState with _$StudyState {
     return comment?.isNotEmpty == true ? comment : null;
   }
 
-  GamebookMoveFeedback? get gamebookMoveFeedback => isAtEndOfChapter
-      ? GamebookMoveFeedback.lessonComplete
-      : currentNode.position!.turn != pov
-          ? isOnMainline
-              ? GamebookMoveFeedback.correct
-              : GamebookMoveFeedback.incorrect
-          : null;
+  GamebookState? get gamebookState {
+    if (isAtEndOfChapter) return GamebookState.lessonComplete;
+    if (isAtStartOfChapter) return null;
+
+    if (currentNode.position!.turn != pov) {
+      return isOnMainline
+          ? GamebookState.correctMove
+          : GamebookState.incorrectMove;
+    }
+
+    return GamebookState.findTheMove;
+  }
 
   IList<PgnCommentShape> get pgnShapes => IList(
         (currentNode.isRoot ? pgnRootComments : currentNode.comments)
