@@ -253,6 +253,12 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
     }
   }
 
+  void reset() {
+    if (state.hasValue) {
+      _setPath(UciPath.empty);
+    }
+  }
+
   @override
   void userJump(UciPath path) {
     _setPath(path);
