@@ -26,33 +26,15 @@ class StudyGamebook extends ConsumerStatefulWidget {
   final StudyId id;
 
   @override
-  ConsumerState<StudyGamebook> createState() => _StudyTreeViewState();
+  ConsumerState<StudyGamebook> createState() => _StudyGamebookState();
 }
 
-class _StudyTreeViewState extends ConsumerState<StudyGamebook> {
+class _StudyGamebookState extends ConsumerState<StudyGamebook> {
   @override
   Widget build(BuildContext context) {
-    final studyState =
-        ref.watch(studyControllerProvider(widget.id)).valueOrNull;
-
-    if (studyState == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    final comment = studyState.gamebookComment ??
-        switch (studyState.gamebookState) {
-          GamebookState.findTheMove => 'What would you play in this position?',
-          GamebookState.correctMove => 'Good move',
-          GamebookState.incorrectMove => "That's not the move!",
-          GamebookState.lessonComplete =>
-            'Congratulations! You completed this lesson.',
-          _ => ''
-        };
-
     return Padding(
       padding: const EdgeInsets.all(5),
       child: Column(
-        //crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
             child: Card(
@@ -61,32 +43,11 @@ class _StudyTreeViewState extends ConsumerState<StudyGamebook> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(
-                      child: Scrollbar(
-                        child: SingleChildScrollView(
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 5),
-                            child: Text(
-                              comment,
-                              style: const TextStyle(
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (studyState.gamebookHint != null)
-                      _Hint(hint: studyState.gamebookHint!),
+                    _Comment(id: widget.id),
+                    _Hint(id: widget.id),
                   ],
                 ),
               ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(5),
-            child: GamebookFeedbackWidget(
-              id: widget.id,
             ),
           ),
         ],
@@ -95,40 +56,8 @@ class _StudyTreeViewState extends ConsumerState<StudyGamebook> {
   }
 }
 
-class _Hint extends StatefulWidget {
-  const _Hint({
-    required this.hint,
-  });
-
-  final String hint;
-
-  @override
-  State<_Hint> createState() => _HintState();
-}
-
-class _HintState extends State<_Hint> {
-  bool showHint = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 40,
-      child: showHint
-          ? Center(child: Text(widget.hint))
-          : TextButton(
-              onPressed: () {
-                setState(() {
-                  showHint = true;
-                });
-              },
-              child: const Text('Get a hint'),
-            ),
-    );
-  }
-}
-
-class GamebookFeedbackWidget extends ConsumerWidget {
-  const GamebookFeedbackWidget({
+class _Comment extends ConsumerWidget {
+  const _Comment({
     required this.id,
   });
 
@@ -138,25 +67,67 @@ class GamebookFeedbackWidget extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(studyControllerProvider(id)).requireValue;
 
-    return switch (state.gamebookState) {
-      GamebookState.findTheMove => FindTheBestMoveTile(pov: state.pov),
-      GamebookState.startLesson || GamebookState.correctMove => FatButton(
-          onPressed: ref.read(studyControllerProvider(id).notifier).userNext,
-          semanticsLabel: 'Next',
-          child: const Text('Next'),
+    final comment = state.gamebookComment ??
+        switch (state.gamebookState) {
+          GamebookState.findTheMove => 'What would you play in this position?',
+          GamebookState.correctMove => 'Good move',
+          GamebookState.incorrectMove => "That's not the move!",
+          GamebookState.lessonComplete =>
+            'Congratulations! You completed this lesson.',
+          _ => ''
+        };
+
+    return Expanded(
+      child: Scrollbar(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.only(right: 5),
+            child: Text(
+              comment,
+              style: const TextStyle(
+                fontSize: 16,
+              ),
+            ),
+          ),
         ),
-      GamebookState.incorrectMove => FatButton(
-          onPressed:
-              ref.read(studyControllerProvider(id).notifier).userPrevious,
-          semanticsLabel: 'Retry',
-          child: const Text('Retry'),
-        ),
-      GamebookState.lessonComplete => FatButton(
-          semanticsLabel: 'Next chapter',
-          onPressed: ref.read(studyControllerProvider(id).notifier).nextChapter,
-          child: const Text('Next chapter'),
-        ),
-    };
+      ),
+    );
+  }
+}
+
+class _Hint extends ConsumerStatefulWidget {
+  const _Hint({
+    required this.id,
+  });
+
+  final StudyId id;
+
+  @override
+  ConsumerState<_Hint> createState() => _HintState();
+}
+
+class _HintState extends ConsumerState<_Hint> {
+  bool showHint = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final hint =
+        ref.watch(studyControllerProvider(widget.id)).requireValue.gamebookHint;
+    return hint == null
+        ? const SizedBox.shrink()
+        : SizedBox(
+            height: 40,
+            child: showHint
+                ? Center(child: Text(hint))
+                : TextButton(
+                    onPressed: () {
+                      setState(() {
+                        showHint = true;
+                      });
+                    },
+                    child: const Text('Get a hint'),
+                  ),
+          );
   }
 }
 

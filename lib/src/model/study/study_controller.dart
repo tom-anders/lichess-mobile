@@ -647,6 +647,9 @@ class StudyState with _$StudyState {
             : GamebookState.incorrectMove;
   }
 
+  bool get isIntroductoryChapter =>
+      currentNode.isRoot && currentNode.children.isEmpty;
+
   IList<PgnCommentShape> get pgnShapes => IList(
         (currentNode.isRoot ? pgnRootComments : currentNode.comments)
             ?.map((comment) => comment.shapes)

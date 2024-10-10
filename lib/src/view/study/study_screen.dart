@@ -33,6 +33,69 @@ import 'package:logging/logging.dart';
 
 final _logger = Logger('StudyScreen');
 
+class ChapterButton extends ConsumerWidget {
+  const ChapterButton({required this.id});
+
+  final StudyId id;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(studyControllerProvider(id)).valueOrNull;
+    return state == null
+        ? const SizedBox.shrink()
+        : AppBarIconButton(
+            onPressed: () => showAdaptiveDialog<void>(
+              context: context,
+              builder: (context) {
+                return SimpleDialog(
+                  title: const Text('Chapters'),
+                  children: [
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.8,
+                      width: MediaQuery.of(context).size.width * 0.8,
+                      child: ListView.separated(
+                        itemBuilder: (context, index) {
+                          final chapter = state.study.chapters[index];
+                          final selected =
+                              chapter.id == state.currentChapter.id;
+                          final checkedIcon = Theme.of(context).platform ==
+                                  TargetPlatform.android
+                              ? const Icon(Icons.check)
+                              : Icon(
+                                  CupertinoIcons.check_mark_circled_solid,
+                                  color:
+                                      CupertinoTheme.of(context).primaryColor,
+                                );
+                          return PlatformListTile(
+                            selected: selected,
+                            trailing: selected ? checkedIcon : null,
+                            title: Text(chapter.name),
+                            onTap: () {
+                              ref
+                                  .read(studyControllerProvider(id).notifier)
+                                  .goToChapter(
+                                    chapter.id,
+                                  );
+                              Navigator.of(context).pop();
+                            },
+                          );
+                        },
+                        separatorBuilder: (_, __) => const PlatformDivider(
+                          height: 1,
+                        ),
+                        itemCount: state.study.chapters.length,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+            semanticsLabel: 'Chapters',
+            icon: const Icon(Icons.menu_book),
+          );
+  }
+}
+
 class StudyScreen extends ConsumerWidget {
   const StudyScreen({
     required this.id,
@@ -61,6 +124,7 @@ class StudyScreen extends ConsumerWidget {
                 semanticsLabel: context.l10n.settingsSettings,
                 icon: const Icon(Icons.settings),
               ),
+              ChapterButton(id: id),
             ],
           ),
           body: _Body(id: id),
