@@ -43,36 +43,48 @@ class _StudyTreeViewState extends ConsumerState<StudyGamebook> {
         switch (studyState.gamebookState) {
           GamebookState.findTheMove => 'What would you play in this position?',
           GamebookState.correctMove => 'Good move',
+          GamebookState.incorrectMove => "That's not the move!",
           GamebookState.lessonComplete =>
             'Congratulations! You completed this lesson.',
           _ => ''
         };
 
     return Padding(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(5),
       child: Column(
         //crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            child: Scrollbar(
-              thumbVisibility: true,
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 5),
-                  child: Text(
-                    comment,
-                    style: const TextStyle(
-                      fontSize: 16,
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: Scrollbar(
+                        child: SingleChildScrollView(
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 5),
+                            child: Text(
+                              comment,
+                              style: const TextStyle(
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    if (studyState.gamebookHint != null)
+                      _Hint(hint: studyState.gamebookHint!),
+                  ],
                 ),
               ),
             ),
           ),
-          if (studyState.gamebookHint != null)
-            _Hint(hint: studyState.gamebookHint!),
           Padding(
-            padding: const EdgeInsets.only(top: 5),
+            padding: const EdgeInsets.all(5),
             child: GamebookFeedbackWidget(
               id: widget.id,
             ),
