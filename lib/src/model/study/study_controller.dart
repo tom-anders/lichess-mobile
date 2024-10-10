@@ -88,6 +88,7 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
         isLocalEvaluationAllowed: false,
         isLocalEvaluationEnabled: false,
         gamebookActive: false,
+        pgn: pgn,
       );
     }
 
@@ -116,6 +117,7 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
       gamebookActive: study.chapter.gamebook,
       gamebookHints: gamebookComments.hints,
       gamebookDeviationComments: gamebookComments.deviationComments,
+      pgn: pgn,
     );
 
     final evaluationService = ref.watch(evaluationServiceProvider);
@@ -527,6 +529,7 @@ class StudyState with _$StudyState {
 
   const factory StudyState({
     required Study study,
+    required String pgn,
 
     /// The variant of the current chapter
     required Variant variant,

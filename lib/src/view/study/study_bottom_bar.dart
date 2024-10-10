@@ -1,9 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lichess_mobile/src/model/analysis/analysis_controller.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
 import 'package:lichess_mobile/src/model/study/study_controller.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
+import 'package:lichess_mobile/src/utils/navigation.dart';
+import 'package:lichess_mobile/src/view/analysis/analysis_screen.dart';
 import 'package:lichess_mobile/src/widgets/bottom_bar.dart';
 import 'package:lichess_mobile/src/widgets/bottom_bar_button.dart';
 import 'package:lichess_mobile/src/widgets/buttons.dart';
@@ -133,7 +136,19 @@ class _GamebookBottomBar extends ConsumerWidget {
               ),
               if (!state.isIntroductoryChapter)
                 BottomBarButton(
-                  onTap: () {}, // TODO
+                  onTap: () => pushPlatformRoute(
+                    context,
+                    rootNavigator: true,
+                    builder: (context) => AnalysisScreen(
+                      pgnOrId: state.pgn,
+                      options: AnalysisOptions(
+                        isLocalEvaluationAllowed: true,
+                        variant: state.variant,
+                        orientation: state.pov,
+                        id: standaloneAnalysisId,
+                      ),
+                    ),
+                  ),
                   icon: Icons.biotech,
                   label: 'Analysis',
                   showLabel: true,
