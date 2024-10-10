@@ -222,6 +222,10 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
     }
   }
 
+  void showGamebookSolution() {
+    onUserMove(state.requireValue.currentNode.children.first as NormalMove);
+  }
+
   void userNext() {
     final state = this.state.valueOrNull;
     if (state!.currentNode.children.isEmpty) return;

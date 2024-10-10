@@ -93,11 +93,20 @@ class _GamebookBottomBar extends ConsumerWidget {
       children: [
         ...switch (state.gamebookState) {
           GamebookState.findTheMove => [
+              if (!state.currentNode.isRoot)
+                BottomBarButton(
+                  onTap: ref.read(studyControllerProvider(id).notifier).reset,
+                  icon: Icons.skip_previous,
+                  label: 'Back',
+                  showLabel: true,
+                ),
               BottomBarButton(
                 icon: Icons.help,
                 label: context.l10n.viewTheSolution,
                 showLabel: true,
-                onTap: ref.read(studyControllerProvider(id).notifier).userNext,
+                onTap: ref
+                    .read(studyControllerProvider(id).notifier)
+                    .showGamebookSolution,
               ),
             ],
           GamebookState.startLesson || GamebookState.correctMove => [
@@ -128,12 +137,13 @@ class _GamebookBottomBar extends ConsumerWidget {
                 showLabel: true,
                 blink: !state.isIntroductoryChapter,
               ),
-              BottomBarButton(
-                onTap: ref.read(studyControllerProvider(id).notifier).reset,
-                icon: Icons.refresh,
-                label: 'Play again',
-                showLabel: true,
-              ),
+              if (!state.isIntroductoryChapter)
+                BottomBarButton(
+                  onTap: ref.read(studyControllerProvider(id).notifier).reset,
+                  icon: Icons.refresh,
+                  label: 'Play again',
+                  showLabel: true,
+                ),
               if (!state.isIntroductoryChapter)
                 BottomBarButton(
                   onTap: () => pushPlatformRoute(
