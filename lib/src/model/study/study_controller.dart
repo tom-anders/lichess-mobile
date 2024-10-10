@@ -145,6 +145,7 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
     _opponentFirstMoveTimer?.cancel();
     if (state.requireValue.isAtStartOfChapter &&
         state.requireValue.gamebookActive &&
+        state.requireValue.gamebookComment == null &&
         state.requireValue.position!.turn != state.requireValue.pov) {
       _opponentFirstMoveTimer = Timer(const Duration(milliseconds: 750), () {
         userNext();
@@ -512,7 +513,13 @@ class StudyController extends _$StudyController implements PgnTreeNotifier {
   }
 }
 
-enum GamebookState { findTheMove, correctMove, incorrectMove, lessonComplete }
+enum GamebookState {
+  startLesson,
+  findTheMove,
+  correctMove,
+  incorrectMove,
+  lessonComplete
+}
 
 @freezed
 class StudyState with _$StudyState {
@@ -627,11 +634,11 @@ class StudyState with _$StudyState {
   String? get gamebookDeviationComment =>
       gamebookDeviationComments.getOrNull(currentPath.size);
 
-  GamebookState? get gamebookState {
+  GamebookState get gamebookState {
     if (isAtEndOfChapter) return GamebookState.lessonComplete;
 
     final bool myTurn = currentNode.position!.turn == pov;
-    if (isAtStartOfChapter && !myTurn) return null;
+    if (isAtStartOfChapter && !myTurn) return GamebookState.startLesson;
 
     return myTurn
         ? GamebookState.findTheMove

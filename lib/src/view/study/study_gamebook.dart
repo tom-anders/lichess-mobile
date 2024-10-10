@@ -139,9 +139,8 @@ class GamebookFeedbackWidget extends ConsumerWidget {
     final state = ref.watch(studyControllerProvider(id)).requireValue;
 
     return switch (state.gamebookState) {
-      null => const SizedBox.shrink(),
       GamebookState.findTheMove => FindTheBestMoveTile(pov: state.pov),
-      GamebookState.correctMove => FatButton(
+      GamebookState.startLesson || GamebookState.correctMove => FatButton(
           onPressed: ref.read(studyControllerProvider(id).notifier).userNext,
           semanticsLabel: 'Next',
           child: const Text('Next'),
