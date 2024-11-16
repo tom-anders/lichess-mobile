@@ -1,6 +1,7 @@
 import 'package:deep_pick/deep_pick.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart';
+import 'package:lichess_mobile/src/model/common/id.dart';
 import 'package:lichess_mobile/src/model/tournament/tournament.dart';
 import 'package:lichess_mobile/src/network/http.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
@@ -28,6 +29,14 @@ class TournamentRepository {
           finished: pick(json, 'finished').asTournamentListOrThrow(),
         );
       },
+    );
+  }
+
+  Future<Tournament> getTournament(TournamentId id, {required int standingsPage}) {
+    return client.readJson(
+      Uri(path: '/api/tournament/$id', queryParameters: {'page': standingsPage.toString()}),
+      headers: {'Accept': 'application/json'},
+      mapper: (Map<String, dynamic> json) => Tournament.fromServerJson(json),
     );
   }
 }
