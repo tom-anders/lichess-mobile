@@ -1,5 +1,3 @@
-import 'dart:js_interop';
-
 import 'package:dartchess/dartchess.dart';
 import 'package:deep_pick/deep_pick.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
@@ -10,7 +8,6 @@ import 'package:lichess_mobile/src/model/common/perf.dart';
 import 'package:lichess_mobile/src/model/common/time_increment.dart';
 import 'package:lichess_mobile/src/model/user/user.dart';
 import 'package:lichess_mobile/src/utils/json.dart';
-import 'package:stream_transform/stream_transform.dart';
 
 part 'tournament.freezed.dart';
 
@@ -58,7 +55,7 @@ extension TournamentExtension on Pick {
   Verdicts asVerdictsOrThrow() {
     final requiredPick = this.required();
     return (
-      verdicts: requiredPick('list').asListOrThrow((pick) => pick.asVerdictOrThrow()).toIList(),
+      list: requiredPick('list').asListOrThrow((pick) => pick.asVerdictOrThrow()).toIList(),
       accepted: requiredPick('accepted').asBoolOrThrow(),
     );
   }
@@ -87,6 +84,15 @@ extension TournamentExtension on Pick {
               'players',
             ).asListOrThrow((pick) => _standingPlayerFromPick(pick.required())).toIList(),
       );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  FeaturedGame? asFeaturedGameOrNull() {
+    if (value == null) return null;
+    try {
+      return _featuredGameFromPick(this.required());
     } catch (_) {
       return null;
     }
@@ -141,6 +147,10 @@ TournamentListItem _tournamentListItemFromPick(RequiredPick pick) {
   );
 }
 
+typedef Verdicts = ({IList<Verdict> list, bool accepted});
+
+typedef Verdict = ({String condition, bool ok});
+
 @freezed
 class Tournament with _$Tournament {
   const Tournament._();
@@ -160,6 +170,7 @@ class Tournament with _$Tournament {
     required TournamentSchedule schedule,
     required int nbPlayers,
     required StandingPage? standing,
+    required Verdicts verdicts,
   }) = _Tournament;
 
   factory Tournament.fromServerJson(Map<String, Object?> json) =>
@@ -171,7 +182,7 @@ Tournament _tournamentFromPick(RequiredPick pick) {
     id: pick('id').asTournamentIdOrThrow(),
     createdBy: pick('createdBy').asStringOrThrow(),
     timeIncrement: pick('clock').asTimeIncrementOrThrow(),
-    featuredGame: _featuredGameFromPick(pick('featured').required()),
+    featuredGame: pick('featured').asFeaturedGameOrNull(),
     fullName: pick('fullName').asStringOrThrow(),
     description: pick('description').asStringOrNull(),
     isFinished: pick('isFinished').asBoolOrNull(),
@@ -182,14 +193,11 @@ Tournament _tournamentFromPick(RequiredPick pick) {
     standing: pick('standing').asStandingPageOrNull(),
     perf: pick('perf').asPerfOrThrow(),
     variant: pick('variant').asVariantOrThrow(),
+    verdicts: pick('verdicts').asVerdictsOrThrow(),
   );
 }
 
 typedef StandingSheet = ({bool fire, String scores});
-
-typedef Verdicts = ({IList<Verdict> verdicts, bool accepted});
-
-typedef Verdict = ({String condition, bool ok});
 
 @freezed
 class StandingPlayer with _$StandingPlayer {
@@ -207,7 +215,6 @@ class StandingPlayer with _$StandingPlayer {
     required String? team,
     required String? title,
     required bool? withdraw,
-    required Verdicts verdicts,
   }) = _StandingPlayer;
 }
 
@@ -227,18 +234,6 @@ StandingPlayer _standingPlayerFromPick(RequiredPick pick) {
     team: pick('team').asStringOrNull(),
     title: pick('title').asStringOrNull(),
     withdraw: pick('withdraw').asBoolOrNull(),
-    verdicts: (
-      pick('verdicts', 'list')
-          .asListOrThrow(
-            (pick) => (
-              condition: pick('condition').asStringOrThrow(),
-              ok: pick('ok').asBoolOrThrow(),
-            ),
-          )
-          .toIList()
-          .map((e) => Verdict(condition: e.condition, ok: e.ok)),
-      pick('verdicts', 'accepted').asBoolOrThrow(),
-    ),
   );
 }
 
