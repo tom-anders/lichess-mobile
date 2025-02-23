@@ -4,6 +4,7 @@ import 'package:collection/collection.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lichess_mobile/src/model/auth/auth_controller.dart';
 import 'package:lichess_mobile/src/model/auth/auth_session.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
 import 'package:lichess_mobile/src/model/game/game.dart';
@@ -347,7 +348,21 @@ class _BottomBar extends ConsumerWidget {
           BottomBarButton(
             label: state.joined ? context.l10n.pause : context.l10n.join,
             icon: state.joined ? Icons.pause : Icons.play_arrow,
+            showLabel: true,
             onTap: ref.read(tournamentControllerProvider(state.id).notifier).joinOrPause,
+          )
+        else
+          BottomBarButton(
+            label: context.l10n.signIn,
+            showLabel: true,
+            icon: Icons.login,
+            onTap: () {
+              final authController = ref.watch(authControllerProvider);
+
+              if (!authController.isLoading) {
+                ref.read(authControllerProvider.notifier).signIn();
+              }
+            },
           ),
       ],
     );
