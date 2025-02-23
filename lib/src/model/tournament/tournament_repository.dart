@@ -44,7 +44,7 @@ class TournamentRepository {
     return client.readJson(
       Uri(
         path: '/api/tournament/${tournament.id}',
-        queryParameters: {'page': standingsPage.toString(), 'partial': true},
+        queryParameters: {'page': standingsPage.toString(), 'partial': 'true'},
       ),
       headers: {'Accept': 'application/json'},
       mapper: (Map<String, dynamic> json) => tournament.updateFromPartialServerJson(json),

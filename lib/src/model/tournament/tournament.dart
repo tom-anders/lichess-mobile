@@ -22,6 +22,7 @@ typedef TournamentLists =
 
 typedef TournamentMe = ({int rank, bool? withdraw});
 
+const int kStandingsPageSize = 10;
 typedef StandingPage = ({int page, IList<StandingPlayer> players});
 
 extension TournamentExtension on Pick {
@@ -218,36 +219,28 @@ class StandingPlayer with _$StandingPlayer {
   const StandingPlayer._();
 
   const factory StandingPlayer({
-    required String name,
-    required bool provisional,
-    required int rank,
+    required LightUser user,
     required int rating,
+    required bool provisional,
     required int ratingDiff,
     required int score,
     required StandingSheet sheet,
-    required bool fire,
-    required String? team,
-    required String? title,
-    required bool? withdraw,
+    required bool withdraw,
   }) = _StandingPlayer;
 }
 
 StandingPlayer _standingPlayerFromPick(RequiredPick pick) {
   return StandingPlayer(
-    name: pick('name').asStringOrThrow(),
-    provisional: pick('provisional').asBoolOrThrow(),
-    rank: pick('rank').asIntOrThrow(),
+    user: LightUser.fromJson(pick.asMapOrThrow()),
     rating: pick('rating').asIntOrThrow(),
+    provisional: pick('provisional').asBoolOrFalse(),
     ratingDiff: pick('ratingDiff').asIntOrThrow(),
     score: pick('score').asIntOrThrow(),
     sheet: (
       fire: pick('sheet', 'fire').asBoolOrFalse(),
       scores: pick('sheet', 'scores').asStringOrThrow(),
     ),
-    fire: pick('sheet', 'fire').asBoolOrThrow(),
-    team: pick('team').asStringOrNull(),
-    title: pick('title').asStringOrNull(),
-    withdraw: pick('withdraw').asBoolOrNull(),
+    withdraw: pick('withdraw').asBoolOrFalse(),
   );
 }
 

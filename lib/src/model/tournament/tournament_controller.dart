@@ -6,12 +6,13 @@ import 'package:lichess_mobile/src/model/common/socket.dart';
 import 'package:lichess_mobile/src/model/tournament/tournament.dart';
 import 'package:lichess_mobile/src/model/tournament/tournament_repository.dart';
 import 'package:lichess_mobile/src/network/socket.dart';
+import 'package:logging/logging.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'tournament_controller.freezed.dart';
 part 'tournament_controller.g.dart';
 
-const int kStandingsPageSize = 10;
+final _logger = Logger('TournamentController');
 
 @riverpod
 class TournamentController extends _$TournamentController {
@@ -65,6 +66,7 @@ class TournamentController extends _$TournamentController {
   }
 
   Future<void> _refresh({required int standingsPage}) async {
+    _logger.fine('Refreshing tournament standings page $standingsPage');
     final state = this.state.valueOrNull;
     if (state == null) {
       return;
@@ -80,14 +82,15 @@ class TournamentController extends _$TournamentController {
   }
 
   void _handleSocketEvent(SocketEvent event) {
-    print('Received socket event: $event');
+    _logger.fine('Received socket event: $event');
     if (!state.hasValue) {
       assert(false, 'received a game SocketEvent while TournamentState is null');
       return;
     }
     // TODO call refresh when we receive a reload event
     switch (event.topic) {
-      // TODO handle events here
+      case 'reload':
+        _refresh(standingsPage: state.requireValue.standingsPage);
     }
   }
 }
