@@ -101,6 +101,10 @@ class TournamentController extends _$TournamentController {
         _refresh(standingsPage: state.requireValue.standingsPage);
     }
   }
+
+  void joinOrPause() {
+    // TODO
+  }
 }
 
 @freezed
@@ -116,4 +120,6 @@ class TournamentState with _$TournamentState {
   int get firstRankOfPage => (standingsPage - 1) * kStandingsPageSize + 1;
   bool get hasPreviousPage => standingsPage > 1;
   bool get hasNextPage => tournament.nbPlayers > standingsPage * kStandingsPageSize;
+
+  bool get joined => tournament.me?.withdraw == false;
 }

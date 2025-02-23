@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:lichess_mobile/src/model/auth/auth_session.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
 import 'package:lichess_mobile/src/model/tournament/tournament.dart';
 import 'package:lichess_mobile/src/model/tournament/tournament_controller.dart';
@@ -11,6 +12,8 @@ import 'package:lichess_mobile/src/styles/lichess_icons.dart';
 import 'package:lichess_mobile/src/styles/styles.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:lichess_mobile/src/utils/navigation.dart';
+import 'package:lichess_mobile/src/widgets/bottom_bar.dart';
+import 'package:lichess_mobile/src/widgets/bottom_bar_button.dart';
 import 'package:lichess_mobile/src/widgets/platform_scaffold.dart';
 import 'package:lichess_mobile/src/widgets/user_full_name.dart';
 
@@ -59,6 +62,8 @@ class _Body extends ConsumerWidget {
                 child: _Verdicts(state.tournament.verdicts),
               ),
               _Standing(state),
+              if (state.tournament.featuredGame != null)
+                _FeaturedGame(state.tournament.featuredGame!),
             ],
           ),
         ),
@@ -230,6 +235,39 @@ class _Verdicts extends StatelessWidget {
               )
               .toList(growable: false),
         ),
+      ],
+    );
+  }
+}
+
+class _FeaturedGame extends ConsumerWidget {
+  const _FeaturedGame(this.featuredGame);
+
+  final FeaturedGame featuredGame;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // TODO figure out which websocket to use here
+    return SizedBox.shrink();
+  }
+}
+
+class _BottomBar extends ConsumerWidget {
+  const _BottomBar(this.state);
+
+  final TournamentState state;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isLoggedIn = ref.watch(authSessionProvider)?.user.id != null;
+    return PlatformBottomBar(
+      children: [
+        if (isLoggedIn)
+          BottomBarButton(
+            label: state.joined ? context.l10n.pause : context.l10n.join,
+            icon: state.joined ? Icons.pause : Icons.play_arrow,
+            onTap: ref.read(tournamentControllerProvider(state.id).notifier).joinOrPause,
+          ),
       ],
     );
   }
