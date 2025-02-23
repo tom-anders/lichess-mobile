@@ -222,7 +222,6 @@ class StandingPlayer with _$StandingPlayer {
     required LightUser user,
     required int rating,
     required bool provisional,
-    required int ratingDiff,
     required int score,
     required StandingSheet sheet,
     required bool withdraw,
@@ -231,10 +230,15 @@ class StandingPlayer with _$StandingPlayer {
 
 StandingPlayer _standingPlayerFromPick(RequiredPick pick) {
   return StandingPlayer(
-    user: LightUser.fromJson(pick.asMapOrThrow()),
+    user: LightUser(
+      id: UserId.fromUserName(pick('name').asStringOrThrow()),
+      name: pick('name').asStringOrThrow(),
+      title: pick('title').asStringOrNull(),
+      flair: pick('flair').asStringOrNull(),
+      isPatron: pick('patron').asBoolOrNull(),
+    ),
     rating: pick('rating').asIntOrThrow(),
     provisional: pick('provisional').asBoolOrFalse(),
-    ratingDiff: pick('ratingDiff').asIntOrThrow(),
     score: pick('score').asIntOrThrow(),
     sheet: (
       fire: pick('sheet', 'fire').asBoolOrFalse(),
