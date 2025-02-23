@@ -1,6 +1,7 @@
 import 'package:deep_pick/deep_pick.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart';
+import 'package:http/http.dart' as http;
 import 'package:lichess_mobile/src/model/common/id.dart';
 import 'package:lichess_mobile/src/model/tournament/tournament.dart';
 import 'package:lichess_mobile/src/network/http.dart';
@@ -49,5 +50,23 @@ class TournamentRepository {
       headers: {'Accept': 'application/json'},
       mapper: (Map<String, dynamic> json) => tournament.updateFromPartialServerJson(json),
     );
+  }
+
+  Future<void> join(TournamentId id) async {
+    final uri = Uri(path: '/api/tournament/$id/join');
+    final response = await client.post(uri);
+
+    if (response.statusCode >= 400) {
+      throw http.ClientException('Failed to join tournament: ${response.statusCode}', uri);
+    }
+  }
+  
+  Future<void> withdraw(TournamentId id) async {
+    final uri = Uri(path: '/api/tournament/$id/withdraw');
+    final response = await client.post(uri);
+
+    if (response.statusCode >= 400) {
+      throw http.ClientException('Failed to withdraw from tournament: ${response.statusCode}', uri);
+    }
   }
 }

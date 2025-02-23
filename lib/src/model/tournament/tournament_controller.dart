@@ -103,7 +103,16 @@ class TournamentController extends _$TournamentController {
   }
 
   void joinOrPause() {
-    // TODO
+    final state = this.state.valueOrNull;
+    if (state == null) {
+      return;
+    }
+
+    if (state.joined) {
+      ref.read(tournamentRepositoryProvider).withdraw(state.id);
+    } else {
+      ref.read(tournamentRepositoryProvider).join(state.id);
+    }
   }
 }
 
