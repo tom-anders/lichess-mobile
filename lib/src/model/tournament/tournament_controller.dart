@@ -59,9 +59,17 @@ class TournamentController extends _$TournamentController {
     _refresh(standingsPage: 1);
   }
 
+  int _pageOf(int page) => page ~/ kStandingsPageSize + 1;
+
   void loadLastStandingsPage() {
     if (state.hasValue) {
-      _refresh(standingsPage: state.requireValue.tournament.nbPlayers ~/ kStandingsPageSize + 1);
+      _refresh(standingsPage: _pageOf(state.requireValue.tournament.nbPlayers));
+    }
+  }
+
+  void jumpToMyPage() {
+    if (state.valueOrNull?.tournament.me != null) {
+      _refresh(standingsPage: _pageOf(state.requireValue.tournament.me!.rank));
     }
   }
 

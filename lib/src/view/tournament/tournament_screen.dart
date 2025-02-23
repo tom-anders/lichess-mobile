@@ -187,6 +187,11 @@ class _Standing extends ConsumerWidget {
                       : null,
               icon: const Icon(Icons.last_page),
             ),
+            if (state.tournament.me != null)
+              IconButton(
+                onPressed: ref.read(tournamentControllerProvider(state.id).notifier).jumpToMyPage,
+                icon: const Icon(LichessIcons.target),
+              ),
           ],
         ),
       ],
