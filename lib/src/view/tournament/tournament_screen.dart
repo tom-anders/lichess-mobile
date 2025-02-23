@@ -1,20 +1,31 @@
 import 'dart:math';
 
 import 'package:collection/collection.dart';
+import 'package:dartchess/dartchess.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lichess_mobile/src/model/auth/auth_session.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
+import 'package:lichess_mobile/src/model/game/game.dart';
+import 'package:lichess_mobile/src/model/game/playable_game.dart';
 import 'package:lichess_mobile/src/model/tournament/tournament.dart';
 import 'package:lichess_mobile/src/model/tournament/tournament_controller.dart';
+import 'package:lichess_mobile/src/model/tv/tv_channel.dart';
+import 'package:lichess_mobile/src/model/tv/tv_controller.dart';
 import 'package:lichess_mobile/src/styles/lichess_colors.dart';
 import 'package:lichess_mobile/src/styles/lichess_icons.dart';
 import 'package:lichess_mobile/src/styles/styles.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:lichess_mobile/src/utils/navigation.dart';
+import 'package:lichess_mobile/src/view/game/game_loading_board.dart';
+import 'package:lichess_mobile/src/view/game/game_player.dart';
+import 'package:lichess_mobile/src/widgets/board_table.dart';
+import 'package:lichess_mobile/src/widgets/board_thumbnail.dart';
 import 'package:lichess_mobile/src/widgets/bottom_bar.dart';
 import 'package:lichess_mobile/src/widgets/bottom_bar_button.dart';
+import 'package:lichess_mobile/src/widgets/clock.dart';
 import 'package:lichess_mobile/src/widgets/platform_scaffold.dart';
+import 'package:lichess_mobile/src/widgets/shimmer.dart';
 import 'package:lichess_mobile/src/widgets/user_full_name.dart';
 
 class TournamentScreen extends ConsumerWidget {
@@ -52,21 +63,26 @@ class _Body extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return PlatformScaffold(
       appBarTitle: Text(state.name),
-      body: Padding(
-        padding: Styles.bodySectionPadding,
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12.0),
-                child: _Verdicts(state.tournament.verdicts),
+      body: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: Styles.bodySectionPadding,
+              child: SingleChildScrollView(
+                child: Column(
+                  spacing: 20,
+                  children: [
+                    _Verdicts(state.tournament.verdicts),
+                    _Standing(state),
+                    if (state.tournament.featuredGame != null)
+                      _FeaturedGame(state.tournament.featuredGame!),
+                  ],
+                ),
               ),
-              _Standing(state),
-              if (state.tournament.featuredGame != null)
-                _FeaturedGame(state.tournament.featuredGame!),
-            ],
+            ),
           ),
-        ),
+          _BottomBar(state),
+        ],
       ),
     );
   }
@@ -87,6 +103,7 @@ class _Standing extends ConsumerWidget {
       children: [
         ListView.builder(
           shrinkWrap: true,
+          padding: EdgeInsets.zero,
           itemBuilder: (context, i) {
             final player = standing.players.getOrNull(i);
             if (player == null) {
@@ -241,14 +258,78 @@ class _Verdicts extends StatelessWidget {
 }
 
 class _FeaturedGame extends ConsumerWidget {
-  const _FeaturedGame(this.featuredGame);
+  _FeaturedGame(this.featuredGame);
 
   final FeaturedGame featuredGame;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // TODO figure out which websocket to use here
-    return SizedBox.shrink();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final boardSize = constraints.maxWidth;
+        // TODO create a separate provider for watching the game...?
+        switch (ref.watch(
+          tvControllerProvider(TvChannel.best, (featuredGame.id, featuredGame.orientation)),
+        )) {
+          case AsyncData(:final value):
+            {
+              final game = value.game;
+              final position = game.steps.last.position;
+
+              final activeClockSide =
+                  game.lastPosition.fullmoves > 1 ? game.lastPosition.turn : null;
+
+              final whitePlayer = _FeaturedGamePlayer(game: game, side: Side.white);
+
+              final blackPlayer = _FeaturedGamePlayer(game: game, side: Side.black);
+
+              return BoardThumbnail(
+                size: boardSize,
+                orientation: featuredGame.orientation,
+                fen: position.fen,
+                header: featuredGame.orientation == Side.white ? blackPlayer : whitePlayer,
+                footer: featuredGame.orientation == Side.white ? whitePlayer : blackPlayer,
+                lastMove: game.steps.last.sanMove?.move,
+              );
+            }
+          case _:
+            return BoardThumbnail.loading(
+              size: boardSize,
+              header: const Shimmer(child: LoadingPlayerWidget()),
+              footer: const Shimmer(child: LoadingPlayerWidget()),
+            );
+        }
+      },
+    );
+  }
+}
+
+class _FeaturedGamePlayer extends StatelessWidget {
+  const _FeaturedGamePlayer({super.key, required this.game, required this.side});
+
+  final PlayableGame game;
+  final Side side;
+
+  @override
+  Widget build(BuildContext context) {
+    final activeClockSide = game.lastPosition.fullmoves > 1 ? game.lastPosition.turn : null;
+    return GamePlayer(
+      game: game,
+      side: side,
+      clock:
+          game.clock != null
+              ? CountdownClockBuilder(
+                key: key,
+                timeLeft: game.clock!.black,
+                delay: game.clock!.lag ?? const Duration(milliseconds: 10),
+                clockUpdatedAt: game.clock!.at,
+                active: activeClockSide == side,
+                builder: (context, timeLeft) {
+                  return Clock(timeLeft: timeLeft, active: activeClockSide == side);
+                },
+              )
+              : null,
+    );
   }
 }
 

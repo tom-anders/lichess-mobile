@@ -91,6 +91,7 @@ class TournamentController extends _$TournamentController {
 
   void _handleSocketEvent(SocketEvent event) {
     _logger.fine('Received socket event: $event');
+    print('Received socket event: $event');
     if (!state.hasValue) {
       assert(false, 'received a game SocketEvent while TournamentState is null');
       return;

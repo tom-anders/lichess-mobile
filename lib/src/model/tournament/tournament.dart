@@ -275,7 +275,7 @@ class FeaturedGame with _$FeaturedGame {
   const FeaturedGame._();
 
   const factory FeaturedGame({
-    required GameFullId id,
+    required GameId id,
     required FeaturedPlayer white,
     required FeaturedPlayer black,
     required Side orientation,
@@ -288,7 +288,7 @@ class FeaturedGame with _$FeaturedGame {
 
 FeaturedGame _featuredGameFromPick(RequiredPick pick) {
   return FeaturedGame(
-    id: pick('id').asGameFullIdOrThrow(),
+    id: pick('id').asGameIdOrThrow(),
     white: FeaturedPlayer.fromServerJson(pick('white').asMapOrThrow()),
     black: FeaturedPlayer.fromServerJson(pick('black').asMapOrThrow()),
     orientation: pick('orientation').asSideOrThrow(),
