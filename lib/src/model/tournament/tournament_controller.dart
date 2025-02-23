@@ -131,5 +131,5 @@ class TournamentState with _$TournamentState {
   bool get hasPreviousPage => standingsPage > 1;
   bool get hasNextPage => tournament.nbPlayers > standingsPage * kStandingsPageSize;
 
-  bool get joined => tournament.me?.withdraw == false;
+  bool get joined => tournament.me?.withdraw != true;
 }

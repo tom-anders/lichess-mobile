@@ -55,12 +55,11 @@ class TournamentRepository {
   Future<void> join(TournamentId id) async {
     final uri = Uri(path: '/api/tournament/$id/join');
     final response = await client.post(uri);
-
     if (response.statusCode >= 400) {
       throw http.ClientException('Failed to join tournament: ${response.statusCode}', uri);
     }
   }
-  
+
   Future<void> withdraw(TournamentId id) async {
     final uri = Uri(path: '/api/tournament/$id/withdraw');
     final response = await client.post(uri);
