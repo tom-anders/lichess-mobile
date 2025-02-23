@@ -78,7 +78,6 @@ class _Standing extends ConsumerWidget {
     if (standing == null) {
       return const SizedBox.shrink();
     }
-    final firstRank = ((standing.page - 1) * kStandingsPageSize) + 1;
     return Column(
       children: [
         ListView.builder(
@@ -116,7 +115,10 @@ class _Standing extends ConsumerWidget {
                                             color: LichessColors.grey,
                                             size: 20,
                                           )
-                                          : Text('${firstRank + i}', textAlign: TextAlign.center),
+                                          : Text(
+                                            '${state.firstRankOfPage + i}',
+                                            textAlign: TextAlign.center,
+                                          ),
                                 ),
                               ),
                               WidgetSpan(
@@ -145,55 +147,60 @@ class _Standing extends ConsumerWidget {
             );
           },
         ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              onPressed:
-                  state.hasPreviousPage
-                      ? ref
-                          .read(tournamentControllerProvider(state.id).notifier)
-                          .loadFirstStandingsPage
-                      : null,
-              icon: const Icon(Icons.first_page),
-            ),
-            IconButton(
-              onPressed:
-                  state.hasPreviousPage
-                      ? ref
-                          .read(tournamentControllerProvider(state.id).notifier)
-                          .loadPreviousStandingsPage
-                      : null,
-              icon: const Icon(Icons.skip_previous),
-            ),
-            Text(
-              '$firstRank-${min(firstRank + kStandingsPageSize - 1, state.tournament.nbPlayers)} / ${state.tournament.nbPlayers}',
-            ),
-            IconButton(
-              onPressed:
-                  state.hasNextPage
-                      ? ref
-                          .read(tournamentControllerProvider(state.id).notifier)
-                          .loadNextStandingsPage
-                      : null,
-              icon: const Icon(Icons.skip_next),
-            ),
-            IconButton(
-              onPressed:
-                  state.hasNextPage
-                      ? ref
-                          .read(tournamentControllerProvider(state.id).notifier)
-                          .loadLastStandingsPage
-                      : null,
-              icon: const Icon(Icons.last_page),
-            ),
-            if (state.tournament.me != null)
-              IconButton(
-                onPressed: ref.read(tournamentControllerProvider(state.id).notifier).jumpToMyPage,
-                icon: const Icon(LichessIcons.target),
-              ),
-          ],
+        _StandingControls(state: state),
+      ],
+    );
+  }
+}
+
+class _StandingControls extends ConsumerWidget {
+  const _StandingControls({required this.state});
+
+  final TournamentState state;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        IconButton(
+          onPressed:
+              state.hasPreviousPage
+                  ? ref.read(tournamentControllerProvider(state.id).notifier).loadFirstStandingsPage
+                  : null,
+          icon: const Icon(Icons.first_page),
         ),
+        IconButton(
+          onPressed:
+              state.hasPreviousPage
+                  ? ref
+                      .read(tournamentControllerProvider(state.id).notifier)
+                      .loadPreviousStandingsPage
+                  : null,
+          icon: const Icon(Icons.skip_previous),
+        ),
+        Text(
+          '${state.firstRankOfPage}-${min(state.firstRankOfPage + kStandingsPageSize - 1, state.tournament.nbPlayers)} / ${state.tournament.nbPlayers}',
+        ),
+        IconButton(
+          onPressed:
+              state.hasNextPage
+                  ? ref.read(tournamentControllerProvider(state.id).notifier).loadNextStandingsPage
+                  : null,
+          icon: const Icon(Icons.skip_next),
+        ),
+        IconButton(
+          onPressed:
+              state.hasNextPage
+                  ? ref.read(tournamentControllerProvider(state.id).notifier).loadLastStandingsPage
+                  : null,
+          icon: const Icon(Icons.last_page),
+        ),
+        if (state.tournament.me != null)
+          IconButton(
+            onPressed: ref.read(tournamentControllerProvider(state.id).notifier).jumpToMyPage,
+            icon: const Icon(LichessIcons.target),
+          ),
       ],
     );
   }
