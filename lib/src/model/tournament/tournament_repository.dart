@@ -39,4 +39,15 @@ class TournamentRepository {
       mapper: (Map<String, dynamic> json) => Tournament.fromServerJson(json),
     );
   }
+
+  Future<Tournament> refresh(Tournament tournament, {required int standingsPage}) {
+    return client.readJson(
+      Uri(
+        path: '/api/tournament/${tournament.id}',
+        queryParameters: {'page': standingsPage.toString(), 'partial': true},
+      ),
+      headers: {'Accept': 'application/json'},
+      mapper: (Map<String, dynamic> json) => tournament.updateFromPartialServerJson(json),
+    );
+  }
 }

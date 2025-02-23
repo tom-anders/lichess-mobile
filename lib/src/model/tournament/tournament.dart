@@ -175,6 +175,9 @@ class Tournament with _$Tournament {
 
   factory Tournament.fromServerJson(Map<String, Object?> json) =>
       _tournamentFromPick(pick(json).required());
+
+  Tournament updateFromPartialServerJson(Map<String, Object?> json) =>
+      _updateTournamentFromPartialPick(this, pick(json).required());
 }
 
 Tournament _tournamentFromPick(RequiredPick pick) {
@@ -194,6 +197,17 @@ Tournament _tournamentFromPick(RequiredPick pick) {
     perf: pick('perf').asPerfOrThrow(),
     variant: pick('variant').asVariantOrThrow(),
     verdicts: pick('verdicts').asVerdictsOrThrow(),
+  );
+}
+
+Tournament _updateTournamentFromPartialPick(Tournament tournament, RequiredPick pick) {
+  return tournament.copyWith(
+    featuredGame: pick('featured').asFeaturedGameOrNull(),
+    isFinished: pick('isFinished').asBoolOrNull(),
+    isStarted: pick('isStarted').asBoolOrNull(),
+    me: pick('me').asTournamentMeOrNull(),
+    nbPlayers: pick('nbPlayers').asIntOrThrow(),
+    standing: pick('standing').asStandingPageOrNull(),
   );
 }
 
