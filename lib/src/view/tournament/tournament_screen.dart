@@ -259,7 +259,7 @@ class _Verdicts extends StatelessWidget {
 }
 
 class _FeaturedGame extends ConsumerWidget {
-  _FeaturedGame(this.featuredGame);
+  const _FeaturedGame(this.featuredGame);
 
   final FeaturedGame featuredGame;
 
@@ -277,9 +277,6 @@ class _FeaturedGame extends ConsumerWidget {
               final game = value.game;
               final position = game.steps.last.position;
 
-              final activeClockSide =
-                  game.lastPosition.fullmoves > 1 ? game.lastPosition.turn : null;
-
               final whitePlayer = _FeaturedGamePlayer(game: game, side: Side.white);
 
               final blackPlayer = _FeaturedGamePlayer(game: game, side: Side.black);
@@ -294,8 +291,10 @@ class _FeaturedGame extends ConsumerWidget {
               );
             }
           case _:
-            return BoardThumbnail.loading(
+            return BoardThumbnail(
               size: boardSize,
+              fen: featuredGame.fen,
+              orientation: featuredGame.orientation,
               header: const Shimmer(child: LoadingPlayerWidget()),
               footer: const Shimmer(child: LoadingPlayerWidget()),
             );
@@ -314,6 +313,7 @@ class _FeaturedGamePlayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeClockSide = game.lastPosition.fullmoves > 1 ? game.lastPosition.turn : null;
+    // TODO extend GamePlayer to display rank and berserk
     return GamePlayer(
       game: game,
       side: side,

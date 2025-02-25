@@ -20,7 +20,7 @@ typedef TournamentLists =
       IList<TournamentListItem> finished,
     });
 
-typedef TournamentMe = ({int rank, bool? withdraw});
+typedef TournamentMe = ({int rank, GameFullId? gameId, bool? withdraw});
 
 const int kStandingsPageSize = 10;
 typedef StandingPage = ({int page, IList<StandingPlayer> players});
@@ -67,6 +67,7 @@ extension TournamentExtension on Pick {
       final requiredPick = this.required();
       return (
         rank: requiredPick('rank').asIntOrThrow(),
+        gameId: pick('gameId').asGameFullIdOrNull(),
         withdraw: requiredPick('withdraw').asBoolOrNull(),
       );
     } catch (_) {
