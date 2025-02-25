@@ -172,6 +172,8 @@ class Tournament with _$Tournament {
     required int nbPlayers,
     required StandingPage? standing,
     required Verdicts verdicts,
+    required String? myUsername,
+    required String reloadEndpoint,
   }) = _Tournament;
 
   factory Tournament.fromServerJson(Map<String, Object?> json) =>
@@ -198,6 +200,8 @@ Tournament _tournamentFromPick(RequiredPick pick) {
     perf: pick('perf').asPerfOrThrow(),
     variant: pick('variant').asVariantOrThrow(),
     verdicts: pick('verdicts').asVerdictsOrThrow(),
+    myUsername: pick('myUsername').asStringOrNull(),
+    reloadEndpoint: pick('reloadEndpoint').asStringOrThrow(),
   );
 }
 

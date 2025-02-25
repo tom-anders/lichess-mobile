@@ -45,35 +45,35 @@ class TournamentController extends _$TournamentController {
 
   void loadNextStandingsPage() {
     if (state.hasValue) {
-      _refresh(standingsPage: state.requireValue.standingsPage + 1);
+      _reload(standingsPage: state.requireValue.standingsPage + 1);
     }
   }
 
   void loadPreviousStandingsPage() {
     if (state.hasValue) {
-      _refresh(standingsPage: state.requireValue.standingsPage - 1);
+      _reload(standingsPage: state.requireValue.standingsPage - 1);
     }
   }
 
   void loadFirstStandingsPage() {
-    _refresh(standingsPage: 1);
+    _reload(standingsPage: 1);
   }
 
   int _pageOf(int page) => page ~/ kStandingsPageSize + 1;
 
   void loadLastStandingsPage() {
     if (state.hasValue) {
-      _refresh(standingsPage: _pageOf(state.requireValue.tournament.nbPlayers));
+      _reload(standingsPage: _pageOf(state.requireValue.tournament.nbPlayers));
     }
   }
 
   void jumpToMyPage() {
     if (state.valueOrNull?.tournament.me != null) {
-      _refresh(standingsPage: _pageOf(state.requireValue.tournament.me!.rank));
+      _reload(standingsPage: _pageOf(state.requireValue.tournament.me!.rank));
     }
   }
 
-  Future<void> _refresh({required int standingsPage}) async {
+  Future<void> _reload({required int standingsPage}) async {
     _logger.fine('Refreshing tournament standings page $standingsPage');
     final state = this.state.valueOrNull;
     if (state == null) {
@@ -83,7 +83,7 @@ class TournamentController extends _$TournamentController {
       TournamentState(
         tournament: await ref
             .read(tournamentRepositoryProvider)
-            .refresh(state.tournament, standingsPage: standingsPage),
+            .reload(state.tournament, standingsPage: standingsPage),
         standingsPage: standingsPage,
       ),
     );
@@ -99,7 +99,7 @@ class TournamentController extends _$TournamentController {
     // TODO call refresh when we receive a reload event
     switch (event.topic) {
       case 'reload':
-        _refresh(standingsPage: state.requireValue.standingsPage);
+        _reload(standingsPage: state.requireValue.standingsPage);
     }
   }
 
