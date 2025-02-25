@@ -12,6 +12,7 @@ import 'package:lichess_mobile/src/model/game/game_socket_events.dart';
 import 'package:lichess_mobile/src/model/game/game_status.dart';
 import 'package:lichess_mobile/src/model/game/material_diff.dart';
 import 'package:lichess_mobile/src/model/game/playable_game.dart';
+import 'package:lichess_mobile/src/model/tournament/tournament.dart';
 import 'package:lichess_mobile/src/model/tv/tv_channel.dart';
 import 'package:lichess_mobile/src/model/tv/tv_repository.dart';
 import 'package:lichess_mobile/src/model/tv/tv_socket_events.dart';
@@ -26,60 +27,22 @@ part 'tournament_featured_game_controller.g.dart';
 class TournamentFeaturedGameController extends _$TournamentFeaturedGameController {
   StreamSubscription<SocketEvent>? _socketSubscription;
 
-  /// Last socket version received
-  int? _socketEventVersion;
-
   @override
-  Future<TvState> build(TvChannel channel, (GameId id, Side orientation)? initialGame) async {
+  Future<FeaturedGameState> build(FeaturedGame game) async {
     ref.onDispose(() {
       _socketSubscription?.cancel();
     });
 
-    return _connectWebsocket(initialGame);
-  }
-
-  SoundService get _soundService => ref.read(soundServiceProvider);
-
-  Future<void> startWatching() async {
-    final newState = await _connectWebsocket(null);
-    state = AsyncValue.data(newState);
-  }
-
-  void stopWatching() {
-    _socketSubscription?.cancel();
-  }
-
-  Future<TvState> _connectWebsocket((GameId id, Side orientation)? game) async {
-    GameId id;
-    Side orientation;
-
-    if (game != null) {
-      id = game.$1;
-      orientation = game.$2;
-    } else {
-      final channels = await ref.withClient((client) => TvRepository(client).channels());
-      final channelGame = channels[channel]!;
-      id = channelGame.id;
-      orientation = channelGame.side ?? Side.white;
-    }
-
     final socketClient = ref
         .read(socketPoolProvider)
-        .open(Uri(path: '/watch/$id/${orientation.name}/v6'), forceReconnect: true);
+        .open(Uri(path: '/watch/${game.id}/${game.orientation}/v6'));
 
     _socketSubscription?.cancel();
-    _socketEventVersion = null;
     _socketSubscription = socketClient.stream.listen(_handleSocketEvent);
 
     return socketClient.stream.firstWhere((e) => e.topic == 'full').then((event) {
-      final fullEvent = GameFullEvent.fromJson(event.data as Map<String, dynamic>);
-
-      _socketEventVersion = fullEvent.socketEventVersion;
-
-      return TvState(
-        game: fullEvent.game,
-        stepCursor: fullEvent.game.steps.length - 1,
-        orientation: orientation,
+      return FeaturedGameState(
+        game: GameFullEvent.fromJson(event.data as Map<String, dynamic>).game,
       );
     });
   }
@@ -137,29 +100,8 @@ class TournamentFeaturedGameController extends _$TournamentFeaturedGameControlle
   }
 
   void _handleSocketEvent(SocketEvent event) {
-    final currentEventVersion = _socketEventVersion;
-
-    /// We don't have a version yet, let's wait for the full event
-    if (currentEventVersion == null) {
-      return;
-    }
-
-    if (event.version != null) {
-      if (event.version! <= currentEventVersion) {
-        return;
-      }
-      if (event.version! > currentEventVersion + 1) {
-        _connectWebsocket(null);
-      }
-      _socketEventVersion = event.version;
-    }
-
-    _handleSocketTopic(event);
-  }
-
-  void _handleSocketTopic(SocketEvent event) {
     if (!state.hasValue) {
-      assert(false, 'received a game SocketEvent while TvState is null');
+      assert(false, 'received a game SocketEvent while TournamentState is null');
       return;
     }
 
@@ -177,7 +119,7 @@ class TournamentFeaturedGameController extends _$TournamentFeaturedGameControlle
           diff: MaterialDiff.fromBoard(newPos.board),
         );
 
-        TvState newState = curState.copyWith(
+        FeaturedGameState newState = curState.copyWith(
           game: curState.game.copyWith(steps: curState.game.steps.add(newStep)),
         );
 
@@ -189,21 +131,12 @@ class TournamentFeaturedGameController extends _$TournamentFeaturedGameControlle
             at: data.clock!.at,
           );
         }
-        if (!curState.isReplaying) {
-          newState = newState.copyWith(stepCursor: newState.stepCursor + 1);
-
-          if (data.san.contains('x')) {
-            _soundService.play(Sound.capture);
-          } else {
-            _soundService.play(Sound.move);
-          }
-        }
 
         state = AsyncData(newState);
 
       case 'endData':
         final endData = GameEndEvent.fromJson(event.data as Map<String, dynamic>);
-        TvState newState = state.requireValue.copyWith(
+        FeaturedGameState newState = state.requireValue.copyWith(
           game: state.requireValue.game.copyWith(status: endData.status, winner: endData.winner),
         );
         if (endData.clock != null) {
@@ -215,29 +148,15 @@ class TournamentFeaturedGameController extends _$TournamentFeaturedGameControlle
           );
         }
         state = AsyncData(newState);
-
-      case 'tvSelect':
-        final json = event.data as Map<String, dynamic>;
-        final eventChannel = pick(json, 'channel').asTvChannelOrNull();
-        if (eventChannel == channel) {
-          final data = TvSelectEvent.fromJson(json);
-          _moveToNextGame((data.id, data.orientation));
-        }
     }
   }
 }
 
 @freezed
-class TvState with _$TvState {
-  const TvState._();
+class FeaturedGameState with _$FeaturedGameState {
+  const FeaturedGameState._();
 
-  const factory TvState({
-    required PlayableGame game,
-    required int stepCursor,
-    required Side orientation,
-  }) = _TvState;
-
-  bool get isReplaying => stepCursor < game.steps.length - 1;
+  const factory FeaturedGameState({required PlayableGame game}) = _FeaturedGameState;
 
   Side? get activeClockSide {
     if (game.clock == null) {
@@ -254,4 +173,3 @@ class TvState with _$TvState {
     return null;
   }
 }
-

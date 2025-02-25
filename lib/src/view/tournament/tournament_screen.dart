@@ -11,6 +11,7 @@ import 'package:lichess_mobile/src/model/game/game.dart';
 import 'package:lichess_mobile/src/model/game/playable_game.dart';
 import 'package:lichess_mobile/src/model/tournament/tournament.dart';
 import 'package:lichess_mobile/src/model/tournament/tournament_controller.dart';
+import 'package:lichess_mobile/src/model/tournament/tournament_featured_game_controller.dart';
 import 'package:lichess_mobile/src/model/tv/tv_channel.dart';
 import 'package:lichess_mobile/src/model/tv/tv_controller.dart';
 import 'package:lichess_mobile/src/styles/lichess_colors.dart';
@@ -45,9 +46,10 @@ class TournamentScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     // open game screen if me?.gameId changes
-    ref.listen(tournamentControllerProvider, (prev, next) {
-      if (prev?.currentGame != next.currentGame && next.currentGame != null) {
-        print('Got pairing ${next.currentGame}');
+    ref.listen(tournamentControllerProvider(id), (prev, next) {
+      final currentGame = next.valueOrNull?.currentGame;
+      if (prev?.valueOrNull?.currentGame != currentGame && currentGame != null) {
+        print('Got pairing ${currentGame}');
         // TODO open game screen  here
       }
     });
@@ -276,14 +278,10 @@ class _FeaturedGame extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final boardSize = constraints.maxWidth;
-        // TODO create a separate provider for watching the game...?
-        switch (ref.watch(
-          tvControllerProvider(TvChannel.best, (featuredGame.id, featuredGame.orientation)),
-        )) {
+        switch (ref.watch(tournamentFeaturedGameControllerProvider(featuredGame))) {
           case AsyncData(:final value):
             {
               final game = value.game;
-              final position = game.steps.last.position;
 
               final whitePlayer = _FeaturedGamePlayer(game: game, side: Side.white);
 
@@ -292,10 +290,10 @@ class _FeaturedGame extends ConsumerWidget {
               return BoardThumbnail(
                 size: boardSize,
                 orientation: featuredGame.orientation,
-                fen: position.fen,
+                fen: game.lastPosition.fen,
                 header: featuredGame.orientation == Side.white ? blackPlayer : whitePlayer,
                 footer: featuredGame.orientation == Side.white ? whitePlayer : blackPlayer,
-                lastMove: game.steps.last.sanMove?.move,
+                lastMove: game.lastMove,
               );
             }
           case _:
