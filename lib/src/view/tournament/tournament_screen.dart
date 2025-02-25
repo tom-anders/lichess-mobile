@@ -44,6 +44,14 @@ class TournamentScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // open game screen if me?.gameId changes
+    ref.listen(tournamentControllerProvider, (prev, next) {
+      if (prev?.currentGame != next.currentGame && next.currentGame != null) {
+        print('Got pairing ${next.currentGame}');
+        // TODO open game screen  here
+      }
+    });
+
     return switch (ref.watch(tournamentControllerProvider(id))) {
       AsyncError(:final error) => Center(child: Text('Could not load tournament: $error')),
       AsyncValue(:final value?) => _Body(state: value),

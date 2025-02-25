@@ -127,6 +127,8 @@ class TournamentState with _$TournamentState {
   String get name => tournament.fullName;
   TournamentId get id => tournament.id;
 
+  GameFullId? get currentGame => tournament.me?.gameId;
+
   int get firstRankOfPage => (standingsPage - 1) * kStandingsPageSize + 1;
   bool get hasPreviousPage => standingsPage > 1;
   bool get hasNextPage => tournament.nbPlayers > standingsPage * kStandingsPageSize;
