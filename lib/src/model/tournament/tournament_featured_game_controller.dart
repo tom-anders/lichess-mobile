@@ -42,7 +42,7 @@ class TournamentFeaturedGameController extends _$TournamentFeaturedGameControlle
 
   void _handleSocketEvent(SocketEvent event) {
     if (!state.hasValue) {
-      assert(false, 'received a game SocketEvent while TournamentState is null');
+      print('received a game SocketEvent while TournamentState is null');
       return;
     }
 

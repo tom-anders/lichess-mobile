@@ -21,6 +21,7 @@ import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:lichess_mobile/src/utils/navigation.dart';
 import 'package:lichess_mobile/src/view/game/game_loading_board.dart';
 import 'package:lichess_mobile/src/view/game/game_player.dart';
+import 'package:lichess_mobile/src/view/game/game_screen.dart';
 import 'package:lichess_mobile/src/widgets/board_table.dart';
 import 'package:lichess_mobile/src/widgets/board_thumbnail.dart';
 import 'package:lichess_mobile/src/widgets/bottom_bar.dart';
@@ -45,12 +46,17 @@ class TournamentScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // open game screen if me?.gameId changes
-    ref.listen(tournamentControllerProvider(id), (prev, next) {
-      final currentGame = next.valueOrNull?.currentGame;
-      if (prev?.valueOrNull?.currentGame != currentGame && currentGame != null) {
-        print('Got pairing ${currentGame}');
+    ref.listen(tournamentControllerProvider(id).select((value) => value.valueOrNull?.currentGame), (
+      prevGameId,
+      currentGameId,
+    ) {
+      if (prevGameId != currentGameId && currentGameId != null) {
+        print('Got pairing ${currentGameId}');
         // TODO open game screen  here
+        Navigator.of(
+          context,
+          rootNavigator: true,
+        ).pushReplacement(GameScreen.buildRoute(context, initialGameId: currentGameId));
       }
     });
 
@@ -84,6 +90,7 @@ class _Body extends ConsumerWidget {
                   spacing: 20,
                   children: [
                     _Verdicts(state.tournament.verdicts),
+                    // TODO: Berserk Info ("no berserk allowed")
                     _Standing(state),
                     if (state.tournament.featuredGame != null)
                       _FeaturedGame(state.tournament.featuredGame!),
@@ -250,6 +257,10 @@ class _Verdicts extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (verdicts.list.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
     return Row(
       children: [
         Icon(
