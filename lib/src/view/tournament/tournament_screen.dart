@@ -117,71 +117,75 @@ class _Standing extends ConsumerWidget {
           padding: EdgeInsets.zero,
           itemBuilder: (context, i) {
             final player = standing.players.getOrNull(i);
-            if (player == null) {
-              return null;
-            }
-            return GestureDetector(
-              onTap: () {
-                // TODO show player detail page
-              },
-              child: ColoredBox(
-                color:
-                    i.isEven
-                        ? ColorScheme.of(context).surfaceContainerLow
-                        : ColorScheme.of(context).surfaceContainerHigh,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 12, bottom: 12, right: 8, left: 4),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Text.rich(
-                          TextSpan(
-                            children: [
-                              WidgetSpan(
-                                child: SizedBox(
-                                  width: 30,
-                                  child:
-                                      player.withdraw
-                                          ? const Icon(
-                                            Icons.pause,
-                                            color: LichessColors.grey,
-                                            size: 20,
-                                          )
-                                          : Text(
-                                            '${state.firstRankOfPage + i}',
-                                            textAlign: TextAlign.center,
-                                          ),
-                                ),
-                              ),
-                              WidgetSpan(
-                                child: UserFullNameWidget(
-                                  user: player.user,
-                                  rating: player.rating,
-                                  provisional: player.provisional,
-                                  shouldShowOnline: false,
-                                  showFlair: false,
-                                  showPatron: false,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      if (player.sheet.fire) ...[
-                        const Icon(LichessIcons.blitz, size: 17, color: LichessColors.brag),
-                        const SizedBox(width: 5),
-                      ],
-                      Text('${player.score}'),
-                    ],
-                  ),
-                ),
-              ),
-            );
+            return player != null
+                ? _StandingPlayer(player: player, rank: state.firstRankOfPage + i)
+                : null;
           },
         ),
         _StandingControls(state: state),
       ],
+    );
+  }
+}
+
+class _StandingPlayer extends StatelessWidget {
+  const _StandingPlayer({required this.player, required this.rank});
+
+  final StandingPlayer player;
+  final int rank;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        // TODO show player detail page
+      },
+      child: ColoredBox(
+        color:
+            rank.isEven
+                ? ColorScheme.of(context).surfaceContainerLow
+                : ColorScheme.of(context).surfaceContainerHigh,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 12, bottom: 12, right: 8, left: 4),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      WidgetSpan(
+                        child: SizedBox(
+                          width: 30,
+                          child:
+                              player.withdraw
+                                  ? const Icon(Icons.pause, color: LichessColors.grey, size: 20)
+                                  : Text('$rank', textAlign: TextAlign.center),
+                        ),
+                      ),
+                      WidgetSpan(
+                        child: UserFullNameWidget(
+                          user: player.user,
+                          rating: player.rating,
+                          provisional: player.provisional,
+                          shouldShowOnline: false,
+                          showFlair: false,
+                          showPatron: false,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              if (player.sheet.fire) ...[
+                const Icon(LichessIcons.blitz, size: 17, color: LichessColors.brag),
+                const SizedBox(width: 5),
+              ],
+              Text('${player.score}'),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
