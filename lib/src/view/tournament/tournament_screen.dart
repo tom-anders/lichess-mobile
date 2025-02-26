@@ -56,7 +56,7 @@ class TournamentScreen extends ConsumerWidget {
         Navigator.of(
           context,
           rootNavigator: true,
-        ).pushReplacement(GameScreen.buildRoute(context, initialGameId: currentGameId));
+        ).push(GameScreen.buildRoute(context, initialGameId: currentGameId));
       }
     });
 
@@ -298,17 +298,34 @@ class _FeaturedGame extends ConsumerWidget {
             {
               final game = value.game;
 
-              final whitePlayer = _FeaturedGamePlayer(game: game, side: Side.white);
+              final whitePlayer = _FeaturedGamePlayer(
+                game: game,
+                player: featuredGame.white,
+                side: Side.white,
+              );
 
-              final blackPlayer = _FeaturedGamePlayer(game: game, side: Side.black);
+              final blackPlayer = _FeaturedGamePlayer(
+                game: game,
+                player: featuredGame.black,
+                side: Side.black,
+              );
+              
 
-              return BoardThumbnail(
-                size: boardSize,
-                orientation: featuredGame.orientation,
-                fen: game.lastPosition.fen,
-                header: featuredGame.orientation == Side.white ? blackPlayer : whitePlayer,
-                footer: featuredGame.orientation == Side.white ? whitePlayer : blackPlayer,
-                lastMove: game.lastMove,
+              return GestureDetector(
+                onTap: () {
+        //Navigator.of(
+        //  context,
+        //  rootNavigator: true,
+        //).push(GameScreen.buildRoute(context, initialGameId: featuredGame.id));
+                },
+                child: BoardThumbnail(
+                  size: boardSize,
+                  orientation: featuredGame.orientation,
+                  fen: game.lastPosition.fen,
+                  header: featuredGame.orientation == Side.white ? blackPlayer : whitePlayer,
+                  footer: featuredGame.orientation == Side.white ? whitePlayer : blackPlayer,
+                  lastMove: game.lastMove,
+                ),
               );
             }
           case _:
@@ -326,9 +343,15 @@ class _FeaturedGame extends ConsumerWidget {
 }
 
 class _FeaturedGamePlayer extends StatelessWidget {
-  const _FeaturedGamePlayer({super.key, required this.game, required this.side});
+  const _FeaturedGamePlayer({
+    super.key,
+    required this.game,
+    required this.player,
+    required this.side,
+  });
 
   final PlayableGame game;
+  final FeaturedPlayer player;
   final Side side;
 
   @override
@@ -338,11 +361,13 @@ class _FeaturedGamePlayer extends StatelessWidget {
     return GamePlayer(
       game: game,
       side: side,
+      berserk: player.berserk == true,
+      rank: player.rank,
       clock:
           game.clock != null
               ? CountdownClockBuilder(
                 key: key,
-                timeLeft: game.clock!.black,
+                timeLeft: game.clockOf(side)!,
                 delay: game.clock!.lag ?? const Duration(milliseconds: 10),
                 clockUpdatedAt: game.clock!.at,
                 active: activeClockSide == side,

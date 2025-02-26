@@ -259,7 +259,7 @@ class FeaturedPlayer with _$FeaturedPlayer {
   const factory FeaturedPlayer({
     required LightUser user,
     required int? rank,
-    required bool? beserk,
+    required bool? berserk,
   }) = _FeaturedPlayer;
 
   factory FeaturedPlayer.fromServerJson(Map<String, Object?> json) =>
@@ -270,7 +270,7 @@ FeaturedPlayer _featuredPlayerFromPick(RequiredPick pick) {
   return FeaturedPlayer(
     user: pick.asLightUserOrThrow(),
     rank: pick('rank').asIntOrNull(),
-    beserk: pick('beserk').asBoolOrNull(),
+    berserk: pick('berserk').asBoolOrNull(),
   );
 }
 

@@ -37,6 +37,8 @@ class GamePlayer extends StatelessWidget {
     this.canGoForward = false,
     this.zenMode = false,
     this.clockPosition = ClockPosition.right,
+    this.berserk = false,
+    this.rank,
     super.key,
   });
 
@@ -59,6 +61,12 @@ class GamePlayer extends StatelessWidget {
   /// Time left for the player to move at the start of the game.
   final Duration? timeToMove;
 
+  /// Whether the user has berserked in a tournament game.
+  final bool berserk;
+
+  /// If in a tournament, the current rank of the player.
+  final int? rank;
+
   @override
   Widget build(BuildContext context) {
     final remaingHeight = estimateRemainingHeightLeftBoard(context);
@@ -77,6 +85,8 @@ class GamePlayer extends StatelessWidget {
                     ? MainAxisAlignment.start
                     : MainAxisAlignment.end,
             children: [
+              if (rank != null)
+                Text('#$rank ', style: TextStyle(fontSize: 14, color: textShade(context, 0.7))),
               if (player.user != null) ...[
                 Icon(
                   player.onGame == true ? Icons.cloud : Icons.cloud_off,
@@ -146,6 +156,16 @@ class GamePlayer extends StatelessWidget {
                     style: TextStyle(fontSize: 14, color: textShade(context, 0.7)),
                   ),
                 ),
+              if (berserk) ...[
+                const SizedBox(width: 5),
+                Icon(
+                  LichessIcons.body_cut,
+                  color: LichessColors.brag,
+                  size: playerFontSize,
+                  // TODO l10n
+                  semanticLabel: 'Berserk',
+                ),
+              ],
             ],
           ),
         if (timeToMove != null)
