@@ -44,7 +44,7 @@ class TournamentRepository {
   Future<Tournament> reload(Tournament tournament, {required int standingsPage}) {
     return client.readJson(
       Uri(
-        path: tournament.reloadEndpoint,
+        path: tournament.reloadEndpoint ?? '/api/tournament/${tournament.id}',
         queryParameters: {'page': standingsPage.toString(), 'partial': 'true'},
       ),
       headers: {'Accept': 'application/json'},

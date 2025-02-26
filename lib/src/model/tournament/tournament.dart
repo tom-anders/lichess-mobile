@@ -174,7 +174,8 @@ class Tournament with _$Tournament {
     required StandingPage? standing,
     required Verdicts verdicts,
     required String? myUsername,
-    required String reloadEndpoint,
+    // TODO can be made non-nullable once server has been adapted
+    required String? reloadEndpoint,
   }) = _Tournament;
 
   factory Tournament.fromServerJson(Map<String, Object?> json) =>
@@ -202,7 +203,7 @@ Tournament _tournamentFromPick(RequiredPick pick) {
     variant: pick('variant').asVariantOrThrow(),
     verdicts: pick('verdicts').asVerdictsOrThrow(),
     myUsername: pick('myUsername').asStringOrNull(),
-    reloadEndpoint: pick('reloadEndpoint').asStringOrThrow(),
+    reloadEndpoint: pick('reloadEndpoint').asStringOrNull(),
   );
 }
 

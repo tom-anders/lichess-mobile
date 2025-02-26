@@ -1,11 +1,8 @@
 import 'dart:async';
 
 import 'package:dartchess/dartchess.dart';
-import 'package:deep_pick/deep_pick.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:lichess_mobile/src/model/common/chess.dart';
-import 'package:lichess_mobile/src/model/common/id.dart';
-import 'package:lichess_mobile/src/model/common/service/sound_service.dart';
 import 'package:lichess_mobile/src/model/common/socket.dart';
 import 'package:lichess_mobile/src/model/game/game.dart';
 import 'package:lichess_mobile/src/model/game/game_socket_events.dart';
@@ -13,10 +10,6 @@ import 'package:lichess_mobile/src/model/game/game_status.dart';
 import 'package:lichess_mobile/src/model/game/material_diff.dart';
 import 'package:lichess_mobile/src/model/game/playable_game.dart';
 import 'package:lichess_mobile/src/model/tournament/tournament.dart';
-import 'package:lichess_mobile/src/model/tv/tv_channel.dart';
-import 'package:lichess_mobile/src/model/tv/tv_repository.dart';
-import 'package:lichess_mobile/src/model/tv/tv_socket_events.dart';
-import 'package:lichess_mobile/src/network/http.dart';
 import 'package:lichess_mobile/src/network/socket.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -45,58 +38,6 @@ class TournamentFeaturedGameController extends _$TournamentFeaturedGameControlle
         game: GameFullEvent.fromJson(event.data as Map<String, dynamic>).game,
       );
     });
-  }
-
-  Future<void> _moveToNextGame((GameId id, Side orientation) game) async {
-    final newState = await _connectWebsocket(game);
-    state = AsyncValue.data(newState);
-  }
-
-  bool canGoBack() => state.mapOrNull(data: (d) => d.value.stepCursor > 0) ?? false;
-
-  bool canGoForward() =>
-      state.mapOrNull(data: (d) => d.value.stepCursor < d.value.game.steps.length - 1) ?? false;
-
-  void toggleBoard() {
-    if (state.hasValue) {
-      final curState = state.requireValue;
-      state = AsyncValue.data(curState.copyWith(orientation: curState.orientation.opposite));
-    }
-  }
-
-  void cursorForward() {
-    if (state.hasValue) {
-      final curState = state.requireValue;
-      if (curState.stepCursor < curState.game.steps.length - 1) {
-        state = AsyncValue.data(curState.copyWith(stepCursor: curState.stepCursor + 1));
-        final san = curState.game.stepAt(curState.stepCursor + 1).sanMove?.san;
-        if (san != null) {
-          _playReplayMoveSound(san);
-        }
-      }
-    }
-  }
-
-  void cursorBackward() {
-    if (state.hasValue) {
-      final curState = state.requireValue;
-      if (curState.stepCursor > 0) {
-        state = AsyncValue.data(curState.copyWith(stepCursor: curState.stepCursor - 1));
-        final san = curState.game.stepAt(curState.stepCursor - 1).sanMove?.san;
-        if (san != null) {
-          _playReplayMoveSound(san);
-        }
-      }
-    }
-  }
-
-  void _playReplayMoveSound(String san) {
-    final soundService = ref.read(soundServiceProvider);
-    if (san.contains('x')) {
-      soundService.play(Sound.capture);
-    } else {
-      soundService.play(Sound.move);
-    }
   }
 
   void _handleSocketEvent(SocketEvent event) {
