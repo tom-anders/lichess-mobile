@@ -50,6 +50,7 @@ class TournamentScreen extends ConsumerWidget {
       prevGameId,
       currentGameId,
     ) {
+      print('${prevGameId} -> ${currentGameId}');
       if (prevGameId != currentGameId && currentGameId != null) {
         print('Got pairing ${currentGameId}');
         // TODO open game screen  here
@@ -78,6 +79,7 @@ class _Body extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    print('me: ${state.tournament.me}');
     return PlatformScaffold(
       appBarTitle: Text(state.name),
       body: Column(
@@ -309,14 +311,13 @@ class _FeaturedGame extends ConsumerWidget {
                 player: featuredGame.black,
                 side: Side.black,
               );
-              
 
               return GestureDetector(
                 onTap: () {
-        //Navigator.of(
-        //  context,
-        //  rootNavigator: true,
-        //).push(GameScreen.buildRoute(context, initialGameId: featuredGame.id));
+                  //Navigator.of(
+                  //  context,
+                  //  rootNavigator: true,
+                  //).push(GameScreen.buildRoute(context, initialGameId: featuredGame.id));
                 },
                 child: BoardThumbnail(
                   size: boardSize,
@@ -390,6 +391,7 @@ class _BottomBar extends ConsumerWidget {
     final isLoggedIn = ref.watch(authSessionProvider)?.user.id != null;
     return PlatformBottomBar(
       children: [
+        // TODO loading spinner while we're joining/leaving
         if (isLoggedIn)
           BottomBarButton(
             label: state.joined ? context.l10n.pause : context.l10n.join,

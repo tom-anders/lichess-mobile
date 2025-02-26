@@ -40,7 +40,7 @@ class TournamentController extends _$TournamentController {
     final tournament = await ref
         .read(tournamentRepositoryProvider)
         .getTournament(id, standingsPage: standingsPage);
-    return TournamentState(tournament: tournament, standingsPage: standingsPage);
+    return TournamentState(tournament: tournament, currentGame: null, standingsPage: standingsPage);
   }
 
   void loadNextStandingsPage() {
@@ -80,11 +80,10 @@ class TournamentController extends _$TournamentController {
       return;
     }
     this.state = AsyncValue.data(
-      TournamentState(
+      state.copyWith(
         tournament: await ref
             .read(tournamentRepositoryProvider)
             .reload(state.tournament, standingsPage: standingsPage),
-        standingsPage: standingsPage,
       ),
     );
   }
@@ -100,6 +99,10 @@ class TournamentController extends _$TournamentController {
     switch (event.topic) {
       case 'reload':
         _reload(standingsPage: state.requireValue.standingsPage);
+      case 'redirect':
+        state = AsyncValue.data(
+          state.requireValue.copyWith(currentGame: GameFullId(event.data as String)),
+        );
     }
   }
 
@@ -121,17 +124,18 @@ class TournamentController extends _$TournamentController {
 class TournamentState with _$TournamentState {
   const TournamentState._();
 
-  const factory TournamentState({required Tournament tournament, required int standingsPage}) =
-      _TournamentState;
+  const factory TournamentState({
+    required Tournament tournament,
+    required GameFullId? currentGame,
+    required int standingsPage,
+  }) = _TournamentState;
 
   String get name => tournament.fullName;
   TournamentId get id => tournament.id;
-
-  GameFullId? get currentGame => tournament.me?.gameId;
 
   int get firstRankOfPage => (standingsPage - 1) * kStandingsPageSize + 1;
   bool get hasPreviousPage => standingsPage > 1;
   bool get hasNextPage => tournament.nbPlayers > standingsPage * kStandingsPageSize;
 
-  bool get joined => tournament.me != null && tournament.me!.withdraw == false;
+  bool get joined => tournament.me != null && tournament.me!.withdraw != true;
 }
