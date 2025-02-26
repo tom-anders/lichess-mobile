@@ -1000,6 +1000,8 @@ class GameState with _$GameState {
       game.meta.speed != Speed.correspondence &&
       (game.source == GameSource.lobby || game.source == GameSource.pool);
 
+  bool get isTournamentGame => game.source == GameSource.arena || game.source == GameSource.swiss;
+
   bool get canOfferDraw => game.drawable && (lastDrawOfferAtPly ?? -99) < game.lastPly - 20;
 
   bool get canShowClaimWinCountdown =>
