@@ -237,6 +237,15 @@ extension IDPick on Pick {
     }
   }
 
+  TournamentId? asTournamentIdOrNull() {
+    if (value == null) return null;
+    try {
+      return asTournamentIdOrThrow();
+    } catch (_) {
+      return null;
+    }
+  }
+
   TournamentId asTournamentIdOrThrow() {
     final value = required().value;
     if (value is String) {

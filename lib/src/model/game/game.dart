@@ -319,6 +319,9 @@ class GameMeta with _$GameMeta {
 
     /// Game phases of the game, only avaible once finished
     Division? division,
+
+    /// Only if this game is part of an arena or swiss tournament
+    TournamentId? tournamentId,
   }) = _GameMeta;
 
   factory GameMeta.fromJson(Map<String, dynamic> json) => _$GameMetaFromJson(json);

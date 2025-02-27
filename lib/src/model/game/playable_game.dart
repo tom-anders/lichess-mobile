@@ -172,6 +172,7 @@ class PlayableClockData with _$PlayableClockData {
 }
 
 PlayableGame _playableGameFromPick(RequiredPick pick) {
+  print('playable game: ${pick.asMapOrNull()}');
   final requiredGamePick = pick('game').required();
   final meta = _playableGameMetaFromPick(pick);
   final initialFen = requiredGamePick('initialFen').asStringOrNull();
@@ -256,6 +257,7 @@ GameMeta _playableGameMetaFromPick(RequiredPick pick) {
       ),
     ),
     division: pick('division').letOrNull(_divisionFromPick),
+    tournamentId: pick('game', 'tournamentId').asTournamentIdOrNull() ,
   );
 }
 
