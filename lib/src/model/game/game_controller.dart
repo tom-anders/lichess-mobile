@@ -30,6 +30,7 @@ import 'package:lichess_mobile/src/model/game/game_storage.dart';
 import 'package:lichess_mobile/src/model/game/material_diff.dart';
 import 'package:lichess_mobile/src/model/game/playable_game.dart';
 import 'package:lichess_mobile/src/model/settings/board_preferences.dart';
+import 'package:lichess_mobile/src/model/tournament/tournament_repository.dart';
 import 'package:lichess_mobile/src/network/http.dart';
 import 'package:lichess_mobile/src/network/socket.dart';
 import 'package:lichess_mobile/src/utils/rate_limit.dart';
@@ -142,12 +143,23 @@ class GameController extends _$GameController {
         }
       }
 
-      return GameState(
+      var state = GameState(
         gameFullId: gameFullId,
         game: game,
         stepCursor: game.steps.length - 1,
         liveClock: _liveClock,
       );
+
+      if (game.meta.tournamentId != null) {
+        final tournament = await ref
+            .read(tournamentRepositoryProvider)
+            .getTournament(game.meta.tournamentId!, standingsPage: 1);
+        state = state.copyWith(berserkable: tournament.berserkable);
+
+        // TODO fetch player ranks
+      }
+
+      return state;
     });
   }
 
@@ -352,6 +364,12 @@ class GameController extends _$GameController {
     _socketClient.send('moretime', null);
   }
 
+  void berserk() {
+    if (state.valueOrNull?.berserkable == true) {
+      _socketClient.send('berserk', null);
+    }
+  }
+
   void abortGame() {
     _socketClient.send('abort', null);
   }
@@ -509,6 +527,8 @@ class GameController extends _$GameController {
       assert(false, 'received a game SocketEvent while GameState is null');
       return;
     }
+
+    print('game event: $event');
 
     switch (event.topic) {
       // Server asking for a resync
@@ -873,6 +893,16 @@ class GameController extends _$GameController {
             evals: data.evals,
           ),
         );
+
+      case 'berserk':
+        final side = pick(event.data).asSideOrNull();
+        final curState = state.requireValue;
+        state = AsyncValue.data(
+          curState.copyWith.game(
+            white: curState.game.white.copyWith(berserk: side == Side.white),
+            black: curState.game.black.copyWith(berserk: side == Side.black),
+          ),
+        );
     }
   }
 
@@ -966,6 +996,8 @@ class GameState with _$GameState {
 
     /// Game full id used to redirect to the new game of the rematch
     GameFullId? redirectGameId,
+
+    bool? berserkable,
   }) = _GameState;
 
   /// The [Position] and its legal moves at the current cursor.
