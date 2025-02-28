@@ -267,10 +267,11 @@ class _TournamentListItem extends StatelessWidget {
           ),
         ],
       ),
+      //onTap: () => Navigator.of(context).push(TournamentScreen.buildRoute(context, tournament.id)),
       onTap:
           () => Navigator.of(
             context,
-          ).push(TournamentScreen.buildRoute(context, TournamentId('1yueCku0'))),
+          ).push(TournamentScreen.buildRoute(context, TournamentId('ceK9Wvkv'))),
     );
   }
 }

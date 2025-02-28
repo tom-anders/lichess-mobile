@@ -111,6 +111,7 @@ extension IDPick on Pick {
   GameFullId asGameFullIdOrThrow() {
     final value = required().value;
     if (value is String) {
+      print('value: [${value}] ${value.length}');
       return GameFullId(value);
     }
     throw PickException("value $value at $debugParsingExit can't be casted to GameId");
@@ -120,7 +121,8 @@ extension IDPick on Pick {
     if (value == null) return null;
     try {
       return asGameFullIdOrThrow();
-    } catch (_) {
+    } catch (e) {
+      print('failed as gamefullid: $e');
       return null;
     }
   }
