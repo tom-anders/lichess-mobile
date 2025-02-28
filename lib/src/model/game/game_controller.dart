@@ -30,6 +30,7 @@ import 'package:lichess_mobile/src/model/game/game_storage.dart';
 import 'package:lichess_mobile/src/model/game/material_diff.dart';
 import 'package:lichess_mobile/src/model/game/playable_game.dart';
 import 'package:lichess_mobile/src/model/settings/board_preferences.dart';
+import 'package:lichess_mobile/src/model/tournament/tournament.dart';
 import 'package:lichess_mobile/src/model/tournament/tournament_repository.dart';
 import 'package:lichess_mobile/src/network/http.dart';
 import 'package:lichess_mobile/src/network/socket.dart';
@@ -151,10 +152,11 @@ class GameController extends _$GameController {
       );
 
       if (game.meta.tournamentId != null) {
+        // TODO socket will be adapted to include tournament data directly
         final tournament = await ref
             .read(tournamentRepositoryProvider)
             .getTournament(game.meta.tournamentId!, standingsPage: 1);
-        state = state.copyWith(berserkable: tournament.berserkable);
+        state = state.copyWith(tournament: tournament);
 
         // TODO fetch player ranks
       }
@@ -365,7 +367,7 @@ class GameController extends _$GameController {
   }
 
   void berserk() {
-    if (state.valueOrNull?.berserkable == true) {
+    if (state.valueOrNull?.tournament?.berserkable == true) {
       _socketClient.send('berserk', null);
     }
   }
@@ -997,7 +999,8 @@ class GameState with _$GameState {
     /// Game full id used to redirect to the new game of the rematch
     GameFullId? redirectGameId,
 
-    bool? berserkable,
+    /// Only if this game is part of a tournament
+    Tournament? tournament,
   }) = _GameState;
 
   /// The [Position] and its legal moves at the current cursor.
