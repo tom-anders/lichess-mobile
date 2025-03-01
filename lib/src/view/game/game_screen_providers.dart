@@ -7,6 +7,7 @@ import 'package:lichess_mobile/src/model/game/game.dart';
 import 'package:lichess_mobile/src/model/game/game_controller.dart';
 import 'package:lichess_mobile/src/model/lobby/create_game_service.dart';
 import 'package:lichess_mobile/src/model/lobby/game_seek.dart';
+import 'package:lichess_mobile/src/model/tournament/tournament.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
 part 'game_screen_providers.g.dart';
@@ -123,4 +124,9 @@ userGamePrefs(Ref ref, GameFullId gameId) async {
 @riverpod
 Future<GameMeta> gameMeta(Ref ref, GameFullId gameId) async {
   return await ref.watch(gameControllerProvider(gameId).selectAsync((state) => state.game.meta));
+}
+
+@riverpod
+Future<Tournament?> gameTournament(Ref ref, GameFullId gameId) async {
+  return await ref.watch(gameControllerProvider(gameId).selectAsync((state) => state.tournament));
 }

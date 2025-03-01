@@ -271,7 +271,7 @@ class _TournamentListItem extends StatelessWidget {
       onTap:
           () => Navigator.of(
             context,
-          ).push(TournamentScreen.buildRoute(context, TournamentId('ceK9Wvkv'))),
+          ).push(TournamentScreen.buildRoute(context, TournamentId('UdJNKQj9'))),
     );
   }
 }

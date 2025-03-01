@@ -66,7 +66,7 @@ extension TournamentExtension on Pick {
     try {
       final requiredPick = this.required();
       print('value: ${requiredPick.asMapOrNull()}');
-      print('fillId:: ${pick('fullId').asGameFullIdOrNull()}');
+      print('fillId:: ${requiredPick('fullId').asGameFullIdOrNull()}');
       return (
         rank: requiredPick('rank').asIntOrThrow(),
         gameId: requiredPick('fullId').asGameFullIdOrNull(),
@@ -172,6 +172,8 @@ class Tournament with _$Tournament {
     required String? description,
     required bool? isFinished,
     required bool? isStarted,
+    required Duration? timeToStart,
+    required Duration? timeToFinish,
     required TournamentMe? me,
     required int nbPlayers,
     required StandingPage? standing,
@@ -189,7 +191,6 @@ class Tournament with _$Tournament {
 }
 
 Tournament _tournamentFromPick(RequiredPick pick) {
-  print('parse tournament: ${pick.asMapOrNull()}');
   return Tournament(
     id: pick('id').asTournamentIdOrThrow(),
     createdBy: pick('createdBy').asStringOrThrow(),
@@ -199,6 +200,8 @@ Tournament _tournamentFromPick(RequiredPick pick) {
     description: pick('description').asStringOrNull(),
     isFinished: pick('isFinished').asBoolOrNull(),
     isStarted: pick('isStarted').asBoolOrNull(),
+    timeToStart: pick('secondsToStart').asDurationFromSecondsOrNull(),
+    timeToFinish: pick('secondsToFinish').asDurationFromSecondsOrNull(),
     me: pick('me').asTournamentMeOrNull(),
     nbPlayers: pick('nbPlayers').asIntOrThrow(),
     standing: pick('standing').asStandingPageOrNull(),

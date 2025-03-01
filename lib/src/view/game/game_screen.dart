@@ -15,6 +15,7 @@ import 'package:lichess_mobile/src/model/lobby/game_seek.dart';
 import 'package:lichess_mobile/src/model/lobby/game_setup_preferences.dart';
 import 'package:lichess_mobile/src/navigation.dart';
 import 'package:lichess_mobile/src/network/http.dart';
+import 'package:lichess_mobile/src/utils/duration.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:lichess_mobile/src/utils/navigation.dart';
 import 'package:lichess_mobile/src/view/game/game_body.dart';
@@ -26,6 +27,7 @@ import 'package:lichess_mobile/src/view/game/ping_rating.dart';
 import 'package:lichess_mobile/src/view/settings/toggle_sound_button.dart';
 import 'package:lichess_mobile/src/widgets/adaptive_bottom_sheet.dart';
 import 'package:lichess_mobile/src/widgets/buttons.dart';
+import 'package:lichess_mobile/src/widgets/clock.dart';
 import 'package:lichess_mobile/src/widgets/platform_scaffold.dart';
 import 'package:lichess_mobile/src/widgets/shimmer.dart';
 
@@ -384,6 +386,59 @@ class _ChallengeGameTitle extends ConsumerWidget {
   }
 }
 
+class _TournamentGameTitle extends ConsumerWidget {
+  const _TournamentGameTitle({required this.gameId});
+
+  final GameFullId gameId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    // TODO display tournament countdown via state
+
+    switch (ref.watch(gameTournamentProvider(gameId))) {
+      case AsyncData(:final value?):
+        {
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CountdownClockBuilder(
+                timeLeft: value.timeToFinish ?? Duration.zero,
+                clockUpdatedAt: DateTime.now(),
+                active: true,
+                tickInterval: const Duration(seconds: 1),
+                builder:
+                    (BuildContext context, Duration timeLeft) => Center(
+                      child: Text(
+                        timeLeft.toHoursMinutesSeconds(),
+                        style: const TextStyle(fontFeatures: const [FontFeature.tabularFigures()]),
+                      ),
+                    ),
+              ),
+            ],
+          );
+        }
+      case AsyncError():
+        return const SizedBox.shrink();
+      case _:
+        return Shimmer(
+          child: ShimmerLoading(
+            isLoading: true,
+            child: SizedBox(
+              height: 24.0,
+              width: 200.0,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black,
+                  borderRadius: BorderRadius.circular(10.0),
+                ),
+              ),
+            ),
+          ),
+        );
+    }
+  }
+}
+
 class _StandaloneGameTitle extends ConsumerWidget {
   const _StandaloneGameTitle({required this.id, this.lastMoveAt});
 
@@ -398,6 +453,10 @@ class _StandaloneGameTitle extends ConsumerWidget {
     final metaAsync = ref.watch(gameMetaProvider(id));
     return metaAsync.when(
       data: (meta) {
+        if (meta.tournamentId != null) {
+          return _TournamentGameTitle(gameId: id);
+        }
+
         final mode = meta.rated ? ' • ${context.l10n.rated}' : ' • ${context.l10n.casual}';
 
         final info = lastMoveAt != null ? ' • ${_gameTitledateFormat.format(lastMoveAt!)}' : mode;
