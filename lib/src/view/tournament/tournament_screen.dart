@@ -363,8 +363,6 @@ class _FeaturedGamePlayer extends StatelessWidget {
     return GamePlayer(
       game: game,
       side: side,
-      berserk: player.berserk == true,
-      rank: player.rank,
       clock:
           game.clock != null
               ? CountdownClockBuilder(
