@@ -138,7 +138,7 @@ class _GameResultDialogState extends ConsumerState<GameResultDialog> {
                     : null,
             child: Text(context.l10n.newOpponent, textAlign: TextAlign.center),
           ),
-        if (gameState.isTournamentGame)
+        if (gameState.tournament != null)
           SecondaryButton(
             semanticsLabel: context.l10n.backToTournament,
             onPressed: () => Navigator.of(context).popUntil((route) => route is! PopupRoute),

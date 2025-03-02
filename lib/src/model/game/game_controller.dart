@@ -144,24 +144,12 @@ class GameController extends _$GameController {
         }
       }
 
-      var state = GameState(
+      return GameState(
         gameFullId: gameFullId,
         game: game,
         stepCursor: game.steps.length - 1,
         liveClock: _liveClock,
       );
-
-      if (game.meta.tournamentId != null) {
-        // TODO socket will be adapted to include tournament data directly
-        final tournament = await ref
-            .read(tournamentRepositoryProvider)
-            .getTournament(game.meta.tournamentId!, standingsPage: 1);
-        state = state.copyWith(tournament: tournament);
-
-        // TODO fetch player ranks
-      }
-
-      return state;
     });
   }
 
@@ -367,7 +355,7 @@ class GameController extends _$GameController {
   }
 
   void berserk() {
-    if (state.valueOrNull?.tournament?.berserkable == true) {
+    if (state.valueOrNull?.game.meta.tournament?.berserkable == true) {
       _socketClient.send('berserk', null);
     }
   }
@@ -1000,7 +988,7 @@ class GameState with _$GameState {
     GameFullId? redirectGameId,
 
     /// Only if this game is part of a tournament
-    Tournament? tournament,
+    TournamentData? tournament,
   }) = _GameState;
 
   /// The [Position] and its legal moves at the current cursor.
@@ -1034,8 +1022,6 @@ class GameState with _$GameState {
       !game.playable &&
       game.meta.speed != Speed.correspondence &&
       (game.source == GameSource.lobby || game.source == GameSource.pool);
-
-  bool get isTournamentGame => game.source == GameSource.arena || game.source == GameSource.swiss;
 
   bool get canOfferDraw => game.drawable && (lastDrawOfferAtPly ?? -99) < game.lastPly - 20;
 

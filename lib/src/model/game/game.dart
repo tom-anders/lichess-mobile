@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:collection/collection.dart';
 import 'package:dartchess/dartchess.dart';
+import 'package:deep_pick/deep_pick.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:intl/intl.dart';
@@ -289,6 +290,19 @@ class ServerGamePrefs with _$ServerGamePrefs {
 }
 
 @Freezed(fromJson: true, toJson: true)
+class TournamentData with _$TournamentData {
+  const factory TournamentData({
+    required TournamentId id,
+    required String name,
+    required Duration timeLeft,
+    required bool berserkable,
+    required ({int white, int black}) ranks,
+  }) = _TournamentData;
+
+  factory TournamentData.fromJson(Map<String, dynamic> json) => _$TournamentDataFromJson(json);
+}
+
+@Freezed(fromJson: true, toJson: true)
 class GameMeta with _$GameMeta {
   const GameMeta._();
 
@@ -321,7 +335,7 @@ class GameMeta with _$GameMeta {
     Division? division,
 
     /// Only if this game is part of an arena or swiss tournament
-    TournamentId? tournamentId,
+    TournamentData? tournament,
   }) = _GameMeta;
 
   factory GameMeta.fromJson(Map<String, dynamic> json) => _$GameMetaFromJson(json);

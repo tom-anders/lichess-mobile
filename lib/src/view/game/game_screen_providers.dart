@@ -5,6 +5,7 @@ import 'package:lichess_mobile/src/model/common/id.dart';
 import 'package:lichess_mobile/src/model/common/speed.dart';
 import 'package:lichess_mobile/src/model/game/game.dart';
 import 'package:lichess_mobile/src/model/game/game_controller.dart';
+import 'package:lichess_mobile/src/model/game/game_socket_events.dart';
 import 'package:lichess_mobile/src/model/lobby/create_game_service.dart';
 import 'package:lichess_mobile/src/model/lobby/game_seek.dart';
 import 'package:lichess_mobile/src/model/tournament/tournament.dart';
@@ -127,6 +128,6 @@ Future<GameMeta> gameMeta(Ref ref, GameFullId gameId) async {
 }
 
 @riverpod
-Future<Tournament?> gameTournament(Ref ref, GameFullId gameId) async {
+Future<TournamentData?> gameTournament(Ref ref, GameFullId gameId) async {
   return await ref.watch(gameControllerProvider(gameId).selectAsync((state) => state.tournament));
 }

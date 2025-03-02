@@ -33,9 +33,6 @@ class Player with _$Player {
     /// Post game player analysis summary
     PlayerAnalysis? analysis,
 
-    /// If playing in a tournament, current rank of this player
-    int? rank,
-
     /// If in a tournament, whether the player has berserked or not. Null otherwise.
     bool? berserk,
   }) = _Player;

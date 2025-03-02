@@ -7,9 +7,11 @@ import 'package:lichess_mobile/src/model/account/account_repository.dart';
 import 'package:lichess_mobile/src/model/challenge/challenge.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
 import 'package:lichess_mobile/src/model/common/time_increment.dart';
+import 'package:lichess_mobile/src/model/game/game.dart';
 import 'package:lichess_mobile/src/model/game/game_controller.dart';
 import 'package:lichess_mobile/src/model/game/game_filter.dart';
 import 'package:lichess_mobile/src/model/game/game_history.dart';
+import 'package:lichess_mobile/src/model/game/game_socket_events.dart';
 import 'package:lichess_mobile/src/model/lobby/create_game_service.dart';
 import 'package:lichess_mobile/src/model/lobby/game_seek.dart';
 import 'package:lichess_mobile/src/model/lobby/game_setup_preferences.dart';
@@ -387,55 +389,30 @@ class _ChallengeGameTitle extends ConsumerWidget {
 }
 
 class _TournamentGameTitle extends ConsumerWidget {
-  const _TournamentGameTitle({required this.gameId});
+  const _TournamentGameTitle(this.tournament);
 
-  final GameFullId gameId;
+  final TournamentData tournament;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // TODO display tournament countdown via state
-
-    switch (ref.watch(gameTournamentProvider(gameId))) {
-      case AsyncData(:final value?):
-        {
-          return Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              CountdownClockBuilder(
-                timeLeft: value.timeToFinish ?? Duration.zero,
-                clockUpdatedAt: DateTime.now(),
-                active: true,
-                tickInterval: const Duration(seconds: 1),
-                builder:
-                    (BuildContext context, Duration timeLeft) => Center(
-                      child: Text(
-                        timeLeft.toHoursMinutesSeconds(),
-                        style: const TextStyle(fontFeatures: const [FontFeature.tabularFigures()]),
-                      ),
-                    ),
-              ),
-            ],
-          );
-        }
-      case AsyncError():
-        return const SizedBox.shrink();
-      case _:
-        return Shimmer(
-          child: ShimmerLoading(
-            isLoading: true,
-            child: SizedBox(
-              height: 24.0,
-              width: 200.0,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.black,
-                  borderRadius: BorderRadius.circular(10.0),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        CountdownClockBuilder(
+          timeLeft: tournament.timeLeft,
+          clockUpdatedAt: DateTime.now(),
+          active: true,
+          tickInterval: const Duration(seconds: 1),
+          builder:
+              (BuildContext context, Duration timeLeft) => Center(
+                child: Text(
+                  timeLeft.toHoursMinutesSeconds(),
+                  style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]),
                 ),
               ),
-            ),
-          ),
-        );
-    }
+        ),
+      ],
+    );
   }
 }
 
@@ -453,8 +430,8 @@ class _StandaloneGameTitle extends ConsumerWidget {
     final metaAsync = ref.watch(gameMetaProvider(id));
     return metaAsync.when(
       data: (meta) {
-        if (meta.tournamentId != null) {
-          return _TournamentGameTitle(gameId: id);
+        if (meta.tournament != null) {
+          return _TournamentGameTitle(meta.tournament!);
         }
 
         final mode = meta.rated ? ' • ${context.l10n.rated}' : ' • ${context.l10n.casual}';
