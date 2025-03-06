@@ -988,7 +988,7 @@ class GameState with _$GameState {
     GameFullId? redirectGameId,
 
     /// Only if this game is part of a tournament
-    TournamentData? tournament,
+    TournamentMeta? tournament,
   }) = _GameState;
 
   /// The [Position] and its legal moves at the current cursor.

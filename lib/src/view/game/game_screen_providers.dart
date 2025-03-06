@@ -128,6 +128,6 @@ Future<GameMeta> gameMeta(Ref ref, GameFullId gameId) async {
 }
 
 @riverpod
-Future<TournamentData?> gameTournament(Ref ref, GameFullId gameId) async {
+Future<TournamentMeta?> gameTournament(Ref ref, GameFullId gameId) async {
   return await ref.watch(gameControllerProvider(gameId).selectAsync((state) => state.tournament));
 }

@@ -290,16 +290,16 @@ class ServerGamePrefs with _$ServerGamePrefs {
 }
 
 @Freezed(fromJson: true, toJson: true)
-class TournamentData with _$TournamentData {
-  const factory TournamentData({
+class TournamentMeta with _$TournamentMeta {
+  const factory TournamentMeta({
     required TournamentId id,
     required String name,
     required Duration timeLeft,
     required bool berserkable,
     required ({int white, int black}) ranks,
-  }) = _TournamentData;
+  }) = _TournamentMeta;
 
-  factory TournamentData.fromJson(Map<String, dynamic> json) => _$TournamentDataFromJson(json);
+  factory TournamentMeta.fromJson(Map<String, dynamic> json) => _$TournamentMetaFromJson(json);
 }
 
 @Freezed(fromJson: true, toJson: true)
@@ -335,7 +335,7 @@ class GameMeta with _$GameMeta {
     Division? division,
 
     /// Only if this game is part of an arena or swiss tournament
-    TournamentData? tournament,
+    TournamentMeta? tournament,
   }) = _GameMeta;
 
   factory GameMeta.fromJson(Map<String, dynamic> json) => _$GameMetaFromJson(json);

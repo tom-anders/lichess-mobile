@@ -261,7 +261,7 @@ GameMeta _playableGameMetaFromPick(RequiredPick pick) {
   );
 }
 
-TournamentData? _playableGameTournamentDataFromPick(RequiredPick pick) => TournamentData(
+TournamentMeta? _playableGameTournamentDataFromPick(RequiredPick pick) => TournamentMeta(
   id: pick('id').asTournamentIdOrThrow(),
   name: pick('name').asStringOrThrow(),
   timeLeft: Duration(seconds: pick('secondsLeft').asIntOrThrow()),

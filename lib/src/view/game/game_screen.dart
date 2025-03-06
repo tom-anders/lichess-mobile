@@ -391,7 +391,7 @@ class _ChallengeGameTitle extends ConsumerWidget {
 class _TournamentGameTitle extends ConsumerWidget {
   const _TournamentGameTitle(this.tournament);
 
-  final TournamentData tournament;
+  final TournamentMeta tournament;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
