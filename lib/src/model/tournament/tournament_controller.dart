@@ -128,6 +128,8 @@ class TournamentState with _$TournamentState {
 
   GameFullId? get currentGame => tournament.me?.gameId;
 
+  Duration? get pauseDelay => tournament.me?.pauseDelay;
+
   int get firstRankOfPage => (standingsPage - 1) * kStandingsPageSize + 1;
   bool get hasPreviousPage => standingsPage > 1;
   bool get hasNextPage => tournament.nbPlayers > standingsPage * kStandingsPageSize;

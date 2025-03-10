@@ -374,24 +374,54 @@ class _FeaturedGamePlayer extends StatelessWidget {
   }
 }
 
-class _BottomBar extends ConsumerWidget {
+class _BottomBar extends ConsumerStatefulWidget {
   const _BottomBar(this.state);
 
   final TournamentState state;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_BottomBar> createState() => _BottomBarState();
+}
+
+class _BottomBarState extends ConsumerState<_BottomBar> {
+  bool joinOrLeaveInProgress = false;
+
+  @override
+  Widget build(BuildContext context) {
     final isLoggedIn = ref.watch(authSessionProvider)?.user.id != null;
+
+    ref.listen(
+      tournamentControllerProvider(widget.state.id).select((value) => value.valueOrNull?.joined),
+      (prevJoined, joined) {
+        if (prevJoined != joined) {
+          setState(() {
+            joinOrLeaveInProgress = false;
+          });
+        }
+      },
+    );
+
     return PlatformBottomBar(
       children: [
-        // TODO loading spinner while we're joining/leaving
         if (isLoggedIn)
-          BottomBarButton(
-            label: state.joined ? context.l10n.pause : context.l10n.join,
-            icon: state.joined ? Icons.pause : Icons.play_arrow,
-            showLabel: true,
-            onTap: ref.read(tournamentControllerProvider(state.id).notifier).joinOrPause,
-          )
+          joinOrLeaveInProgress
+              ? const Center(child: CircularProgressIndicator())
+              : BottomBarButton(
+                label: widget.state.joined ? context.l10n.pause : context.l10n.join,
+                icon: widget.state.joined ? Icons.pause : Icons.play_arrow,
+                showLabel: true,
+                onTap:
+                    widget.state.pauseDelay == null
+                        ? () {
+                          ref
+                              .read(tournamentControllerProvider(widget.state.id).notifier)
+                              .joinOrPause();
+                          setState(() {
+                            joinOrLeaveInProgress = true;
+                          });
+                        }
+                        : null,
+              )
         else
           BottomBarButton(
             label: context.l10n.signIn,

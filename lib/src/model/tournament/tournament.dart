@@ -20,7 +20,7 @@ typedef TournamentLists =
       IList<TournamentListItem> finished,
     });
 
-typedef TournamentMe = ({int rank, GameFullId? gameId, bool? withdraw});
+typedef TournamentMe = ({int rank, GameFullId? gameId, bool? withdraw, Duration? pauseDelay});
 
 const int kStandingsPageSize = 10;
 typedef StandingPage = ({int page, IList<StandingPlayer> players});
@@ -65,15 +65,13 @@ extension TournamentExtension on Pick {
     if (value == null) return null;
     try {
       final requiredPick = this.required();
-      print('value: ${requiredPick.asMapOrNull()}');
-      print('fillId:: ${requiredPick('fullId').asGameFullIdOrNull()}');
       return (
         rank: requiredPick('rank').asIntOrThrow(),
         gameId: requiredPick('fullId').asGameFullIdOrNull(),
         withdraw: requiredPick('withdraw').asBoolOrNull(),
+        pauseDelay: requiredPick('pauseDelay').asDurationFromSecondsOrNull(),
       );
     } catch (e) {
-      print('Error parsing TournamentMe: $e');
       return null;
     }
   }
