@@ -20,6 +20,11 @@ class TournamentController extends _$TournamentController {
 
   late final SocketClient _socketClient;
 
+  // If we join/leave to often, the server blocks us from joining, see [TournamentMe.pauseDelay].
+  // However, there's no "reload" event from the socket once we're able to join again,
+  // so we manually have to set this timer to schedule a reload once we can join again.
+  Timer? _pauseDelayTimer;
+
   @override
   Future<TournamentState> build(TournamentId id) async {
     final state = await _loadTournament(id, standingsPage: 1);
@@ -28,6 +33,7 @@ class TournamentController extends _$TournamentController {
     _socketClient = socketPool.open(Uri(path: '/tournament/$id/socket/v6'));
     ref.onDispose(() {
       _socketSubscription?.cancel();
+      _pauseDelayTimer?.cancel();
     });
 
     _socketSubscription?.cancel();
@@ -75,17 +81,22 @@ class TournamentController extends _$TournamentController {
 
   Future<void> _reload({required int standingsPage}) async {
     _logger.fine('Refreshing tournament standings page $standingsPage');
-    final state = this.state.valueOrNull;
-    if (state == null) {
+
+    if (!state.hasValue) {
       return;
     }
-    this.state = AsyncValue.data(
-      state.copyWith(
-        tournament: await ref
-            .read(tournamentRepositoryProvider)
-            .reload(state.tournament, standingsPage: standingsPage),
-      ),
-    );
+
+    final tournament = await ref
+        .read(tournamentRepositoryProvider)
+        .reload(state.requireValue.tournament, standingsPage: standingsPage);
+
+    if (tournament.me?.pauseDelay != null) {
+      _pauseDelayTimer = Timer(tournament.me!.pauseDelay!, () {
+        _reload(standingsPage: standingsPage);
+      });
+    }
+
+    state = AsyncValue.data(state.requireValue.copyWith(tournament: tournament));
   }
 
   void _handleSocketEvent(SocketEvent event) {
@@ -128,7 +139,7 @@ class TournamentState with _$TournamentState {
 
   GameFullId? get currentGame => tournament.me?.gameId;
 
-  Duration? get pauseDelay => tournament.me?.pauseDelay;
+  bool get canJoin => tournament.me?.pauseDelay == null;
 
   int get firstRankOfPage => (standingsPage - 1) * kStandingsPageSize + 1;
   bool get hasPreviousPage => standingsPage > 1;

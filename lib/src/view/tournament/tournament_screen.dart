@@ -411,7 +411,7 @@ class _BottomBarState extends ConsumerState<_BottomBar> {
                 icon: widget.state.joined ? Icons.pause : Icons.play_arrow,
                 showLabel: true,
                 onTap:
-                    widget.state.pauseDelay == null
+                    widget.state.canJoin
                         ? () {
                           ref
                               .read(tournamentControllerProvider(widget.state.id).notifier)
