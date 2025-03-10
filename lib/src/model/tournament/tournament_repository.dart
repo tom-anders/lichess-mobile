@@ -48,12 +48,7 @@ class TournamentRepository {
         queryParameters: {'page': standingsPage.toString(), 'partial': 'true'},
       ),
       headers: {'Accept': 'application/json'},
-      mapper: (Map<String, dynamic> json) {
-        print('reload: $json');
-        final new_tournament = tournament.updateFromPartialServerJson(json);
-        print('new me: ${new_tournament.me}');
-        return new_tournament;
-      },
+      mapper: (Map<String, dynamic> json) => tournament.updateFromPartialServerJson(json),
     );
   }
 

@@ -345,12 +345,7 @@ class _FeaturedGame extends ConsumerWidget {
 }
 
 class _FeaturedGamePlayer extends StatelessWidget {
-  const _FeaturedGamePlayer({
-    super.key,
-    required this.game,
-    required this.player,
-    required this.side,
-  });
+  const _FeaturedGamePlayer({required this.game, required this.player, required this.side});
 
   final PlayableGame game;
   final FeaturedPlayer player;
@@ -359,7 +354,6 @@ class _FeaturedGamePlayer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final activeClockSide = game.lastPosition.fullmoves > 1 ? game.lastPosition.turn : null;
-    // TODO extend GamePlayer to display rank and berserk
     return GamePlayer(
       game: game,
       side: side,
