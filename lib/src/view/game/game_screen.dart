@@ -396,8 +396,9 @@ class _TournamentGameTitle extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
+        Flexible(child: AutoSizeText(tournament.name, maxLines: 1, minFontSize: 14.0)),
         CountdownClockBuilder(
           timeLeft: tournament.timeLeft,
           clockUpdatedAt: DateTime.now(),
@@ -406,7 +407,7 @@ class _TournamentGameTitle extends ConsumerWidget {
           builder:
               (BuildContext context, Duration timeLeft) => Center(
                 child: Text(
-                  timeLeft.toHoursMinutesSeconds(),
+                  '${timeLeft.toHoursMinutesSeconds()} ',
                   style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]),
                 ),
               ),
