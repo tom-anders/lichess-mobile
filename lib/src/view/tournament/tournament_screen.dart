@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:auto_size_text/auto_size_text.dart';
 import 'package:collection/collection.dart';
 import 'package:dartchess/dartchess.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ import 'package:lichess_mobile/src/model/tv/tv_controller.dart';
 import 'package:lichess_mobile/src/styles/lichess_colors.dart';
 import 'package:lichess_mobile/src/styles/lichess_icons.dart';
 import 'package:lichess_mobile/src/styles/styles.dart';
+import 'package:lichess_mobile/src/utils/duration.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
 import 'package:lichess_mobile/src/utils/navigation.dart';
 import 'package:lichess_mobile/src/view/game/game_loading_board.dart';
@@ -79,9 +81,28 @@ class _Body extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    print('me: ${state.tournament.me}');
+    final timeLeft = state.tournament.timeToStart ?? state.tournament.timeToFinish;
     return PlatformScaffold(
-      appBarTitle: Text(state.name),
+      appBarTitle: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Flexible(child: AutoSizeText(state.tournament.fullName, maxLines: 1, minFontSize: 14.0)),
+          if (timeLeft != null)
+            CountdownClockBuilder(
+              timeLeft: timeLeft,
+              clockUpdatedAt: DateTime.now(),
+              active: true,
+              tickInterval: const Duration(seconds: 1),
+              builder:
+                  (BuildContext context, Duration timeLeft) => Center(
+                    child: Text(
+                      '${timeLeft.toHoursMinutesSeconds()} ',
+                      style: const TextStyle(fontFeatures: [FontFeature.tabularFigures()]),
+                    ),
+                  ),
+            ),
+        ],
+      ),
       body: Column(
         children: [
           Expanded(
