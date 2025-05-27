@@ -1273,7 +1273,10 @@ class InlineMove extends ConsumerWidget {
                   TextSpan(
                     text: moveWithNag,
                     style: moveTextStyle.copyWith(
-                      color: _textColor(context, isCurrentMove ? 1 : 0.9, nag: nag),
+                      color: branch.isPremove
+                          // TODO different colors for different premove branches?
+                          ? LichessColors.brag
+                          : _textColor(context, isCurrentMove ? 1 : 0.9, nag: nag),
                     ),
                   ),
                 ],

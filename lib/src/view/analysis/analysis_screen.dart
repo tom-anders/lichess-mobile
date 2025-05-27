@@ -275,6 +275,23 @@ class _BottomBar extends ConsumerWidget {
               );
             },
           ),
+        if (options.conditionalPremoves != null)
+          BottomBarButton(
+            label: context.l10n.addCurrentVariation,
+            onTap:
+                options.conditionalPremoves == null ||
+                    analysisState.currentPosition.ply <= options.conditionalPremoves!.currentPly
+                ? () {}
+                : analysisState.currentNode.isPremove
+                ? () => ref
+                      .read(ctrlProvider.notifier)
+                      .removeConditionalPremove(analysisState.currentPath)
+                : () => ref
+                      .read(ctrlProvider.notifier)
+                      .addConditionalPremove(analysisState.currentPath),
+
+            icon: analysisState.currentNode.isPremove ? Icons.delete : Icons.save,
+          ),
         RepeatButton(
           onLongPress: analysisState.canGoBack ? () => _moveBackward(ref) : null,
           child: BottomBarButton(
