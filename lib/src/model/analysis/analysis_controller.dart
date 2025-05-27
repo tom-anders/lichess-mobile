@@ -358,29 +358,48 @@ class AnalysisController extends _$AnalysisController
     state = AsyncData(curState.copyWith(pov: curState.pov.opposite));
   }
 
-  @override
+  void _recomputePremoveBranchIndices({Branch? branch, int branchIndex = 0}) {
+    if (branch == null) {
+      branch = _root.mainline.firstWhereOrNull((n) => n.premoveBranch != null);
+      if (branch == null) return;
+    }
+
+    branch.premoveBranch = branchIndex;
+
+    final premoveChildren = branch.children.where((c) => c.premoveBranch != null).toList();
+
+    for (final (index, child) in premoveChildren.indexed) {
+      _recomputePremoveBranchIndices(child as Branch, branchIndex + index + 1);
+    }
+  }
+
   void addConditionalPremove(UciPath path) {
     for (final branch in _root.branchesOn(path)) {
       if (branch.position.ply > options.conditionalPremoves!.currentPly) {
-        branch.isPremove = true;
+        /// We don't know the exact branch index yet, so just mark this as a premove branch.
+        /// We'll recompute the indices after this loop.
+        branch.premoveBranch = 0;
       }
     }
+
+    _recomputePremoveBranchIndices();
 
     state = AsyncData(state.requireValue.copyWith(root: _root.view));
   }
 
-  @override
   void removeConditionalPremove(UciPath path) {
     final branch = _root.branchAt(path)!;
-    branch.updateAll((node) => (node as Branch).isPremove = false);
+    branch.updateAll((node) => (node as Branch).premoveBranch = null);
 
     // Remove premove for all parent nodes, but only if they're also part of another premove branch
     for (final branch in _root.branchesOn(path.penultimate).toList().reversed) {
-      if (branch.children.where((c) => c.isPremove).length > 1) {
+      if (branch.children.where((c) => c.premoveBranch != null).length > 1) {
         break;
       }
-      branch.isPremove = false;
+      branch.premoveBranch = null;
     }
+
+    _recomputePremoveBranchIndices();
 
     state = AsyncData(state.requireValue.copyWith(root: _root.view));
   }
