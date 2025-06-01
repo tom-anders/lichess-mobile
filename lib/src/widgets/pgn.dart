@@ -116,6 +116,7 @@ class DebouncedPgnTreeView extends ConsumerStatefulWidget {
     required this.root,
     required this.currentPath,
     this.livePath,
+    this.premovePaths,
     required this.pgnRootComments,
     required this.notifier,
     this.shouldShowComputerAnalysis = true,
@@ -132,6 +133,11 @@ class DebouncedPgnTreeView extends ConsumerStatefulWidget {
 
   /// Path to the last live move in the tree if it is an ongoing game (usually broadcast or correspondence).
   final UciPath? livePath;
+
+  /// Paths that are currently saved as premoves in an ongoing correspondence game.
+  ///
+  /// We highlight these in different colors
+  final IList<UciPath>? premovePaths;
 
   /// Comments associated with the root node
   final IList<PgnComment>? pgnRootComments;
@@ -251,6 +257,7 @@ class _DebouncedPgnTreeViewState extends ConsumerState<DebouncedPgnTreeView> {
         currentMoveKey: currentMoveKey,
         pathToCurrentMove: pathToCurrentMove,
         pathToLiveMove: pathToLiveMove,
+        premovePaths: widget.premovePaths,
         displayMode: widget.displayMode,
         notifier: widget.notifier,
       ),
@@ -268,6 +275,9 @@ typedef _PgnTreeViewParams = ({
 
   /// Path to the last live move in the tree if it is an ongoing game (usually broadcast or correspondence).
   UciPath? pathToLiveMove,
+
+  /// Paths that are currently saved as premoves in an ongoing correspondence game.
+  IList<UciPath>? premovePaths,
 
   /// Whether to show analysis variations.
   bool shouldShowComputerAnalysis,
@@ -1145,6 +1155,13 @@ class _IndentedSideLinesState extends State<_IndentedSideLines> {
   }
 }
 
+const _premoveBranchColors = [
+  LichessColors.brag,
+  LichessColors.cyan,
+  LichessColors.green,
+  LichessColors.fancy,
+];
+
 Color? _textColor(BuildContext context, double opacity, {int? nag}) {
   final defaultColor = TextTheme.of(context).bodyLarge?.color?.withValues(alpha: opacity);
 
@@ -1238,6 +1255,10 @@ class InlineMove extends ConsumerWidget {
         ? branch.eval ?? branch.serverEval
         : null;
 
+    final premoveBranchIndex = params.premovePaths?.indexed
+        .firstWhereOrNull((indexAndPath) => indexAndPath.$2.contains(path))
+        ?.$1;
+
     return InkWell(
       key: isCurrentMove ? params.currentMoveKey : null,
       borderRadius: borderRadius,
@@ -1273,9 +1294,9 @@ class InlineMove extends ConsumerWidget {
                   TextSpan(
                     text: moveWithNag,
                     style: moveTextStyle.copyWith(
-                      color: branch.premoveBranch != null
+                      color: premoveBranchIndex != null
                           // TODO different colors for different premove branches?
-                          ? LichessColors.brag
+                          ? _premoveBranchColors[premoveBranchIndex % _premoveBranchColors.length]
                           : _textColor(context, isCurrentMove ? 1 : 0.9, nag: nag),
                     ),
                   ),

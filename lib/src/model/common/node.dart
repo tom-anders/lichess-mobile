@@ -354,7 +354,6 @@ class Branch extends Node {
     required this.sanMove,
     this.isComputerVariation = false,
     this.isCollapsed = false,
-    this.premoveBranch,
     this.lichessAnalysisComments,
     // below are fields from dartchess [PgnNodeData]
     this.startingComments,
@@ -367,11 +366,6 @@ class Branch extends Node {
 
   /// Whether the branch should be hidden in the tree view.
   bool isCollapsed;
-
-  /// If the branch is part of a conditional premove variation in an active correspondence game,
-  /// the index of the first branch it appears in. If this node appears in multiple saved conditional premove branches,
-  /// this will be the index of the one that was created first.
-  int? premoveBranch;
 
   /// The id of the branch, using a concise notation of associated move.
   UciCharPair get id => UciCharPair.fromMove(sanMove.move);
@@ -402,7 +396,6 @@ class Branch extends Node {
     children: IList(children.map((child) => child.view)),
     isComputerVariation: isComputerVariation,
     isCollapsed: isCollapsed,
-    premoveBranch: premoveBranch,
     lichessAnalysisComments: lichessAnalysisComments?.lock,
     startingComments: startingComments?.lock,
     comments: comments?.lock,
@@ -633,7 +626,6 @@ sealed class ViewBranch extends ViewNode with _$ViewBranch {
     Opening? opening,
     required IList<ViewBranch> children,
     @Default(false) bool isCollapsed,
-    int? premoveBranch,
     required bool isComputerVariation,
     ClientEval? eval,
     IList<PgnComment>? lichessAnalysisComments,

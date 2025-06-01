@@ -207,6 +207,7 @@ class AnalysisController extends _$AnalysisController
     final currentPath = options.initialMoveCursor == null ? _root.mainlinePath : path;
     final currentNode = _root.nodeAt(currentPath);
 
+    final premovePaths = <UciPath>[];
     if (options.conditionalPremoves != null) {
       // Premove paths are saved on the server, so if the user has already added some premoves on web,
       // we need to add them to our tree here as well.
@@ -218,9 +219,16 @@ class AnalysisController extends _$AnalysisController
         final nodes = <Branch>[];
         for (final step in steps) {
           position = position.playUnchecked(step.sanMove.move);
-          nodes.add(Branch(position: position, sanMove: step.sanMove, isPremove: true));
+          nodes.add(Branch(position: position, sanMove: step.sanMove));
         }
         _root.addNodesAt(mainlinePath, nodes);
+
+        premovePaths.add(
+          UciPath.join(
+            _root.mainlinePath,
+            UciPath.fromUciMoves(steps.map((s) => s.sanMove.move.uci)),
+          ),
+        );
       }
     }
 
@@ -241,6 +249,7 @@ class AnalysisController extends _$AnalysisController
       archivedGame: archivedGame,
       currentPath: currentPath,
       pathToLiveMove: isGameFinished ? null : _root.mainlinePath,
+      premovePaths: IList(premovePaths),
       isOnMainline: _root.isOnMainline(currentPath),
       root: _root.view,
       currentNode: AnalysisCurrentNode.fromNode(currentNode),
@@ -358,52 +367,6 @@ class AnalysisController extends _$AnalysisController
     state = AsyncData(curState.copyWith(pov: curState.pov.opposite));
   }
 
-  void _recomputePremoveBranchIndices({Branch? branch, int branchIndex = 0}) {
-    if (branch == null) {
-      branch = _root.mainline.firstWhereOrNull((n) => n.premoveBranch != null);
-      if (branch == null) return;
-    }
-
-    branch.premoveBranch = branchIndex;
-
-    final premoveChildren = branch.children.where((c) => c.premoveBranch != null).toList();
-
-    for (final (index, child) in premoveChildren.indexed) {
-      _recomputePremoveBranchIndices(child as Branch, branchIndex + index + 1);
-    }
-  }
-
-  void addConditionalPremove(UciPath path) {
-    for (final branch in _root.branchesOn(path)) {
-      if (branch.position.ply > options.conditionalPremoves!.currentPly) {
-        /// We don't know the exact branch index yet, so just mark this as a premove branch.
-        /// We'll recompute the indices after this loop.
-        branch.premoveBranch = 0;
-      }
-    }
-
-    _recomputePremoveBranchIndices();
-
-    state = AsyncData(state.requireValue.copyWith(root: _root.view));
-  }
-
-  void removeConditionalPremove(UciPath path) {
-    final branch = _root.branchAt(path)!;
-    branch.updateAll((node) => (node as Branch).premoveBranch = null);
-
-    // Remove premove for all parent nodes, but only if they're also part of another premove branch
-    for (final branch in _root.branchesOn(path.penultimate).toList().reversed) {
-      if (branch.children.where((c) => c.premoveBranch != null).length > 1) {
-        break;
-      }
-      branch.premoveBranch = null;
-    }
-
-    _recomputePremoveBranchIndices();
-
-    state = AsyncData(state.requireValue.copyWith(root: _root.view));
-  }
-
   @override
   void userJump(UciPath path) {
     _setPath(path);
@@ -448,6 +411,36 @@ class AnalysisController extends _$AnalysisController
   void deleteFromHere(UciPath path) {
     _root.deleteAt(path);
     _setPath(path.penultimate, shouldRecomputeRootView: true);
+  }
+
+  void addPremovePath(UciPath path) {
+    state = AsyncData(
+      state.requireValue.copyWith(premovePaths: state.requireValue.premovePaths.add(path)),
+    );
+
+    // Force displayed premove paths to be recomputed.
+    // TODO check if we need it
+    _setPath(state.requireValue.currentPath, shouldRecomputeRootView: true);
+  }
+
+  void removePremovePathsContaining(UciPath path) {
+    state = AsyncData(
+      state.requireValue.copyWith(
+        premovePaths: state.requireValue.premovePaths.removeWhere((p) => p.contains(path)),
+      ),
+    );
+    _setPath(state.requireValue.currentPath, shouldRecomputeRootView: true);
+  }
+
+  void removePremovePathAtIndex(int index) {
+    if (index < 0 || index >= state.requireValue.premovePaths.length) {
+      return;
+    }
+
+    state = AsyncData(
+      state.requireValue.copyWith(premovePaths: state.requireValue.premovePaths.removeAt(index)),
+    );
+    _setPath(state.requireValue.currentPath, shouldRecomputeRootView: true);
   }
 
   /// Toggles the computer analysis on/off.
@@ -738,6 +731,11 @@ sealed class AnalysisState with _$AnalysisState implements EvaluationMixinState 
     /// If this is a correspondence game, the path to the last move that has been played.
     required UciPath? pathToLiveMove,
 
+    /// If this is a correspondence game, paths that are currently saved as conditional premoves.
+    ///
+    /// Each path in this list will always start with [AnalysisState.pathToLiveMove].
+    required IList<UciPath> premovePaths,
+
     /// Whether the current path is on the mainline.
     required bool isOnMainline,
 
@@ -816,6 +814,8 @@ sealed class AnalysisState with _$AnalysisState implements EvaluationMixinState 
   bool get isEngineAllowed =>
       isComputerAnalysisAllowedAndEnabled && engineSupportedVariants.contains(variant);
 
+  bool get currentPathIsPremove => premovePaths.any((p) => p.contains(currentPath));
+
   @override
   bool isEngineAvailable(EngineEvaluationPrefState prefs) => isEngineAllowed && prefs.isEnabled;
 
@@ -842,7 +842,6 @@ sealed class AnalysisCurrentNode with _$AnalysisCurrentNode {
     required Position position,
     required bool hasChild,
     required bool isRoot,
-    required bool isPremove,
     SanMove? sanMove,
     Opening? opening,
     ClientEval? eval,
@@ -858,7 +857,6 @@ sealed class AnalysisCurrentNode with _$AnalysisCurrentNode {
         sanMove: node.sanMove,
         position: node.position,
         isRoot: node is Root,
-        isPremove: node.isPremove,
         hasChild: node.children.isNotEmpty,
         opening: node.opening,
         eval: node.eval,
@@ -872,7 +870,6 @@ sealed class AnalysisCurrentNode with _$AnalysisCurrentNode {
         position: node.position,
         hasChild: node.children.isNotEmpty,
         isRoot: node is Root,
-        isPremove: false,
         opening: node.opening,
         eval: node.eval,
       );
