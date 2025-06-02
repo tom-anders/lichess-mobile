@@ -460,6 +460,7 @@ class _PgnTreeViewState extends State<_PgnTreeView> {
     _updateLines(
       fullRebuild:
           oldWidget.root != widget.root ||
+          oldWidget.params.premovePaths != widget.params.premovePaths ||
           oldWidget.params.shouldShowComputerAnalysis != widget.params.shouldShowComputerAnalysis ||
           oldWidget.params.shouldShowComments != widget.params.shouldShowComments ||
           oldWidget.params.shouldShowAnnotations != widget.params.shouldShowAnnotations ||

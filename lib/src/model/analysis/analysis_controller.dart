@@ -838,11 +838,13 @@ sealed class AnalysisState with _$AnalysisState implements EvaluationMixinState 
   bool get isEngineAllowed =>
       isComputerAnalysisAllowedAndEnabled && engineSupportedVariants.contains(variant);
 
-  bool get currentPathContainsLiveMove =>
-      pathToLiveMove != null && currentPath.contains(pathToLiveMove!);
+  bool get currentPathIsChildOfLiveMove =>
+      pathToLiveMove != null &&
+      currentPath != pathToLiveMove &&
+      currentPath.contains(pathToLiveMove!);
 
   bool get currentPathIsPremove =>
-      currentPathContainsLiveMove && premovePaths?.any((p) => p.contains(currentPath)) == true;
+      currentPathIsChildOfLiveMove && premovePaths?.any((p) => p.contains(currentPath)) == true;
 
   @override
   bool isEngineAvailable(EngineEvaluationPrefState prefs) => isEngineAllowed && prefs.isEnabled;

@@ -238,10 +238,12 @@ class _BottomBar extends ConsumerWidget {
     final analysisState = ref.watch(ctrlProvider).requireValue;
     final evalPrefs = ref.watch(engineEvaluationPreferencesProvider);
 
+    print('current path is premove: ${analysisState.currentPathIsPremove}');
+
     final canAddPremove =
         analysisState.currentPathIsPremove == false &&
             options.conditionalPremoves != null &&
-            analysisState.currentPathContainsLiveMove &&
+            analysisState.currentPathIsChildOfLiveMove &&
             analysisState.currentPosition.turn == options.conditionalPremoves!.ourSide
         ? options.conditionalPremoves!.currentPly + 2 < analysisState.currentPosition.ply
         : options.conditionalPremoves!.currentPly + 1 < analysisState.currentPosition.ply;
@@ -283,18 +285,18 @@ class _BottomBar extends ConsumerWidget {
               );
             },
           ),
-        if (canAddPremove)
-          BottomBarButton(
-            label: context.l10n.addCurrentVariation,
-            onTap: ref.read(ctrlProvider.notifier).addCurrentPathAsPremove,
-            icon: Icons.save,
-          )
-        else if (analysisState.currentPathIsPremove)
+        if (analysisState.currentPathIsPremove)
           BottomBarButton(
             // TODO l10n
             label: 'Remove current variation(s)',
             onTap: ref.read(ctrlProvider.notifier).removeCurrentPathFromPremoves,
             icon: Icons.delete,
+          )
+        else if (canAddPremove)
+          BottomBarButton(
+            label: context.l10n.addCurrentVariation,
+            onTap: ref.read(ctrlProvider.notifier).addCurrentPathAsPremove,
+            icon: Icons.save,
           )
         else if (options.conditionalPremoves != null)
           BottomBarButton(label: context.l10n.addCurrentVariation, onTap: null, icon: Icons.save),
