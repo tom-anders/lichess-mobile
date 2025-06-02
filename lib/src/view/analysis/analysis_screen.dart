@@ -238,15 +238,13 @@ class _BottomBar extends ConsumerWidget {
     final analysisState = ref.watch(ctrlProvider).requireValue;
     final evalPrefs = ref.watch(engineEvaluationPreferencesProvider);
 
-    print('current path is premove: ${analysisState.currentPathIsPremove}');
-
-    final canAddPremove =
-        analysisState.currentPathIsPremove == false &&
-            options.conditionalPremoves != null &&
-            analysisState.currentPathIsChildOfLiveMove &&
-            analysisState.currentPosition.turn == options.conditionalPremoves!.ourSide
-        ? options.conditionalPremoves!.currentPly + 2 < analysisState.currentPosition.ply
-        : options.conditionalPremoves!.currentPly + 1 < analysisState.currentPosition.ply;
+    //final canAddPremove =
+    //    analysisState.currentPathIsPremove == false &&
+    //        options.conditionalPremoves != null &&
+    //        analysisState.currentPathIsChildOfLiveMove &&
+    //        analysisState.currentPosition.turn == options.conditionalPremoves!.ourSide
+    //    ? options.conditionalPremoves!.currentPly + 2 < analysisState.currentPosition.ply
+    //    : options.conditionalPremoves!.currentPly + 1 < analysisState.currentPosition.ply;
 
     return BottomBar(
       children: [
@@ -292,7 +290,7 @@ class _BottomBar extends ConsumerWidget {
             onTap: ref.read(ctrlProvider.notifier).removeCurrentPathFromPremoves,
             icon: Icons.delete,
           )
-        else if (canAddPremove)
+        else if (analysisState.canAddCurrentPathAsPremove)
           BottomBarButton(
             label: context.l10n.addCurrentVariation,
             onTap: ref.read(ctrlProvider.notifier).addCurrentPathAsPremove,

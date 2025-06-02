@@ -254,6 +254,7 @@ class AnalysisController extends _$AnalysisController
       currentPath: currentPath,
       pathToLiveMove: pathToLiveMove,
       premovePaths: premovePaths?.lock,
+      youAre: options.conditionalPremoves?.ourSide,
       isOnMainline: _root.isOnMainline(currentPath),
       root: _root.view,
       currentNode: AnalysisCurrentNode.fromNode(currentNode),
@@ -422,13 +423,15 @@ class AnalysisController extends _$AnalysisController
       return;
     }
 
-    final currentPath = state.requireValue.currentPath;
+    final pathToAdd = state.requireValue.currentPosition.turn == state.requireValue.youAre
+        ? state.requireValue.currentPath.penultimate
+        : state.requireValue.currentPath;
 
     state = AsyncData(
       state.requireValue.copyWith(
         premovePaths: state.requireValue.premovePaths!.replaceFirstWhere(
-          (path) => currentPath.contains(path),
-          (_) => currentPath,
+          (path) => pathToAdd.contains(path),
+          (_) => pathToAdd,
           addIfNotFound: true,
         ),
       ),
@@ -754,6 +757,9 @@ sealed class AnalysisState with _$AnalysisState implements EvaluationMixinState 
     /// Each path in this list will always start with [AnalysisState.pathToLiveMove].
     required IList<UciPath>? premovePaths,
 
+    /// If this is an active correspondence game, the side that we're playing as.
+    Side? youAre,
+
     /// Whether the current path is on the mainline.
     required bool isOnMainline,
 
@@ -839,6 +845,14 @@ sealed class AnalysisState with _$AnalysisState implements EvaluationMixinState 
 
   bool get currentPathIsPremove =>
       currentPathIsChildOfLiveMove && premovePaths?.any((p) => p.contains(currentPath)) == true;
+
+  bool get canAddCurrentPathAsPremove =>
+      currentPathIsChildOfLiveMove &&
+          !currentPathIsPremove &&
+          youAre != null &&
+          currentPosition.turn == youAre
+      ? pathToLiveMove!.size + 2 < currentPath.size
+      : pathToLiveMove!.size + 1 < currentPath.size;
 
   @override
   bool isEngineAvailable(EngineEvaluationPrefState prefs) => isEngineAllowed && prefs.isEnabled;
