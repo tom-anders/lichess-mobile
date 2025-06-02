@@ -118,8 +118,6 @@ class GameController extends _$GameController {
         _onFinishedGameLoad(fullEvent.game);
       }
 
-      print('forecast: ${game.correspondenceForecast}');
-
       return GameState(
         gameFullId: gameFullId,
         game: game,
@@ -1065,11 +1063,13 @@ sealed class GameState with _$GameState {
             variant: game.meta.variant,
             isComputerAnalysisAllowed: false,
           ),
-          conditionalPremoves: game.playable && game.meta.speed == Speed.correspondence
+          conditionalPremoves:
+              game.playable && game.meta.speed == Speed.correspondence && game.youAre != null
               ? (
                   initialSteps: game.correspondenceForecast?.steps ?? const IList.empty(),
                   currentPly: game.lastPly,
                   gameFullId: gameFullId,
+                  ourSide: game.youAre!,
                 )
               : null,
         );

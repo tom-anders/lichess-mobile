@@ -45,6 +45,8 @@ typedef ConditionalPremoves = ({
   int currentPly,
 
   GameFullId gameFullId,
+
+  Side ourSide,
 });
 
 @freezed
@@ -207,13 +209,15 @@ class AnalysisController extends _$AnalysisController
     final currentPath = options.initialMoveCursor == null ? _root.mainlinePath : path;
     final currentNode = _root.nodeAt(currentPath);
 
-    final premovePaths = <UciPath>[];
+    late final List<UciPath>? premovePaths;
+    print('conditional premoves: ${options.conditionalPremoves}');
     if (options.conditionalPremoves != null) {
       // Premove paths are saved on the server, so if the user has already added some premoves on web,
       // we need to add them to our tree here as well.
       final lastMainlineNode = _root.mainline.last;
       final mainlinePath = _root.mainlinePath;
 
+      premovePaths = [];
       for (final steps in options.conditionalPremoves!.initialSteps) {
         var position = lastMainlineNode.position;
         final nodes = <Branch>[];
@@ -230,6 +234,8 @@ class AnalysisController extends _$AnalysisController
           ),
         );
       }
+    } else {
+      premovePaths = null;
     }
 
     // don't use ref.watch here: we don't want to invalidate state when the
@@ -249,7 +255,7 @@ class AnalysisController extends _$AnalysisController
       archivedGame: archivedGame,
       currentPath: currentPath,
       pathToLiveMove: isGameFinished ? null : _root.mainlinePath,
-      premovePaths: IList(premovePaths),
+      premovePaths: premovePaths?.lock,
       isOnMainline: _root.isOnMainline(currentPath),
       root: _root.view,
       currentNode: AnalysisCurrentNode.fromNode(currentNode),
@@ -413,9 +419,21 @@ class AnalysisController extends _$AnalysisController
     _setPath(path.penultimate, shouldRecomputeRootView: true);
   }
 
-  void addPremovePath(UciPath path) {
+  void addCurrentPathAsPremove() {
+    if (state.requireValue.premovePaths == null) {
+      return;
+    }
+
+    final currentPath = state.requireValue.currentPath;
+
     state = AsyncData(
-      state.requireValue.copyWith(premovePaths: state.requireValue.premovePaths.add(path)),
+      state.requireValue.copyWith(
+        premovePaths: state.requireValue.premovePaths!.replaceFirstWhere(
+          (path) => currentPath.contains(path),
+          (_) => currentPath,
+          addIfNotFound: true,
+        ),
+      ),
     );
 
     // Force displayed premove paths to be recomputed.
@@ -423,22 +441,30 @@ class AnalysisController extends _$AnalysisController
     _setPath(state.requireValue.currentPath, shouldRecomputeRootView: true);
   }
 
-  void removePremovePathsContaining(UciPath path) {
+  void removeCurrentPathFromPremoves() {
+    if (state.requireValue.premovePaths == null) {
+      return;
+    }
+
     state = AsyncData(
       state.requireValue.copyWith(
-        premovePaths: state.requireValue.premovePaths.removeWhere((p) => p.contains(path)),
+        premovePaths: state.requireValue.premovePaths!.removeWhere(
+          (p) => p.contains(state.requireValue.currentPath),
+        ),
       ),
     );
     _setPath(state.requireValue.currentPath, shouldRecomputeRootView: true);
   }
 
   void removePremovePathAtIndex(int index) {
-    if (index < 0 || index >= state.requireValue.premovePaths.length) {
+    if (state.requireValue.premovePaths == null ||
+        index < 0 ||
+        index >= state.requireValue.premovePaths!.length) {
       return;
     }
 
     state = AsyncData(
-      state.requireValue.copyWith(premovePaths: state.requireValue.premovePaths.removeAt(index)),
+      state.requireValue.copyWith(premovePaths: state.requireValue.premovePaths!.removeAt(index)),
     );
     _setPath(state.requireValue.currentPath, shouldRecomputeRootView: true);
   }
@@ -734,7 +760,7 @@ sealed class AnalysisState with _$AnalysisState implements EvaluationMixinState 
     /// If this is a correspondence game, paths that are currently saved as conditional premoves.
     ///
     /// Each path in this list will always start with [AnalysisState.pathToLiveMove].
-    required IList<UciPath> premovePaths,
+    required IList<UciPath>? premovePaths,
 
     /// Whether the current path is on the mainline.
     required bool isOnMainline,
@@ -814,7 +840,10 @@ sealed class AnalysisState with _$AnalysisState implements EvaluationMixinState 
   bool get isEngineAllowed =>
       isComputerAnalysisAllowedAndEnabled && engineSupportedVariants.contains(variant);
 
-  bool get currentPathIsPremove => premovePaths.any((p) => p.contains(currentPath));
+  bool get currentPathContainsLiveMove =>
+      pathToLiveMove != null && currentPath.contains(pathToLiveMove!);
+
+  bool get currentPathIsPremove => premovePaths?.any((p) => p.contains(currentPath)) ?? false;
 
   @override
   bool isEngineAvailable(EngineEvaluationPrefState prefs) => isEngineAllowed && prefs.isEnabled;
