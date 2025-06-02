@@ -433,10 +433,6 @@ class AnalysisController extends _$AnalysisController
         ),
       ),
     );
-
-    // Force displayed premove paths to be recomputed.
-    // TODO check if we need it
-    _setPath(state.requireValue.currentPath, shouldRecomputeRootView: true);
   }
 
   void removeCurrentPathFromPremoves() {
@@ -451,7 +447,6 @@ class AnalysisController extends _$AnalysisController
         ),
       ),
     );
-    _setPath(state.requireValue.currentPath, shouldRecomputeRootView: true);
   }
 
   void removePremovePathAtIndex(int index) {
@@ -464,7 +459,6 @@ class AnalysisController extends _$AnalysisController
     state = AsyncData(
       state.requireValue.copyWith(premovePaths: state.requireValue.premovePaths!.removeAt(index)),
     );
-    _setPath(state.requireValue.currentPath, shouldRecomputeRootView: true);
   }
 
   /// Toggles the computer analysis on/off.
