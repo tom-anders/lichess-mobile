@@ -1,6 +1,7 @@
 import 'package:dartchess/dartchess.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:lichess_mobile/src/model/analysis/forecast.dart';
 import 'package:lichess_mobile/src/model/common/chess.dart';
 import 'package:lichess_mobile/src/model/common/eval.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
@@ -30,7 +31,7 @@ sealed class OfflineCorrespondenceGame
     required GameMeta meta,
     @JsonKey(fromJson: stepsFromJson, toJson: stepsToJson) required IList<GameStep> steps,
     CorrespondenceClockData? clock,
-    CorrespondenceForecast? forecast,
+    Forecast? forecast,
     String? initialFen,
     required bool rated,
     required GameStatus status,
