@@ -210,12 +210,14 @@ class AnalysisController extends _$AnalysisController
     final currentNode = _root.nodeAt(currentPath);
 
     late final List<UciPath>? premovePaths;
-    print('conditional premoves: ${options.conditionalPremoves}');
+    late final UciPath? pathToLiveMove;
     if (options.conditionalPremoves != null) {
       // Premove paths are saved on the server, so if the user has already added some premoves on web,
       // we need to add them to our tree here as well.
       final lastMainlineNode = _root.mainline.last;
       final mainlinePath = _root.mainlinePath;
+
+      pathToLiveMove = _root.mainlinePath;
 
       premovePaths = [];
       for (final steps in options.conditionalPremoves!.initialSteps) {
@@ -236,6 +238,7 @@ class AnalysisController extends _$AnalysisController
       }
     } else {
       premovePaths = null;
+      pathToLiveMove = null;
     }
 
     // don't use ref.watch here: we don't want to invalidate state when the
@@ -254,7 +257,7 @@ class AnalysisController extends _$AnalysisController
       gameId: options.gameId,
       archivedGame: archivedGame,
       currentPath: currentPath,
-      pathToLiveMove: isGameFinished ? null : _root.mainlinePath,
+      pathToLiveMove: pathToLiveMove,
       premovePaths: premovePaths?.lock,
       isOnMainline: _root.isOnMainline(currentPath),
       root: _root.view,
