@@ -215,8 +215,6 @@ class AnalysisController extends _$AnalysisController
       // Premove paths are saved on the server, so if the user has already added some premoves on web,
       // we need to add them to our tree here as well.
       final lastMainlineNode = _root.mainline.last;
-      final mainlinePath = _root.mainlinePath;
-
       pathToLiveMove = _root.mainlinePath;
 
       premovePaths = [];
@@ -227,13 +225,10 @@ class AnalysisController extends _$AnalysisController
           position = position.playUnchecked(step.sanMove.move);
           nodes.add(Branch(position: position, sanMove: step.sanMove));
         }
-        _root.addNodesAt(mainlinePath, nodes);
+        _root.addNodesAt(pathToLiveMove, nodes);
 
         premovePaths.add(
-          UciPath.join(
-            _root.mainlinePath,
-            UciPath.fromUciMoves(steps.map((s) => s.sanMove.move.uci)),
-          ),
+          UciPath.join(pathToLiveMove, UciPath.fromUciMoves(steps.map((s) => s.sanMove.move.uci))),
         );
       }
     } else {
@@ -846,7 +841,8 @@ sealed class AnalysisState with _$AnalysisState implements EvaluationMixinState 
   bool get currentPathContainsLiveMove =>
       pathToLiveMove != null && currentPath.contains(pathToLiveMove!);
 
-  bool get currentPathIsPremove => premovePaths?.any((p) => p.contains(currentPath)) ?? false;
+  bool get currentPathIsPremove =>
+      currentPathContainsLiveMove && premovePaths?.any((p) => p.contains(currentPath)) == true;
 
   @override
   bool isEngineAvailable(EngineEvaluationPrefState prefs) => isEngineAllowed && prefs.isEnabled;

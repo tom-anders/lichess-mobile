@@ -1160,6 +1160,7 @@ const _premoveBranchColors = [
   LichessColors.cyan,
   LichessColors.green,
   LichessColors.fancy,
+  LichessColors.blue,
 ];
 
 Color? _textColor(BuildContext context, double opacity, {int? nag}) {
@@ -1255,9 +1256,14 @@ class InlineMove extends ConsumerWidget {
         ? branch.eval ?? branch.serverEval
         : null;
 
-    final premoveBranchIndex = params.premovePaths?.indexed
-        .firstWhereOrNull((indexAndPath) => indexAndPath.$2.contains(path))
-        ?.$1;
+    final premoveBranchIndex =
+        params.pathToLiveMove != null &&
+            path != params.pathToLiveMove &&
+            path.contains(params.pathToLiveMove!)
+        ? params.premovePaths?.indexed
+              .firstWhereOrNull((indexAndPath) => indexAndPath.$2.contains(path))
+              ?.$1
+        : null;
 
     return InkWell(
       key: isCurrentMove ? params.currentMoveKey : null,
@@ -1295,7 +1301,6 @@ class InlineMove extends ConsumerWidget {
                     text: moveWithNag,
                     style: moveTextStyle.copyWith(
                       color: premoveBranchIndex != null
-                          // TODO different colors for different premove branches?
                           ? _premoveBranchColors[premoveBranchIndex % _premoveBranchColors.length]
                           : _textColor(context, isCurrentMove ? 1 : 0.9, nag: nag),
                     ),
