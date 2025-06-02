@@ -227,9 +227,7 @@ class AnalysisController extends _$AnalysisController
         }
         _root.addNodesAt(pathToLiveMove, nodes);
 
-        premovePaths.add(
-          UciPath.join(pathToLiveMove, UciPath.fromUciMoves(steps.map((s) => s.sanMove.move.uci))),
-        );
+        premovePaths.add(UciPath.fromUciMoves(steps.map((s) => s.sanMove.move.uci)));
       }
     } else {
       premovePaths = null;
@@ -423,9 +421,11 @@ class AnalysisController extends _$AnalysisController
       return;
     }
 
-    final pathToAdd = state.requireValue.currentPosition.turn == state.requireValue.youAre
-        ? state.requireValue.currentPath.penultimate
-        : state.requireValue.currentPath;
+    final pathToAdd =
+        (state.requireValue.currentPosition.turn == state.requireValue.youAre
+                ? state.requireValue.currentPath.penultimate
+                : state.requireValue.currentPath)
+            .stripPrefix(state.requireValue.pathToLiveMove!);
 
     state = AsyncData(
       state.requireValue.copyWith(
@@ -446,21 +446,11 @@ class AnalysisController extends _$AnalysisController
     state = AsyncData(
       state.requireValue.copyWith(
         premovePaths: state.requireValue.premovePaths!.removeWhere(
-          (p) => p.contains(state.requireValue.currentPath),
+          (p) => p.contains(
+            state.requireValue.currentPath.stripPrefix(state.requireValue.pathToLiveMove!),
+          ),
         ),
       ),
-    );
-  }
-
-  void removePremovePathAtIndex(int index) {
-    if (state.requireValue.premovePaths == null ||
-        index < 0 ||
-        index >= state.requireValue.premovePaths!.length) {
-      return;
-    }
-
-    state = AsyncData(
-      state.requireValue.copyWith(premovePaths: state.requireValue.premovePaths!.removeAt(index)),
     );
   }
 
@@ -752,9 +742,7 @@ sealed class AnalysisState with _$AnalysisState implements EvaluationMixinState 
     /// If this is a correspondence game, the path to the last move that has been played.
     required UciPath? pathToLiveMove,
 
-    /// If this is a correspondence game, paths that are currently saved as conditional premoves.
-    ///
-    /// Each path in this list will always start with [AnalysisState.pathToLiveMove].
+    /// If this is a correspondence game, paths relative to [AnalysisState.pathToLiveMove] that are currently saved as conditional premoves.
     required IList<UciPath>? premovePaths,
 
     /// If this is an active correspondence game, the side that we're playing as.
@@ -844,7 +832,7 @@ sealed class AnalysisState with _$AnalysisState implements EvaluationMixinState 
       currentPath.contains(pathToLiveMove!);
 
   bool get currentPathIsPremove =>
-      currentPathIsChildOfLiveMove && premovePaths?.any((p) => p.contains(currentPath)) == true;
+      premovePaths?.any((p) => UciPath.join(pathToLiveMove!, p).contains(currentPath)) == true;
 
   bool get canAddCurrentPathAsPremove =>
       currentPathIsChildOfLiveMove &&

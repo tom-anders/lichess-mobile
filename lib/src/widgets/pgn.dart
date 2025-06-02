@@ -134,8 +134,7 @@ class DebouncedPgnTreeView extends ConsumerStatefulWidget {
   /// Path to the last live move in the tree if it is an ongoing game (usually broadcast or correspondence).
   final UciPath? livePath;
 
-  /// Paths that are currently saved as premoves in an ongoing correspondence game.
-  ///
+  /// Paths relative to [DebouncedPgnTreeView.livePath] that are currently saved as premoves in an ongoing correspondence game.
   /// We highlight these in different colors
   final IList<UciPath>? premovePaths;
 
@@ -276,7 +275,7 @@ typedef _PgnTreeViewParams = ({
   /// Path to the last live move in the tree if it is an ongoing game (usually broadcast or correspondence).
   UciPath? pathToLiveMove,
 
-  /// Paths that are currently saved as premoves in an ongoing correspondence game.
+  /// Paths relative to [_PgnTreeViewParams.pathToLiveMove] that are currently saved as premoves in an ongoing correspondence game.
   IList<UciPath>? premovePaths,
 
   /// Whether to show analysis variations.
@@ -1260,9 +1259,12 @@ class InlineMove extends ConsumerWidget {
     final premoveBranchIndex =
         params.pathToLiveMove != null &&
             path != params.pathToLiveMove &&
-            path.contains(params.pathToLiveMove!)
+            path.contains(params.pathToLiveMove!) // TODO I think this is redundant
         ? params.premovePaths?.indexed
-              .firstWhereOrNull((indexAndPath) => indexAndPath.$2.contains(path))
+              .firstWhereOrNull(
+                (indexAndPath) =>
+                    UciPath.join(params.pathToLiveMove!, indexAndPath.$2).contains(path),
+              )
               ?.$1
         : null;
 

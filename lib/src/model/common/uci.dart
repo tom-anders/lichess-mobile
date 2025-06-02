@@ -91,6 +91,9 @@ sealed class UciPath with _$UciPath {
 
   bool contains(UciPath other) => value.startsWith(other.value);
 
+  UciPath stripPrefix(UciPath prefix) =>
+      contains(prefix) ? UciPath(value.substring(prefix.value.length)) : this;
+
   int get size => value.length ~/ 2;
 
   UciCharPair? get head => value.isEmpty ? null : UciCharPair(value[0], value[1]);
