@@ -808,6 +808,9 @@ sealed class AnalysisState with _$AnalysisState implements EvaluationMixinState 
   bool get isEngineAllowed =>
       isComputerAnalysisAllowedAndEnabled && engineSupportedVariants.contains(variant);
 
+  ViewBranch? get liveMoveBranch =>
+      pathToLiveMove != null ? root.branchesOn(pathToLiveMove!).last : null;
+
   /// If the current node branches off from the live move and is not yet saved as a premove,
   /// the part of [AnalysisState.currentPath] that would be saved as a premove line. null otherwise.
   UciPath? get currentPremoveCandidate {

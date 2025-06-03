@@ -24,12 +24,19 @@ class ConditionalPremoves extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final ctrlProvider = analysisControllerProvider(options);
     final analysisState = ref.watch(ctrlProvider).requireValue;
-    final currentNode = analysisState.currentNode;
 
     return Column(
       children: [
-        analysisState.
-      ]
-    )
+        ...analysisState.forecast!.lines.map(
+          (line) => Row(
+            children: analysisState.liveMoveBranch!
+                .branchesOn(line)
+                .map((branch) => Text('${branch.sanMove.san} '))
+                .toList(),
+          ),
+        ),
+        if (analysisState.currentPremoveCandidate != null) Text('can add!') else Text('nope'),
+      ],
+    );
   }
 }
