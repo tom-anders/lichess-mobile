@@ -7,6 +7,7 @@ import 'package:collection/collection.dart';
 import 'package:deep_pick/deep_pick.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:lichess_mobile/src/model/common/node.dart';
 import 'package:lichess_mobile/src/model/common/uci.dart';
 
 part 'forecast.freezed.dart';
@@ -76,35 +77,35 @@ sealed class Forecast with _$Forecast {
 
   @useResult
   Forecast add(UciPath newLine) {
+    final candidate = _truncate(newLine);
+    if (!isCandidate(candidate)) {
+      return this;
+    }
     return copyWith(
       lines: lines
-          .removeWhere((line) => newLine.contains(line) || _collides(line, newLine))
-          .add(newLine),
+          .removeWhere((line) => candidate.contains(line) || _collides(line, candidate))
+          .add(candidate),
     );
   }
 
-  // TODO we currently have no mapping from UciCharPair back to an UCI string.
-  // But we can use the Node API to get the nodes on a path and get the UCI from that.
-  // For that, the parameter needs to be the node corresponding to the current live move
-  // TODO toServerJson(Branch currentMove);
-  // old implementation from CorrespondenceForcast:
-  //String toJson() => jsonEncode({
-  //  'onMyTurn': onMyTurn,
-  //  'steps': steps
-  //      .map(
-  //        (forecast) => forecast
-  //            .mapIndexed(
-  //              (i, step) => {
-  //                'ply': step.ply,
-  //                'uci': step.sanMove.move.uci,
-  //                'san': step.sanMove.san,
-  //                'fen': step.fen,
-  //              },
-  //            )
-  //            .toList(growable: false),
-  //      )
-  //      .toList(growable: false),
-  //});
+  String toServerJson(Branch currentBranch) => jsonEncode({
+    'onMyTurn': onMyTurn,
+    'steps': lines
+        .map(
+          (line) => currentBranch
+              .branchesOn(line)
+              .map(
+                (branch) => {
+                  'ply': branch.position.ply,
+                  'uci': branch.sanMove.move.uci,
+                  'san': branch.sanMove.san,
+                  'fen': branch.position.fen,
+                },
+              )
+              .toList(growable: false),
+        )
+        .toList(growable: false),
+  });
 }
 
 Forecast forecastFromPick(RequiredPick pick) => Forecast(

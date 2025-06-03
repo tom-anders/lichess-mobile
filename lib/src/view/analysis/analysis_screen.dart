@@ -15,6 +15,7 @@ import 'package:lichess_mobile/src/view/analysis/analysis_board.dart';
 import 'package:lichess_mobile/src/view/analysis/analysis_layout.dart';
 import 'package:lichess_mobile/src/view/analysis/analysis_settings_screen.dart';
 import 'package:lichess_mobile/src/view/analysis/analysis_share_screen.dart';
+import 'package:lichess_mobile/src/view/analysis/conditional_premoves.dart';
 import 'package:lichess_mobile/src/view/analysis/server_analysis.dart';
 import 'package:lichess_mobile/src/view/analysis/tree_view.dart';
 import 'package:lichess_mobile/src/view/board_editor/board_editor_screen.dart';
@@ -72,6 +73,7 @@ class _AnalysisScreenState extends ConsumerState<_AnalysisScreen>
       AnalysisTab.opening,
       AnalysisTab.moves,
       if (widget.options.gameId != null) AnalysisTab.summary,
+      if (widget.options.conditionalPremovesOptions != null) AnalysisTab.conditionalPremoves,
     ];
 
     _tabController = TabController(vsync: this, initialIndex: 1, length: tabs.length);
@@ -222,6 +224,7 @@ class _Body extends ConsumerWidget {
         ),
         AnalysisTreeView(options),
         if (options.gameId != null) ServerAnalysisSummary(options),
+        if (options.conditionalPremovesOptions != null) ConditionalPremoves(options),
       ],
     );
   }
@@ -237,14 +240,6 @@ class _BottomBar extends ConsumerWidget {
     final ctrlProvider = analysisControllerProvider(options);
     final analysisState = ref.watch(ctrlProvider).requireValue;
     final evalPrefs = ref.watch(engineEvaluationPreferencesProvider);
-
-    //final canAddPremove =
-    //    analysisState.currentPathIsPremove == false &&
-    //        options.conditionalPremoves != null &&
-    //        analysisState.currentPathIsChildOfLiveMove &&
-    //        analysisState.currentPosition.turn == options.conditionalPremoves!.ourSide
-    //    ? options.conditionalPremoves!.currentPly + 2 < analysisState.currentPosition.ply
-    //    : options.conditionalPremoves!.currentPly + 1 < analysisState.currentPosition.ply;
 
     return BottomBar(
       children: [
@@ -283,21 +278,6 @@ class _BottomBar extends ConsumerWidget {
               );
             },
           ),
-        if (analysisState.currentPathIsPremove)
-          BottomBarButton(
-            // TODO l10n
-            label: 'Remove current variation(s)',
-            onTap: ref.read(ctrlProvider.notifier).removeCurrentPathFromPremoves,
-            icon: Icons.delete,
-          )
-        else if (analysisState.canAddCurrentPathAsPremove)
-          BottomBarButton(
-            label: context.l10n.addCurrentVariation,
-            onTap: ref.read(ctrlProvider.notifier).addCurrentPathAsPremove,
-            icon: Icons.save,
-          )
-        else if (options.conditionalPremoves != null)
-          BottomBarButton(label: context.l10n.addCurrentVariation, onTap: null, icon: Icons.save),
         RepeatButton(
           onLongPress: analysisState.canGoBack ? () => _moveBackward(ref) : null,
           child: BottomBarButton(

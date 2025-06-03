@@ -38,7 +38,7 @@ final _dateFormat = DateFormat('yyyy.MM.dd');
 
 typedef StandaloneAnalysis = ({String pgn, Variant variant, bool isComputerAnalysisAllowed});
 
-typedef ConditionalPremoves = ({
+typedef ConditionalPremovesOptions = ({
   /// Current saved set of premove branches, these are stored on the server.
   IList<IList<CorrespondenceForecastStep>> initialSteps,
 
@@ -60,7 +60,7 @@ sealed class AnalysisOptions with _$AnalysisOptions {
     StandaloneAnalysis? standalone,
     GameId? gameId,
     int? initialMoveCursor,
-    ConditionalPremoves? conditionalPremoves,
+    ConditionalPremovesOptions? conditionalPremovesOptions,
   }) = _AnalysisOptions;
 
   bool get isLichessGameAnalysis => gameId != null;
@@ -212,14 +212,16 @@ class AnalysisController extends _$AnalysisController
 
     late final Forecast? forecast;
     late final UciPath? pathToLiveMove;
-    if (options.conditionalPremoves != null) {
+    if (options.conditionalPremovesOptions != null) {
       // Premove paths are saved on the server, so if the user has already added some premoves on web,
       // we need to add them to our tree here as well.
       final lastMainlineNode = _root.mainline.last;
       pathToLiveMove = _root.mainlinePath;
 
+      print('initial steps: ${options.conditionalPremovesOptions!.initialSteps}');
+
       final paths = <UciPath>[];
-      for (final steps in options.conditionalPremoves!.initialSteps) {
+      for (final steps in options.conditionalPremovesOptions!.initialSteps) {
         var position = lastMainlineNode.position;
         final nodes = <Branch>[];
         for (final step in steps) {
@@ -232,7 +234,7 @@ class AnalysisController extends _$AnalysisController
       }
 
       forecast = Forecast(
-        lastMainlineNode.position.turn == options.conditionalPremoves!.ourSide,
+        lastMainlineNode.position.turn == options.conditionalPremovesOptions!.ourSide,
         paths.lock,
       );
     } else {
@@ -258,7 +260,7 @@ class AnalysisController extends _$AnalysisController
       currentPath: currentPath,
       pathToLiveMove: pathToLiveMove,
       forecast: forecast,
-      youAre: options.conditionalPremoves?.ourSide,
+      youAre: options.conditionalPremovesOptions?.ourSide,
       isOnMainline: _root.isOnMainline(currentPath),
       root: _root.view,
       currentNode: AnalysisCurrentNode.fromNode(currentNode),
@@ -423,41 +425,15 @@ class AnalysisController extends _$AnalysisController
   }
 
   void addCurrentPathAsPremove() {
-    if (state.requireValue.premovePaths == null) {
-      return;
-    }
-
-    final pathToAdd =
-        (state.requireValue.currentPosition.turn == state.requireValue.youAre
-                ? state.requireValue.currentPath.penultimate
-                : state.requireValue.currentPath)
-            .stripPrefix(state.requireValue.pathToLiveMove!);
-
     state = AsyncData(
       state.requireValue.copyWith(
-        premovePaths: state.requireValue.premovePaths!.replaceFirstWhere(
-          (path) => pathToAdd.contains(path),
-          (_) => pathToAdd,
-          addIfNotFound: true,
-        ),
+        forecast: state.requireValue.forecast!.add(state.requireValue.currentPath),
       ),
     );
   }
 
   void removeCurrentPathFromPremoves() {
-    if (state.requireValue.premovePaths == null) {
-      return;
-    }
-
-    state = AsyncData(
-      state.requireValue.copyWith(
-        premovePaths: state.requireValue.premovePaths!.removeWhere(
-          (p) => p.contains(
-            state.requireValue.currentPath.stripPrefix(state.requireValue.pathToLiveMove!),
-          ),
-        ),
-      ),
-    );
+    // TODO
   }
 
   /// Toggles the computer analysis on/off.

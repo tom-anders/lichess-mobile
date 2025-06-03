@@ -1063,7 +1063,7 @@ sealed class GameState with _$GameState {
             variant: game.meta.variant,
             isComputerAnalysisAllowed: false,
           ),
-          conditionalPremoves:
+          conditionalPremovesOptions:
               game.playable && game.meta.speed == Speed.correspondence && game.youAre != null
               ? (
                   initialSteps: game.correspondenceForecast?.steps ?? const IList.empty(),
