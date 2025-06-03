@@ -353,6 +353,58 @@ sealed class CorrespondenceClockData with _$CorrespondenceClockData {
 }
 
 @freezed
+sealed class CorrespondenceForecast with _$CorrespondenceForecast {
+  const CorrespondenceForecast._();
+  const factory CorrespondenceForecast({
+    required bool onMyTurn,
+    required IList<IList<CorrespondenceForecastStep>> steps,
+  }) = _CorrespondenceForecast;
+
+  factory CorrespondenceForecast.fromJson(Map<String, dynamic> json) =>
+      forecastFromPick(pick(json).required());
+
+  String toJson() => jsonEncode({
+    'onMyTurn': onMyTurn,
+    'steps': steps
+        .map(
+          (forecast) => forecast
+              .mapIndexed(
+                (i, step) => {
+                  'ply': step.ply,
+                  'uci': step.sanMove.move.uci,
+                  'san': step.sanMove.san,
+                  'fen': step.fen,
+                },
+              )
+              .toList(growable: false),
+        )
+        .toList(growable: false),
+  });
+}
+
+CorrespondenceForecast forecastFromPick(RequiredPick pick) => CorrespondenceForecast(
+  onMyTurn: pick('onMyTurn').asBoolOrFalse(),
+  steps: IList(
+    pick('steps').asListOrThrow(
+      (pick) => IList(
+        pick.asListOrThrow(
+          (pick) => (
+            ply: pick('ply').asIntOrThrow(),
+            sanMove: SanMove(
+              pick('san').asStringOrThrow(),
+              Move.parse(pick('uci').asStringOrThrow())!,
+            ),
+            fen: pick('fen').asStringOrThrow(),
+          ),
+        ),
+      ),
+    ),
+  ),
+);
+
+typedef CorrespondenceForecastStep = ({int ply, SanMove sanMove, String fen});
+
+@freezed
 sealed class GameStep with _$GameStep {
   const factory GameStep({
     required Position position,

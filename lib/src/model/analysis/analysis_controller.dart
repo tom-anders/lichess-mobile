@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:intl/intl.dart';
 import 'package:lichess_mobile/src/model/analysis/analysis_preferences.dart';
+import 'package:lichess_mobile/src/model/analysis/forecast.dart';
 import 'package:lichess_mobile/src/model/analysis/opening_service.dart';
 import 'package:lichess_mobile/src/model/analysis/server_analysis_service.dart';
 import 'package:lichess_mobile/src/model/common/chess.dart';
@@ -209,7 +210,7 @@ class AnalysisController extends _$AnalysisController
     final currentPath = options.initialMoveCursor == null ? _root.mainlinePath : path;
     final currentNode = _root.nodeAt(currentPath);
 
-    late final List<UciPath>? premovePaths;
+    late final Forecast? forecast;
     late final UciPath? pathToLiveMove;
     if (options.conditionalPremoves != null) {
       // Premove paths are saved on the server, so if the user has already added some premoves on web,
@@ -217,7 +218,7 @@ class AnalysisController extends _$AnalysisController
       final lastMainlineNode = _root.mainline.last;
       pathToLiveMove = _root.mainlinePath;
 
-      premovePaths = [];
+      final paths = <UciPath>[];
       for (final steps in options.conditionalPremoves!.initialSteps) {
         var position = lastMainlineNode.position;
         final nodes = <Branch>[];
@@ -227,10 +228,15 @@ class AnalysisController extends _$AnalysisController
         }
         _root.addNodesAt(pathToLiveMove, nodes);
 
-        premovePaths.add(UciPath.fromUciMoves(steps.map((s) => s.sanMove.move.uci)));
+        paths.add(UciPath.fromUciMoves(steps.map((s) => s.sanMove.move.uci)));
       }
+
+      forecast = Forecast(
+        lastMainlineNode.position.turn == options.conditionalPremoves!.ourSide,
+        paths.lock,
+      );
     } else {
-      premovePaths = null;
+      forecast = null;
       pathToLiveMove = null;
     }
 
@@ -251,7 +257,7 @@ class AnalysisController extends _$AnalysisController
       archivedGame: archivedGame,
       currentPath: currentPath,
       pathToLiveMove: pathToLiveMove,
-      premovePaths: premovePaths?.lock,
+      forecast: forecast,
       youAre: options.conditionalPremoves?.ourSide,
       isOnMainline: _root.isOnMainline(currentPath),
       root: _root.view,
@@ -742,8 +748,8 @@ sealed class AnalysisState with _$AnalysisState implements EvaluationMixinState 
     /// If this is a correspondence game, the path to the last move that has been played.
     required UciPath? pathToLiveMove,
 
-    /// If this is a correspondence game, paths relative to [AnalysisState.pathToLiveMove] that are currently saved as conditional premoves.
-    required IList<UciPath>? premovePaths,
+    /// If this is a correspondence game, stores the current set of conditional premoves.
+    required Forecast? forecast,
 
     /// If this is an active correspondence game, the side that we're playing as.
     Side? youAre,
@@ -826,21 +832,18 @@ sealed class AnalysisState with _$AnalysisState implements EvaluationMixinState 
   bool get isEngineAllowed =>
       isComputerAnalysisAllowedAndEnabled && engineSupportedVariants.contains(variant);
 
-  bool get currentPathIsChildOfLiveMove =>
-      pathToLiveMove != null &&
-      currentPath != pathToLiveMove &&
-      currentPath.contains(pathToLiveMove!);
+  /// If the current node branches off from the live move and is not yet saved as a premove,
+  /// the part of [AnalysisState.currentPath] that would be saved as a premove line. null otherwise.
+  UciPath? get currentPremoveCandidate {
+    if (pathToLiveMove == null ||
+        currentPath == pathToLiveMove ||
+        !currentPath.contains(pathToLiveMove!)) {
+      return null;
+    }
 
-  bool get currentPathIsPremove =>
-      premovePaths?.any((p) => UciPath.join(pathToLiveMove!, p).contains(currentPath)) == true;
-
-  bool get canAddCurrentPathAsPremove =>
-      currentPathIsChildOfLiveMove &&
-          !currentPathIsPremove &&
-          youAre != null &&
-          currentPosition.turn == youAre
-      ? pathToLiveMove!.size + 2 < currentPath.size
-      : pathToLiveMove!.size + 1 < currentPath.size;
+    final candidate = currentPath.stripPrefix(pathToLiveMove!);
+    return forecast!.isCandidate(candidate) ? candidate : null;
+  }
 
   @override
   bool isEngineAvailable(EngineEvaluationPrefState prefs) => isEngineAllowed && prefs.isEnabled;

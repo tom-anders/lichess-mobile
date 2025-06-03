@@ -1155,14 +1155,6 @@ class _IndentedSideLinesState extends State<_IndentedSideLines> {
   }
 }
 
-const _premoveBranchColors = [
-  LichessColors.brag,
-  LichessColors.cyan,
-  LichessColors.green,
-  LichessColors.fancy,
-  LichessColors.blue,
-];
-
 Color? _textColor(BuildContext context, double opacity, {int? nag}) {
   final defaultColor = TextTheme.of(context).bodyLarge?.color?.withValues(alpha: opacity);
 
@@ -1256,17 +1248,11 @@ class InlineMove extends ConsumerWidget {
         ? branch.eval ?? branch.serverEval
         : null;
 
-    final premoveBranchIndex =
+    final isPremove =
         params.pathToLiveMove != null &&
-            path != params.pathToLiveMove &&
-            path.contains(params.pathToLiveMove!) // TODO I think this is redundant
-        ? params.premovePaths?.indexed
-              .firstWhereOrNull(
-                (indexAndPath) =>
-                    UciPath.join(params.pathToLiveMove!, indexAndPath.$2).contains(path),
-              )
-              ?.$1
-        : null;
+        path != params.pathToLiveMove &&
+        path.contains(params.pathToLiveMove!) &&
+        params.premovePaths?.any((p) => p.contains(path)) == true;
 
     return InkWell(
       key: isCurrentMove ? params.currentMoveKey : null,
@@ -1303,8 +1289,9 @@ class InlineMove extends ConsumerWidget {
                   TextSpan(
                     text: moveWithNag,
                     style: moveTextStyle.copyWith(
-                      color: premoveBranchIndex != null
-                          ? _premoveBranchColors[premoveBranchIndex % _premoveBranchColors.length]
+                      color: isPremove
+                          ? LichessColors
+                                .brag // TODO Possibly choose a more suitable color
                           : _textColor(context, isCurrentMove ? 1 : 0.9, nag: nag),
                     ),
                   ),
