@@ -26,7 +26,10 @@ sealed class Forecast with _$Forecast {
   factory Forecast.fromServerJson(Map<String, dynamic> json) =>
       forecastFromPick(pick(json).required());
 
-  // TODO toServerJson(Position currentPosition);
+  // TODO we currently have no mapping from UciCharPair back to an UCI string.
+  // But we can use the Node API to get the nodes on a path and get the UCI from that.
+  // For that, the parameter needs to be the node corresponding to the current live move
+  // TODO toServerJson(Branch currentMove);
   // old implementation from CorrespondenceForcast:
   //String toJson() => jsonEncode({
   //  'onMyTurn': onMyTurn,
