@@ -578,6 +578,8 @@ class _GameBottomBar extends ConsumerWidget {
             ref.read(isBoardTurnedProvider.notifier).toggle();
           },
         ),
+        // TODO add a badge here if we have saved premove lines.
+        // Also, maybe move it to the bottom bar if it's a correspondence game?
         if (gameState.game.playable && gameState.game.meta.speed == Speed.correspondence ||
             gameState.game.finished)
           BottomSheetAction(

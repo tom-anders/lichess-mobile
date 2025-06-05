@@ -1291,8 +1291,8 @@ class InlineMove extends ConsumerWidget {
                     text: moveWithNag,
                     style: moveTextStyle.copyWith(
                       color: isPremove
-                          ? LichessColors
-                                .brag // TODO Possibly choose a more suitable color
+                          // TODO Possibly choose a more suitable color
+                          ? LichessColors.brag
                           : _textColor(context, isCurrentMove ? 1 : 0.9, nag: nag),
                     ),
                   ),
