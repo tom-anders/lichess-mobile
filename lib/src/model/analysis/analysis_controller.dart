@@ -428,13 +428,17 @@ class AnalysisController extends _$AnalysisController
   void addCurrentPathAsPremove() {
     state = AsyncData(
       state.requireValue.copyWith(
-        forecast: state.requireValue.forecast!.add(state.requireValue.currentPath),
+        forecast: state.requireValue.forecast!.add(
+          state.requireValue.currentPath.stripPrefix(state.requireValue.pathToLiveMove!),
+        ),
       ),
     );
   }
 
-  void removeCurrentPathFromPremoves() {
-    // TODO
+  void removePremovePath(UciPath path) {
+    state = AsyncData(
+      state.requireValue.copyWith(forecast: state.requireValue.forecast!.remove(path)),
+    );
   }
 
   /// Toggles the computer analysis on/off.

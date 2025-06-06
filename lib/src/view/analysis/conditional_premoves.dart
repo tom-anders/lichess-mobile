@@ -7,6 +7,8 @@ import 'package:lichess_mobile/src/model/account/account_preferences.dart';
 import 'package:lichess_mobile/src/model/analysis/analysis_controller.dart';
 import 'package:lichess_mobile/src/model/common/node.dart';
 import 'package:lichess_mobile/src/model/common/uci.dart';
+import 'package:lichess_mobile/src/utils/l10n_context.dart';
+import 'package:lichess_mobile/src/widgets/list.dart';
 
 class ConditionalPremoves extends ConsumerWidget {
   const ConditionalPremoves(this.options);
@@ -18,20 +20,43 @@ class ConditionalPremoves extends ConsumerWidget {
     final ctrlProvider = analysisControllerProvider(options);
     final analysisState = ref.watch(ctrlProvider).requireValue;
 
+    final lines = analysisState.forecast!.lines;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        ...analysisState.forecast!.lines.map(
-          (line) => _Variation(startingBranch: analysisState.liveMoveBranch!, path: line),
+        Flexible(
+          child: Card(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: lines.length,
+                separatorBuilder: (_, _) => const PlatformDivider(),
+                itemBuilder: (context, index) => _Variation(
+                  options,
+                  startingBranch: analysisState.liveMoveBranch!,
+                  path: lines[index],
+                ),
+              ),
+            ),
+          ),
         ),
-        if (analysisState.currentPremoveCandidate != null) Text('can add!') else Text('nope'),
+        if (analysisState.currentPremoveCandidate != null)
+          FilledButton.tonal(
+            onPressed: ref.read(ctrlProvider.notifier).addCurrentPathAsPremove,
+            child: Text(context.l10n.addCurrentVariation),
+          )
+        else
+          Text(context.l10n.playVariationToCreateConditionalPremoves),
       ],
     );
   }
 }
 
 class _Variation extends ConsumerWidget {
-  const _Variation({required this.startingBranch, required this.path});
+  const _Variation(this.options, {required this.startingBranch, required this.path});
+
+  final AnalysisOptions options;
 
   final ViewBranch startingBranch;
 
@@ -39,35 +64,63 @@ class _Variation extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final nodes = startingBranch.branchesOn(path);
+    final liveMovePath = ref.watch(analysisControllerProvider(options)).requireValue.pathToLiveMove;
 
     final pieceNotation = ref
         .watch(pieceNotationProvider)
         .maybeWhen(data: (value) => value, orElse: () => defaultAccountPreferences.pieceNotation);
 
-    return InkWell(
-      borderRadius: BorderRadius.all(Radius.circular(4.0)),
-      onTap: () {},
-      child: Container(
-        padding: const EdgeInsets.all(4.0),
-        child: Text(
-          maxLines: 1,
-          style: TextStyle(
-            fontSize: 16,
-            fontFamily: pieceNotation == PieceNotation.symbol ? 'ChessFont' : null,
-          ),
-          nodes
-              .mapIndexed((i, node) {
-                final indexText = i == 0 && node.position.turn == Side.white
-                    ? '${node.position.fullmoves - 1}..'
-                    : i == 0 || node.position.turn == Side.black
-                    ? '${node.position.fullmoves}.'
-                    : '';
-                return '$indexText ${node.sanMove.san}';
-              })
-              .join(' '),
+    return ListTile(
+      visualDensity: VisualDensity.compact,
+      onTap: () {
+        ref
+            .read(analysisControllerProvider(options).notifier)
+            .userJump(UciPath.join(liveMovePath!, path));
+      },
+      titleTextStyle: TextStyle(
+        fontSize: 14,
+        fontFamily: pieceNotation == PieceNotation.symbol ? 'ChessFont' : null,
+        color: ColorScheme.of(context).onSurface,
+      ),
+      title: Text.rich(
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        TextSpan(
+          children: startingBranch
+              .branchesOn(path)
+              .mapIndexed(
+                (i, branch) => WidgetSpan(
+                  child: _Move(branch: branch, startsLine: i == 0),
+                ),
+              )
+              .toList(growable: false),
         ),
       ),
+      trailing: IconButton(
+        onPressed: () {
+          ref.read(analysisControllerProvider(options).notifier).removePremovePath(path);
+        },
+        icon: const Icon(CupertinoIcons.delete, size: 20),
+        tooltip: context.l10n.delete,
+      ),
     );
+  }
+}
+
+class _Move extends StatelessWidget {
+  const _Move({required this.branch, required this.startsLine});
+
+  final ViewBranch branch;
+
+  final bool startsLine;
+
+  @override
+  Widget build(BuildContext context) {
+    final indexText = startsLine && branch.position.turn == Side.white
+        ? '${branch.position.fullmoves - 1}.. '
+        : branch.position.turn == Side.black
+        ? '${branch.position.fullmoves}. '
+        : '';
+    return Text('$indexText${branch.sanMove.san} ');
   }
 }

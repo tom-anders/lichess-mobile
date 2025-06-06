@@ -88,6 +88,11 @@ sealed class Forecast with _$Forecast {
     );
   }
 
+  @useResult
+  Forecast remove(UciPath line) {
+    return copyWith(lines: lines.remove(line));
+  }
+
   String toServerJson(Branch currentBranch) => jsonEncode({
     'onMyTurn': onMyTurn,
     'steps': lines
