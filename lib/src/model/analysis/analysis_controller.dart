@@ -23,6 +23,7 @@ import 'package:lichess_mobile/src/model/engine/evaluation_preferences.dart';
 import 'package:lichess_mobile/src/model/engine/evaluation_service.dart';
 import 'package:lichess_mobile/src/model/game/exported_game.dart';
 import 'package:lichess_mobile/src/model/game/game.dart';
+import 'package:lichess_mobile/src/model/game/game_repository.dart';
 import 'package:lichess_mobile/src/model/game/game_repository_providers.dart';
 import 'package:lichess_mobile/src/model/game/player.dart';
 import 'package:lichess_mobile/src/network/connectivity.dart';
@@ -433,11 +434,26 @@ class AnalysisController extends _$AnalysisController
         ),
       ),
     );
+
+    _syncForecast();
   }
 
   void removePremovePath(UciPath path) {
     state = AsyncData(
       state.requireValue.copyWith(forecast: state.requireValue.forecast!.remove(path)),
+    );
+
+    _syncForecast();
+  }
+
+  void _syncForecast() {
+    ref.withClient(
+      (client) => GameRepository(client).saveForecast(
+        gameId: options.conditionalPremovesOptions!.gameFullId,
+        forecast: state.requireValue.forecast!.toApiForecast(
+          _root.branchAt(state.requireValue.pathToLiveMove!)!,
+        ),
+      ),
     );
   }
 

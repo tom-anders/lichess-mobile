@@ -9,6 +9,8 @@ import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:lichess_mobile/src/model/common/node.dart';
 import 'package:lichess_mobile/src/model/common/uci.dart';
+import 'package:lichess_mobile/src/model/game/game.dart';
+import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 part 'forecast.freezed.dart';
 part 'forecast.g.dart';
@@ -93,24 +95,20 @@ sealed class Forecast with _$Forecast {
     return copyWith(lines: lines.remove(line));
   }
 
-  String toServerJson(Branch currentBranch) => jsonEncode({
-    'onMyTurn': onMyTurn,
-    'steps': lines
+  CorrespondenceForecast toApiForecast(Branch currentBranch) => CorrespondenceForecast(
+    onMyTurn: onMyTurn,
+    steps: lines
         .map(
           (line) => currentBranch
               .branchesOn(line)
               .map(
-                (branch) => {
-                  'ply': branch.position.ply,
-                  'uci': branch.sanMove.move.uci,
-                  'san': branch.sanMove.san,
-                  'fen': branch.position.fen,
-                },
+                (branch) =>
+                    (ply: branch.position.ply, sanMove: branch.sanMove, fen: branch.position.fen),
               )
-              .toList(growable: false),
+              .toIList(),
         )
-        .toList(growable: false),
-  });
+        .toIList(),
+  );
 }
 
 Forecast forecastFromPick(RequiredPick pick) => Forecast(

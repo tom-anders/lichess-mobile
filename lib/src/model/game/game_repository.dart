@@ -1,6 +1,7 @@
 import 'package:dartchess/dartchess.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:http/http.dart' as http;
+import 'package:lichess_mobile/src/model/analysis/forecast.dart';
 import 'package:lichess_mobile/src/model/auth/auth_session.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
 import 'package:lichess_mobile/src/model/common/perf.dart';
@@ -137,15 +138,15 @@ class GameRepository {
     );
   }
 
-  Future<void> saveForecasts({
+  Future<void> saveForecast({
     required GameFullId gameId,
-    required IList<IList<CorrespondenceForecastStep>> steps,
+    required CorrespondenceForecast forecast,
     Move? moveToPlay,
   }) async {
     final uri = Uri(
       path: moveToPlay != null ? '$gameId/forecasts/${moveToPlay.uci}' : '$gameId/forecasts',
     );
-    final response = await client.post(uri);
+    final response = await client.post(uri, body: forecast.toJson());
     if (response.statusCode >= 400) {
       throw http.ClientException('Failed to save forecast: ${response.statusCode}', uri);
     }
