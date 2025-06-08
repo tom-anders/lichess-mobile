@@ -484,7 +484,8 @@ class _GameBottomBar extends ConsumerWidget {
                 },
                 icon: CupertinoIcons.arrowshape_turn_up_left,
               )
-            else if (gameState.game.playable && gameState.game.meta.speed == Speed.correspondence)
+            else if (gameState.game.playable &&
+                gameState.game.meta.speed == Speed.correspondence) ...[
               BottomBarButton(
                 label: 'Go to the next game',
                 icon: Icons.skip_next,
@@ -497,8 +498,17 @@ class _GameBottomBar extends ConsumerWidget {
                   },
                   orElse: () => null,
                 ),
-              )
-            else if (gameState.game.finished)
+              ),
+              BottomBarButton(
+                label: context.l10n.analysis,
+                icon: Icons.biotech,
+                onTap: () {
+                  Navigator.of(
+                    context,
+                  ).push(AnalysisScreen.buildRoute(context, gameState.analysisOptions));
+                },
+              ),
+            ] else if (gameState.game.finished)
               BottomBarButton(
                 label: context.l10n.mobileShowResult,
                 onTap: () {
