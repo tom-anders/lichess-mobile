@@ -363,6 +363,7 @@ class GameController extends _$GameController {
       ).saveForecast(gameId: gameFullId, forecast: newForecast, moveToPlay: moveToPlay),
     );
 
+    // TODO check if we need this or if we get an update via the socket
     state = AsyncValue.data(
       state.requireValue.copyWith(
         game: state.requireValue.game.copyWith(correspondenceForecast: newForecast),

@@ -8,7 +8,6 @@ import 'package:lichess_mobile/src/model/analysis/analysis_controller.dart';
 import 'package:lichess_mobile/src/model/common/node.dart';
 import 'package:lichess_mobile/src/model/common/uci.dart';
 import 'package:lichess_mobile/src/utils/l10n_context.dart';
-import 'package:lichess_mobile/src/widgets/list.dart';
 
 class ConditionalPremoves extends ConsumerWidget {
   const ConditionalPremoves(this.options);
@@ -22,6 +21,8 @@ class ConditionalPremoves extends ConsumerWidget {
 
     final lines = analysisState.forecast!.lines;
 
+    final currentCandidate = analysisState.currentPremoveCandidate;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -29,31 +30,53 @@ class ConditionalPremoves extends ConsumerWidget {
           child: Card(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4.0),
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: lines.length,
-                separatorBuilder: (_, _) => const PlatformDivider(),
-                itemBuilder: (context, index) => _Variation(
-                  options,
-                  startingNode: analysisState.liveMoveNode!,
-                  path: lines[index],
-                ),
+              child: ListView(
+                //shrinkWrap: true,
+                children: [
+                  if (currentCandidate != null)
+                    _Variation(
+                      options,
+                      startingNode: analysisState.liveMoveNode!,
+                      path: currentCandidate,
+                      trailing: IconButton(
+                        onPressed: () {
+                          ref
+                              .read(analysisControllerProvider(options).notifier)
+                              .addCurrentPathAsPremove();
+                        },
+                        icon: const Icon(Icons.save, size: 20),
+                        tooltip: context.l10n.addCurrentVariation,
+                      ),
+                    ),
+                  ...lines
+                      .where((line) => currentCandidate?.contains(line) != true)
+                      .map(
+                        (line) => _Variation(
+                          options,
+                          startingNode: analysisState.liveMoveNode!,
+                          path: line,
+                          onTap: () {
+                            ref
+                                .read(analysisControllerProvider(options).notifier)
+                                .userJump(UciPath.join(analysisState.pathToLiveMove!, line));
+                          },
+                          trailing: IconButton(
+                            onPressed: () {
+                              ref
+                                  .read(analysisControllerProvider(options).notifier)
+                                  .removePremovePath(line);
+                            },
+                            icon: const Icon(CupertinoIcons.delete, size: 20),
+                            tooltip: context.l10n.delete,
+                          ),
+                        ),
+                      ),
+                ],
               ),
             ),
           ),
         ),
-        if (analysisState.currentPremoveCandidate != null)
-          Row(
-            children: [
-              FilledButton.tonal(
-                onPressed: ref.read(ctrlProvider.notifier).addCurrentPathAsPremove,
-                child: Text(context.l10n.addCurrentVariation),
-              ),
-              _PlayMoveButton(options),
-            ],
-          )
-        else
-          Text(context.l10n.playVariationToCreateConditionalPremoves),
+        _PlayMoveButton(options),
       ],
     );
   }
@@ -72,12 +95,18 @@ class _PlayMoveButton extends ConsumerWidget {
       return const SizedBox.shrink();
     }
 
-    return SizedBox.shrink();
+    return const SizedBox.shrink();
   }
 }
 
 class _Variation extends ConsumerWidget {
-  const _Variation(this.options, {required this.startingNode, required this.path});
+  const _Variation(
+    this.options, {
+    required this.startingNode,
+    required this.path,
+    this.onTap,
+    required this.trailing,
+  });
 
   final AnalysisOptions options;
 
@@ -85,46 +114,43 @@ class _Variation extends ConsumerWidget {
 
   final UciPath path;
 
+  final VoidCallback? onTap;
+
+  final Widget? trailing;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final liveMovePath = ref.watch(analysisControllerProvider(options)).requireValue.pathToLiveMove;
-
     final pieceNotation = ref
         .watch(pieceNotationProvider)
         .maybeWhen(data: (value) => value, orElse: () => defaultAccountPreferences.pieceNotation);
 
-    return ListTile(
-      visualDensity: VisualDensity.compact,
-      onTap: () {
-        ref
-            .read(analysisControllerProvider(options).notifier)
-            .userJump(UciPath.join(liveMovePath!, path));
-      },
-      titleTextStyle: TextStyle(
-        fontSize: 14,
-        fontFamily: pieceNotation == PieceNotation.symbol ? 'ChessFont' : null,
-        color: ColorScheme.of(context).onSurface,
-      ),
-      title: Text.rich(
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        TextSpan(
-          children: startingNode
-              .branchesOn(path)
-              .mapIndexed(
-                (i, branch) => WidgetSpan(
-                  child: _Move(branch: branch, startsLine: i == 0),
-                ),
-              )
-              .toList(growable: false),
-        ),
-      ),
-      trailing: IconButton(
-        onPressed: () {
-          ref.read(analysisControllerProvider(options).notifier).removePremovePath(path);
-        },
-        icon: const Icon(CupertinoIcons.delete, size: 20),
-        tooltip: context.l10n.delete,
+    return InkWell(
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: onTap,
+            child: Text.rich(
+              maxLines: 2,
+              style: TextStyle(
+                fontSize: 14,
+                fontFamily: pieceNotation == PieceNotation.symbol ? 'ChessFont' : null,
+                //color: ColorScheme.of(context).onSurface,
+              ),
+              overflow: TextOverflow.ellipsis,
+              TextSpan(
+                children: startingNode
+                    .branchesOn(path)
+                    .mapIndexed(
+                      (i, branch) => WidgetSpan(
+                        child: _Move(branch: branch, startsLine: i == 0),
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+            ),
+          ),
+          if (trailing != null) trailing!,
+        ],
       ),
     );
   }
