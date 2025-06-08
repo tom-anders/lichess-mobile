@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:math';
 
 import 'package:collection/collection.dart';
+import 'package:dartchess/dartchess.dart';
 import 'package:deep_pick/deep_pick.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
@@ -93,6 +94,19 @@ sealed class Forecast with _$Forecast {
   @useResult
   Forecast remove(UciPath line) {
     return copyWith(lines: lines.remove(line));
+  }
+
+  @useResult
+  Forecast playMove(Move move) {
+    assert(onMyTurn);
+
+    return copyWith(
+      lines: lines
+          .where((line) => line.head == UciCharPair.fromMove(move))
+          .map((line) => line.tail)
+          .toIList(),
+      onMyTurn: false,
+    );
   }
 
   CorrespondenceForecast toApiForecast(Branch currentBranch) => CorrespondenceForecast(

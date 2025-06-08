@@ -21,6 +21,7 @@ class ConditionalPremoves extends ConsumerWidget {
     final analysisState = ref.watch(ctrlProvider).requireValue;
 
     final lines = analysisState.forecast!.lines;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -42,14 +43,36 @@ class ConditionalPremoves extends ConsumerWidget {
           ),
         ),
         if (analysisState.currentPremoveCandidate != null)
-          FilledButton.tonal(
-            onPressed: ref.read(ctrlProvider.notifier).addCurrentPathAsPremove,
-            child: Text(context.l10n.addCurrentVariation),
+          Row(
+            children: [
+              FilledButton.tonal(
+                onPressed: ref.read(ctrlProvider.notifier).addCurrentPathAsPremove,
+                child: Text(context.l10n.addCurrentVariation),
+              ),
+              _PlayMoveButton(options),
+            ],
           )
         else
           Text(context.l10n.playVariationToCreateConditionalPremoves),
       ],
     );
+  }
+}
+
+class _PlayMoveButton extends ConsumerWidget {
+  const _PlayMoveButton(this.options);
+
+  final AnalysisOptions options;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final analysisState = ref.watch(analysisControllerProvider(options)).requireValue;
+
+    if (!analysisState.forecast!.onMyTurn) {
+      return const SizedBox.shrink();
+    }
+
+    return SizedBox.shrink();
   }
 }
 

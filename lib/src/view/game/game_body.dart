@@ -502,6 +502,8 @@ class _GameBottomBar extends ConsumerWidget {
               BottomBarButton(
                 label: context.l10n.analysis,
                 icon: Icons.biotech,
+                // TODO I think this won't be updated if we add premove lines and then leave the screen
+                badgeLabel: gameState.game.correspondenceForecast?.steps.length.toString(),
                 onTap: () {
                   Navigator.of(
                     context,

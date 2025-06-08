@@ -352,6 +352,24 @@ class GameController extends _$GameController {
     }
   }
 
+  void updateForecast(CorrespondenceForecast newForecast, {Move? moveToPlay}) {
+    if (!state.hasValue) {
+      return;
+    }
+
+    ref.withClient(
+      (client) => GameRepository(
+        client,
+      ).saveForecast(gameId: gameFullId, forecast: newForecast, moveToPlay: moveToPlay),
+    );
+
+    state = AsyncValue.data(
+      state.requireValue.copyWith(
+        game: state.requireValue.game.copyWith(correspondenceForecast: newForecast),
+      ),
+    );
+  }
+
   void abortGame() {
     _socketClient.send('abort', null);
   }
