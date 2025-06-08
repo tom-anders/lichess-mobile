@@ -109,11 +109,11 @@ sealed class Forecast with _$Forecast {
     );
   }
 
-  CorrespondenceForecast toApiForecast(Branch currentBranch) => CorrespondenceForecast(
+  CorrespondenceForecast toApiForecast(ViewNode currentNode) => CorrespondenceForecast(
     onMyTurn: onMyTurn,
     steps: lines
         .map(
-          (line) => currentBranch
+          (line) => currentNode
               .branchesOn(line)
               .map(
                 (branch) =>

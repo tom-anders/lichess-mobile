@@ -35,7 +35,7 @@ class ConditionalPremoves extends ConsumerWidget {
                 separatorBuilder: (_, _) => const PlatformDivider(),
                 itemBuilder: (context, index) => _Variation(
                   options,
-                  startingBranch: analysisState.liveMoveBranch!,
+                  startingNode: analysisState.liveMoveNode!,
                   path: lines[index],
                 ),
               ),
@@ -77,11 +77,11 @@ class _PlayMoveButton extends ConsumerWidget {
 }
 
 class _Variation extends ConsumerWidget {
-  const _Variation(this.options, {required this.startingBranch, required this.path});
+  const _Variation(this.options, {required this.startingNode, required this.path});
 
   final AnalysisOptions options;
 
-  final ViewBranch startingBranch;
+  final ViewNode startingNode;
 
   final UciPath path;
 
@@ -109,7 +109,7 @@ class _Variation extends ConsumerWidget {
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
         TextSpan(
-          children: startingBranch
+          children: startingNode
               .branchesOn(path)
               .mapIndexed(
                 (i, branch) => WidgetSpan(

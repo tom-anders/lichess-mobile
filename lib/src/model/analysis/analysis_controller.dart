@@ -218,10 +218,12 @@ class AnalysisController extends _$AnalysisController
     if (options.conditionalPremovesOptions != null) {
       // Premove paths are saved on the server, so if the user has already added some premoves on web,
       // we need to add them to our tree here as well.
-      final lastMainlineNode = _root.mainline.last;
+      final lastMainlineNode = _root.mainline.lastOrNull ?? _root;
       pathToLiveMove = _root.mainlinePath;
 
-      print('initial steps: ${options.conditionalPremovesOptions!.initialSteps}');
+      print(
+        'initial steps: ${options.conditionalPremovesOptions!.initialSteps} path to live ${pathToLiveMove}',
+      );
 
       final paths = <UciPath>[];
       for (final steps in options.conditionalPremovesOptions!.initialSteps) {
@@ -456,11 +458,12 @@ class AnalysisController extends _$AnalysisController
   }
 
   void _syncForecast({Move? moveToPlay}) {
+    final pathToLiveMove = state.requireValue.pathToLiveMove!;
     ref
         .read(gameControllerProvider(options.conditionalPremovesOptions!.gameFullId).notifier)
         .updateForecast(
           state.requireValue.forecast!.toApiForecast(
-            _root.branchAt(state.requireValue.pathToLiveMove!)!,
+            pathToLiveMove.isEmpty ? _root.view : _root.branchAt(pathToLiveMove)!.view,
           ),
           moveToPlay: moveToPlay,
         );
@@ -854,8 +857,11 @@ sealed class AnalysisState with _$AnalysisState implements EvaluationMixinState 
   bool get isEngineAllowed =>
       isComputerAnalysisAllowedAndEnabled && engineSupportedVariants.contains(variant);
 
-  ViewBranch? get liveMoveBranch =>
-      pathToLiveMove != null ? root.branchesOn(pathToLiveMove!).last : null;
+  ViewNode? get liveMoveNode => pathToLiveMove != null
+      ? pathToLiveMove!.isEmpty
+            ? root
+            : root.branchesOn(pathToLiveMove!).last
+      : null;
 
   /// If the current node branches off from the live move and is not yet saved as a premove,
   /// the part of [AnalysisState.currentPath] that would be saved as a premove line. null otherwise.
