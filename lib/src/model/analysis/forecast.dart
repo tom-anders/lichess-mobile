@@ -11,7 +11,6 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:lichess_mobile/src/model/common/node.dart';
 import 'package:lichess_mobile/src/model/common/uci.dart';
 import 'package:lichess_mobile/src/model/game/game.dart';
-import 'package:material_symbols_icons/material_symbols_icons.dart';
 
 part 'forecast.freezed.dart';
 part 'forecast.g.dart';
@@ -25,15 +24,7 @@ const kMaxForecastPlies = 30;
 sealed class Forecast with _$Forecast {
   const Forecast._();
 
-  const factory Forecast(
-    bool onMyTurn,
-    @JsonKey(fromJson: _linesFromJson, toJson: _linesToJson) IList<UciPath> lines,
-  ) = _Forecast;
-
-  factory Forecast.fromJson(Map<String, dynamic> json) => _$ForecastFromJson(json);
-
-  factory Forecast.fromServerJson(Map<String, dynamic> json) =>
-      forecastFromPick(pick(json).required());
+  const factory Forecast(bool onMyTurn, IList<UciPath> lines) = _Forecast;
 
   /// Two forecasts are considered to collide if the current player cannot theoretically play both of them.
   /// For example, for black, 1. e4 e5 and 1. e4 c5 are colliding forecasts, as black cannot play both e5 and c5
@@ -87,7 +78,7 @@ sealed class Forecast with _$Forecast {
     return copyWith(
       lines: lines
           .removeWhere((line) => candidate.contains(line) || _collides(line, candidate))
-          .add(candidate),
+          .insert(0, candidate),
     );
   }
 
@@ -110,7 +101,6 @@ sealed class Forecast with _$Forecast {
   }
 
   CorrespondenceForecast toApiForecast(ViewNode currentNode) => CorrespondenceForecast(
-    onMyTurn: onMyTurn,
     steps: lines
         .map(
           (line) => currentNode
@@ -123,21 +113,4 @@ sealed class Forecast with _$Forecast {
         )
         .toIList(),
   );
-}
-
-Forecast forecastFromPick(RequiredPick pick) => Forecast(
-  pick('onMyTurn').asBoolOrFalse(),
-  IList(
-    pick('steps').asListOrThrow(
-      (pick) => UciPath.fromUciMoves(pick.asListOrThrow((pick) => pick('uci').asStringOrThrow())),
-    ),
-  ),
-);
-
-IList<UciPath> _linesFromJson(String json) =>
-    (jsonDecode(json) as List<dynamic>).map((line) => UciPath(line as String)).toIList();
-
-String _linesToJson(IList<UciPath> lines) {
-  final objs = lines.map((line) => line.value).toList(growable: false);
-  return jsonEncode(objs);
 }

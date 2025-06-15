@@ -146,9 +146,16 @@ class GameRepository {
     final uri = Uri(
       path: moveToPlay != null ? '$gameId/forecasts/${moveToPlay.uci}' : '$gameId/forecasts',
     );
-    final response = await client.post(uri, body: forecast.toJson());
+    final response = await client.post(
+      uri,
+      body: forecast.toJson(),
+      headers: {'Content-type': 'application/json'},
+    );
     if (response.statusCode >= 400) {
-      throw http.ClientException('Failed to save forecast: ${response.statusCode}', uri);
+      throw http.ClientException(
+        'Failed to save forecast: ${response.body} (${response.statusCode})',
+        uri,
+      );
     }
   }
 }

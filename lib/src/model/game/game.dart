@@ -362,17 +362,14 @@ sealed class CorrespondenceClockData with _$CorrespondenceClockData {
 @freezed
 sealed class CorrespondenceForecast with _$CorrespondenceForecast {
   const CorrespondenceForecast._();
-  const factory CorrespondenceForecast({
-    required bool onMyTurn,
-    required IList<IList<CorrespondenceForecastStep>> steps,
-  }) = _CorrespondenceForecast;
+  const factory CorrespondenceForecast({required IList<IList<CorrespondenceForecastStep>> steps}) =
+      _CorrespondenceForecast;
 
   factory CorrespondenceForecast.fromJson(Map<String, dynamic> json) =>
       forecastFromPick(pick(json).required());
 
-  String toJson() => jsonEncode({
-    'onMyTurn': onMyTurn,
-    'steps': steps
+  String toJson() => jsonEncode(
+    steps
         .map(
           (forecast) => forecast
               .mapIndexed(
@@ -386,11 +383,10 @@ sealed class CorrespondenceForecast with _$CorrespondenceForecast {
               .toList(growable: false),
         )
         .toList(growable: false),
-  });
+  );
 }
 
 CorrespondenceForecast forecastFromPick(RequiredPick pick) => CorrespondenceForecast(
-  onMyTurn: pick('onMyTurn').asBoolOrFalse(),
   steps: IList(
     pick('steps').asListOrThrow(
       (pick) => IList(
