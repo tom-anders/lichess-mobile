@@ -138,10 +138,8 @@ class GameController extends _$GameController {
       return;
     }
 
-    if (_socketClient.route != socketUri(gameFullId)) {
+    if (_socketClient.route != socketUri(gameFullId) || !_socketClient.isConnected) {
       _socketClient = _openSocket();
-    } else if (!_socketClient.isConnected) {
-      _socketClient.connect();
     }
   }
 
