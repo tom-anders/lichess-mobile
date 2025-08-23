@@ -62,7 +62,7 @@ class UserScreen extends ConsumerStatefulWidget {
         isScrollControlled: true,
         useRootNavigator: true,
         builder: (context) {
-          return CreateChallengeBottomSheet(user.lightUser);
+          return CreateChallengeBottomSheet(user: user.lightUser);
         },
       );
     }

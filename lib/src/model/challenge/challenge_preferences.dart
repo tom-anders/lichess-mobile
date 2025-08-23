@@ -86,7 +86,7 @@ sealed class ChallengePrefs with _$ChallengePrefs implements Serializable {
       ? variant != Variant.fromPosition
       : variant == Variant.standard;
 
-  ChallengeRequest makeRequest(LightUser destUser, [String? initialFen]) {
+  ChallengeRequest makeRequest(LightUser? destUser, [String? initialFen]) {
     return ChallengeRequest(
       destUser: destUser,
       variant: variant,

@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:math';
 
+import 'package:dartchess/dartchess.dart';
 import 'package:deep_pick/deep_pick.dart';
 import 'package:fast_immutable_collections/fast_immutable_collections.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import 'package:lichess_mobile/src/model/challenge/challenge.dart';
+import 'package:lichess_mobile/src/model/common/game.dart';
 import 'package:lichess_mobile/src/model/common/id.dart';
 import 'package:lichess_mobile/src/network/aggregator.dart';
 import 'package:lichess_mobile/src/network/http.dart';
@@ -44,17 +47,35 @@ class ChallengeRepository {
     return client.readJson(uri, mapper: Challenge.fromServerJson);
   }
 
-  Future<Challenge> create(ChallengeRequest challenge) {
-    final uri = Uri(path: '/api/challenge/${challenge.destUser.id}');
-    return client.postReadJson(
+  Future<Challenge> create(ChallengeRequest challengeReq) async {
+    final uri = Uri(path: '/api/challenge/${challengeReq.destUser?.id ?? 'open'}');
+    final challenge = await client.postReadJson(
       uri,
-      body: challenge.toRequestBody,
+      body: challengeReq.toRequestBody,
       mapper: Challenge.fromServerJson,
     );
+
+    // The API doesn't directly allow us to create an open challenge and also join it in one step,
+    // so after having created the challenge, we immediately accept it if it's an open challenge.
+    if (challengeReq.destUser == null) {
+      final side = switch (challengeReq.sideChoice) {
+        SideChoice.white => Side.white,
+        SideChoice.black => Side.black,
+        SideChoice.random => Side.values[Random().nextInt(Side.values.length)],
+      };
+      await accept(challenge.id, side: side);
+    }
+
+    print('created challenge: ${challenge.urlWhite} ${challenge.urlBlack}');
+
+    return challenge;
   }
 
-  Future<void> accept(ChallengeId id) async {
-    final uri = Uri(path: '/api/challenge/$id/accept');
+  Future<void> accept(ChallengeId id, {Side? side}) async {
+    final uri = Uri(
+      path: '/api/challenge/$id/accept',
+      queryParameters: {if (side != null) 'color': side.name},
+    );
     final response = await client.post(uri);
 
     if (response.statusCode >= 400) {
