@@ -127,14 +127,22 @@ class CreateGameService {
     );
   }
 
+  Future<Challenge> newRealTimeChallenge(ChallengeRequest challengeReq) async {
+    assert(challengeReq.timeControl == ChallengeTimeControlType.clock);
+
+    if (_challengeConnection != null) {
+      throw StateError('Already creating a challenge.');
+    }
+
+    return await challengeRepository.create(challengeReq);
+  }
+
   /// Create a new real time challenge.
   ///
   /// Will listen to the challenge socket and await the response from the destinated user.
   /// Returns the challenge, along with [GameFullId] if the challenge was accepted,
   /// or the [ChallengeDeclineReason] if the challenge was declined.
-  Future<ChallengeResponse> newRealTimeChallenge(ChallengeRequest challengeReq) async {
-    assert(challengeReq.timeControl == ChallengeTimeControlType.clock);
-
+  Future<ChallengeResponse> waitForChallengeResponse(Challenge challenge) {
     if (_challengeConnection != null) {
       throw StateError('Already creating a challenge.');
     }
@@ -143,10 +151,6 @@ class CreateGameService {
     final completer = Completer<ChallengeResponse>()..future.whenComplete(dispose);
 
     try {
-      _log.info('Creating new challenge game');
-
-      final challenge = await challengeRepository.create(challengeReq);
-
       final socketPool = ref.read(socketPoolProvider);
       final socketClient = socketPool.open(
         Uri(
@@ -169,7 +173,9 @@ class CreateGameService {
           if (event.topic == 'reload') {
             try {
               final updatedChallenge = await challengeRepository.show(challenge.id);
+              print('updatedChallenge: $updatedChallenge');
               if (updatedChallenge.gameFullId != null) {
+                print('completing...');
                 completer.complete(
                   ChallengeResponse.accepted(gameFullId: updatedChallenge.gameFullId!),
                 );

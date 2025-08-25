@@ -66,8 +66,6 @@ class ChallengeRepository {
       await accept(challenge.id, side: side);
     }
 
-    print('created challenge: ${challenge.urlWhite} ${challenge.urlBlack}');
-
     return challenge;
   }
 

@@ -134,17 +134,17 @@ class _LobbyScreenLoadingContentState extends State<LobbyScreenLoadingContent> {
   }
 }
 
-class ChallengeLoadingContent extends StatefulWidget {
-  const ChallengeLoadingContent(this.challenge, this.cancelChallenge);
+class UserChallengeLoadingContent extends StatefulWidget {
+  const UserChallengeLoadingContent(this.challenge, this.cancelChallenge);
 
   final ChallengeRequest challenge;
   final Future<void> Function() cancelChallenge;
 
   @override
-  State<ChallengeLoadingContent> createState() => _ChallengeLoadingContentState();
+  State<UserChallengeLoadingContent> createState() => _UserChallengeLoadingContentState();
 }
 
-class _ChallengeLoadingContentState extends State<ChallengeLoadingContent> {
+class _UserChallengeLoadingContentState extends State<UserChallengeLoadingContent> {
   Future<void>? _cancelChallengeFuture;
 
   @override
@@ -199,6 +199,107 @@ class _ChallengeLoadingContentState extends State<ChallengeLoadingContent> {
         ),
         BottomBar(
           children: [
+            FutureBuilder(
+              future: _cancelChallengeFuture,
+              builder: (context, snapshot) {
+                return BottomBarButton(
+                  onTap: snapshot.connectionState == ConnectionState.waiting
+                      ? null
+                      : () async {
+                          setState(() {
+                            _cancelChallengeFuture = widget.cancelChallenge();
+                          });
+                          try {
+                            await _cancelChallengeFuture;
+                          } catch (_) {
+                            if (context.mounted) {
+                              showSnackBar(
+                                context,
+                                'Error cancelling challenge',
+                                type: SnackBarType.error,
+                              );
+                            }
+                          }
+                          if (context.mounted) {
+                            Navigator.of(context, rootNavigator: true).pop();
+                          }
+                        },
+                  label: context.l10n.cancel,
+                  showLabel: true,
+                  icon: CupertinoIcons.xmark,
+                );
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class OpenChallengeLoadingContent extends StatefulWidget {
+  const OpenChallengeLoadingContent(this.challenge, this.cancelChallenge);
+
+  final Challenge challenge;
+  final Future<void> Function() cancelChallenge;
+
+  @override
+  State<OpenChallengeLoadingContent> createState() => _OpenChallengeLoadingContentState();
+}
+
+class _OpenChallengeLoadingContentState extends State<OpenChallengeLoadingContent> {
+  Future<void>? _cancelChallengeFuture;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Expanded(
+          child: SafeArea(
+            child: GameLayout(
+              orientation: Side.white,
+              fen: kEmptyFen,
+              topTable: const SizedBox.shrink(),
+              bottomTable: const SizedBox.shrink(),
+              moves: const [],
+              boardOverlay: Card(
+                color: Theme.of(context).dialogTheme.backgroundColor,
+                elevation: 2.0,
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(context.l10n.toInviteSomeoneToPlayGiveThisUrl),
+                      // TODO display as copyable text
+                      Text('${kLichessHost}/${widget.challenge.id}'),
+                      Text(context.l10n.theFirstPersonToComeOnThisUrlWillPlayWithYou),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            widget.challenge.perf.icon,
+                            color: DefaultTextStyle.of(context).style.color,
+                          ),
+                          const SizedBox(width: 8.0),
+                          Text(
+                            widget.challenge.timeIncrement?.display ??
+                                '${context.l10n.daysPerTurn}: ${widget.challenge.days}',
+                            style: TextTheme.of(context).titleLarge,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        BottomBar(
+          children: [
+            // TODO add share button
             FutureBuilder(
               future: _cancelChallengeFuture,
               builder: (context, snapshot) {
