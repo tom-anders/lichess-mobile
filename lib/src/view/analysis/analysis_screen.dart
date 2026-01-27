@@ -12,6 +12,7 @@ import 'package:lichess_mobile/src/model/engine/evaluation_preferences.dart';
 import 'package:lichess_mobile/src/model/game/player.dart';
 import 'package:lichess_mobile/src/model/settings/general_preferences.dart';
 import 'package:lichess_mobile/src/styles/styles.dart';
+import 'package:lichess_mobile/src/styles/lichess_colors.dart';
 import 'package:lichess_mobile/src/utils/duration.dart';
 import 'package:lichess_mobile/src/utils/focus_detector.dart';
 import 'package:lichess_mobile/src/utils/immersive_mode.dart';
@@ -46,6 +47,7 @@ import 'package:lichess_mobile/src/widgets/user.dart';
 import 'package:lichess_mobile/src/widgets/variant_app_bar_title.dart';
 import 'package:logging/logging.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 extension _AnalysisGameResultColor on AnalysisGameResult {
   Color? colorFor(Side side, BuildContext context) => switch (this) {
@@ -58,6 +60,11 @@ extension _AnalysisGameResultColor on AnalysisGameResult {
 }
 
 final _logger = Logger('AnalysisScreen');
+
+GlobalKey _engineButtonKey = GlobalKey();
+GlobalKey _menuButtonKey = GlobalKey();
+GlobalKey _openingExplorerIndicatorKey = GlobalKey();
+GlobalKey _conditionalPremovesIndicatorKey = GlobalKey();
 
 class AnalysisScreen extends StatelessWidget {
   const AnalysisScreen({required this.options, super.key});
@@ -209,20 +216,62 @@ class _AnalysisMenu extends ConsumerWidget {
   }
 }
 
-class _Body extends ConsumerWidget {
+class _Body extends ConsumerStatefulWidget {
   const _Body({required this.options, required this.controller});
 
   final TabController controller;
   final AnalysisOptions options;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_Body> createState() => _BodyState();
+}
+
+class _BodyState extends ConsumerState<_Body> {
+  @override
+  void initState() {
+    super.initState();
+
+    final showcaseKeys = switch (widget.options) {
+      Standalone() ||
+      ArchivedGame() ||
+      Pgn() => [_openingExplorerIndicatorKey, _engineButtonKey, _menuButtonKey],
+      ActiveCorrespondenceGame() => <GlobalKey>[
+        _openingExplorerIndicatorKey,
+        _conditionalPremovesIndicatorKey,
+      ],
+    };
+
+    ShowcaseView.register(
+      disableMovingAnimation: true,
+      globalTooltipActionConfig: TooltipActionConfig(
+        position: TooltipActionPosition.outside,
+        alignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+      ),
+      disableBarrierInteraction: true,
+      globalTooltipActions: [
+        TooltipActionButton(
+          type: TooltipDefaultActionType.next,
+          textStyle: const TextStyle(color: Colors.white),
+        ),
+      ],
+    );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // TODO store in prefs whether we have shown this before
+      ShowcaseView.get().startShowCase(showcaseKeys, delay: const Duration(milliseconds: 200));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final analysisPrefs = ref.watch(analysisPreferencesProvider);
     final enginePrefs = ref.watch(engineEvaluationPreferencesProvider);
     final showEvaluationGauge = analysisPrefs.showEvaluationGauge;
     final numEvalLines = enginePrefs.numEvalLines;
 
-    final ctrlProvider = analysisControllerProvider(options);
+    final ctrlProvider = analysisControllerProvider(widget.options);
     final analysisState = ref.watch(ctrlProvider).requireValue;
 
     final isEngineAvailable = analysisState.isEngineAvailable(enginePrefs);
@@ -264,7 +313,7 @@ class _Body extends ConsumerWidget {
         result: result?.resultToString(pov.opposite),
         resultColor: result?.colorFor(pov.opposite, context),
       );
-    } else if (options case Pgn()) {
+    } else if (widget.options case Pgn()) {
       // PGN analysis - try to get player info from PGN headers
       final footerPlayer = analysisState.playerFromPgnHeaders(pov);
       final headerPlayer = analysisState.playerFromPgnHeaders(pov.opposite);
@@ -295,15 +344,18 @@ class _Body extends ConsumerWidget {
     return FocusDetector(
       onFocusRegained: () {
         if (context.mounted) {
-          ref.read(analysisControllerProvider(options).notifier).onFocusRegained();
+          ref.read(analysisControllerProvider(widget.options).notifier).onFocusRegained();
         }
       },
       child: AnalysisLayout(
-        tabController: controller,
+        tabController: widget.controller,
         pov: pov,
         sideToMove: analysisState.currentPosition.turn,
-        boardBuilder: (context, boardSize, borderRadius) =>
-            GameAnalysisBoard(options: options, boardSize: boardSize, boardRadius: borderRadius),
+        boardBuilder: (context, boardSize, borderRadius) => GameAnalysisBoard(
+          options: widget.options,
+          boardSize: boardSize,
+          boardRadius: borderRadius,
+        ),
         boardHeader: boardHeader,
         boardFooter: boardFooter,
         engineGaugeBuilder: showEvaluationGauge && analysisState.hasAvailableEval(enginePrefs)
@@ -318,7 +370,7 @@ class _Body extends ConsumerWidget {
                 analyisState: analysisState,
               )
             : null,
-        bottomBar: _BottomBar(options: options),
+        bottomBar: _BottomBar(options: widget.options),
         pockets: analysisState.currentPosition.pockets,
         children: [
           ExplorerView(
@@ -334,11 +386,27 @@ class _Body extends ConsumerWidget {
               ref.read(ctrlProvider.notifier).onUserMove(move);
             },
           ),
-          AnalysisTreeView(options),
-          if (options case ArchivedGame())
-            ServerAnalysisSummary(options)
-          else if (options case ActiveCorrespondenceGame())
-            ConditionalPremoves(options),
+          Stack(
+            children: [
+              AnalysisTreeView(widget.options),
+              _SwipeHint(
+                showcaseKey: _openingExplorerIndicatorKey,
+                direction: _SwipeDirection.right,
+                title: context.l10n.openingExplorer,
+                subtitle: 'Swipe right to access to access the opening explorer.',
+              ),
+              _SwipeHint(
+                showcaseKey: _conditionalPremovesIndicatorKey,
+                direction: _SwipeDirection.left,
+                title: 'TODO',
+                subtitle: 'TODO',
+              ),
+            ],
+          ),
+          if (widget.options case ArchivedGame())
+            ServerAnalysisSummary(widget.options)
+          else if (widget.options case ActiveCorrespondenceGame())
+            ConditionalPremoves(widget.options),
         ],
       ),
     );
@@ -434,43 +502,53 @@ class _BottomBar extends ConsumerWidget {
 
     return BottomBar(
       children: [
-        BottomBarButton(
-          label: context.l10n.menu,
-          onTap: () {
-            _showAnalysisMenu(context, ref);
-          },
-          icon: Icons.menu,
+        Showcase(
+          key: _menuButtonKey,
+          title: context.l10n.menu,
+          description: 'Tap here for "Learn from your mistakes" and more', // TODO l10n
+          child: BottomBarButton(
+            label: context.l10n.menu,
+            onTap: () {
+              _showAnalysisMenu(context, ref);
+            },
+            icon: Icons.menu,
+          ),
         ),
         if (analysisState.isComputerAnalysisAllowed)
-          Builder(
-            builder: (context) {
-              Future<void>? toggleFuture;
-              return FutureBuilder(
-                future: toggleFuture,
-                builder: (context, snapshot) {
-                  return EngineButton(
-                    filters: (
-                      id: analysisState.evaluationContext.id,
-                      path: analysisState.currentPath,
-                    ),
-                    savedEval: analysisState.currentNode.eval,
-                    onTap:
-                        analysisState.isEngineAllowed &&
-                            snapshot.connectionState != ConnectionState.waiting
-                        ? () async {
-                            toggleFuture = ref.read(ctrlProvider.notifier).toggleEngine();
-                            try {
-                              await toggleFuture;
-                            } finally {
-                              toggleFuture = null;
+          Showcase(
+            key: _engineButtonKey,
+            title: context.l10n.toggleLocalEvaluation,
+            description: 'Long-press to "go deeper"',
+            child: Builder(
+              builder: (context) {
+                Future<void>? toggleFuture;
+                return FutureBuilder(
+                  future: toggleFuture,
+                  builder: (context, snapshot) {
+                    return EngineButton(
+                      filters: (
+                        id: analysisState.evaluationContext.id,
+                        path: analysisState.currentPath,
+                      ),
+                      savedEval: analysisState.currentNode.eval,
+                      onTap:
+                          analysisState.isEngineAllowed &&
+                              snapshot.connectionState != ConnectionState.waiting
+                          ? () async {
+                              toggleFuture = ref.read(ctrlProvider.notifier).toggleEngine();
+                              try {
+                                await toggleFuture;
+                              } finally {
+                                toggleFuture = null;
+                              }
                             }
-                          }
-                        : null,
-                    goDeeper: () => ref.read(ctrlProvider.notifier).requestEval(goDeeper: true),
-                  );
-                },
-              );
-            },
+                          : null,
+                      goDeeper: () => ref.read(ctrlProvider.notifier).requestEval(goDeeper: true),
+                    );
+                  },
+                );
+              },
+            ),
           ),
         RepeatButton(
           onLongPress: analysisState.canGoBack ? () => _moveBackward(ref) : null,
@@ -725,6 +803,121 @@ class _AnalysisPlayerWidget extends StatelessWidget {
               style: TextStyle(fontWeight: FontWeight.w400, color: textShade(context, 0.8)),
             ),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+enum _SwipeDirection { right, left }
+
+class _SwipeHint extends StatelessWidget {
+  const _SwipeHint({
+    required this.showcaseKey,
+    required this.direction,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final GlobalKey<State<StatefulWidget>> showcaseKey;
+
+  final _SwipeDirection direction;
+
+  final String title;
+
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      left: 40,
+      right: 40,
+      top: 0,
+      bottom: 100,
+      child: Center(
+        child: Showcase.withWidget(
+          key: showcaseKey,
+          container: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _SwipeIndicator(direction: direction),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(subtitle, style: const TextStyle(color: Colors.white70, fontSize: 14)),
+              // FilledButton(
+              //   onPressed: () {
+              //     ShowcaseView.get().next();
+              //   },
+              //   child: Text(context.l10n.next),
+              // ),
+            ],
+          ),
+          // targetPadding: const EdgeInsets.all(16),
+          // targetBorderRadius: BorderRadius.circular(12),
+          child: const SizedBox.shrink(),
+        ),
+      ),
+    );
+  }
+}
+
+class _SwipeIndicator extends StatefulWidget {
+  const _SwipeIndicator({required this.direction});
+
+  final _SwipeDirection direction;
+
+  @override
+  State<_SwipeIndicator> createState() => _SwipeIndicatorState();
+}
+
+class _SwipeIndicatorState extends State<_SwipeIndicator> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(duration: const Duration(milliseconds: 1400), vsync: this)
+      ..repeat();
+
+    final sign = widget.direction == _SwipeDirection.right ? -1.0 : 1.0;
+
+    _slideAnimation = Tween<Offset>(
+      begin: Offset(sign * 0.3, 0),
+      end: Offset(sign * -0.3, 0),
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const iconSize = 35.0;
+    final icon = widget.direction == _SwipeDirection.right ? Icons.arrow_forward : Icons.arrow_back;
+    return SlideTransition(
+      position: _slideAnimation,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: iconSize, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 8),
+          Icon(
+            icon,
+            size: iconSize,
+            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+          ),
         ],
       ),
     );
